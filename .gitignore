@@ -17,3 +17,5 @@ out
 
 # src
 src/main/groovy/net/minecraftforge/gradleutils/GradleUtils.groovy
+src/main/groovy/net/minecraftforge/gradleutils/ChangelogUtils.groovy
+src/main/groovy/net/minecraftforge/gradleutils/tasks/GenerateChangelogTask.java

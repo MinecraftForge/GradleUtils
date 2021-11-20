@@ -1,0 +1,104 @@
+/*
+ * GradleUtils
+ * Copyright (C) 2021 Forge Development LLC
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+ * USA
+ */
+
+package net.minecraftforge.gradleutils.tasks;
+
+import net.minecraftforge.gradleutils.ChangelogUtils;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.Property;
+import org.gradle.api.tasks.*;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+
+public abstract class GenerateChangelogTask extends DefaultTask
+{
+
+    public GenerateChangelogTask()
+    {
+        super();
+
+        //Setup defaults: Using merge-base based text changelog generation of the local project into build/changelog.txt
+        getGitDirectory().convention(getProject().getLayout().getProjectDirectory().dir(".git"));
+        getUseMarkdown().convention(false);
+        getOutputFile().convention(getProject().getLayout().getBuildDirectory().file("changelog.txt"));
+        getStartingCommit().convention("");
+        getStartingTag().convention("");
+        getProjectUrl().convention("");
+    }
+
+    @InputDirectory
+    @PathSensitive(PathSensitivity.NONE)
+    public abstract DirectoryProperty getGitDirectory();
+
+    @Input
+    public abstract Property<Boolean> getUseMarkdown();
+
+    @OutputFile
+    public abstract RegularFileProperty getOutputFile();
+
+    @Input
+    public abstract Property<String> getStartingCommit();
+
+    @Input
+    public abstract Property<String> getStartingTag();
+
+    @Input
+    public abstract Property<String> getProjectUrl();
+
+    @TaskAction
+    public void generate() {
+        final String startingCommit = getStartingCommit().getOrElse("");
+        final String startingTag = getStartingTag().getOrElse("");
+
+        if (!startingCommit.isBlank() && !startingTag.isBlank()) {
+            throw new IllegalStateException("Both starting commit and tag are supplied to the task: " + getName() + ". Only supply one!");
+        }
+
+        String changelog = "";
+        if (startingCommit.isBlank() && startingTag.isBlank()) {
+            changelog = ChangelogUtils.generateChangelog(getGitDirectory().getAsFile().get(), getProjectUrl().get(), getUseMarkdown().get());
+        }
+        else if (startingCommit.isBlank())  {
+            changelog = ChangelogUtils.generateChangelog(getGitDirectory().getAsFile().get(), getProjectUrl().get(), getUseMarkdown().get(), startingTag);
+        }
+        else {
+            changelog = ChangelogUtils.generateChangelogFromCommit(getGitDirectory().getAsFile().get(), getProjectUrl().get(), getUseMarkdown().get(), startingCommit);
+        }
+
+        final File outputFile = getOutputFile().getAsFile().get();
+        outputFile.getParentFile().mkdirs();
+        if (outputFile.exists()) {
+            outputFile.delete();
+        }
+
+        try
+        {
+            Files.writeString(outputFile.toPath(), changelog);
+        }
+        catch (IOException e)
+        {
+            throw new IllegalStateException("Failed to write changelog to file: " + outputFile.getAbsolutePath());
+        }
+    }
+}
