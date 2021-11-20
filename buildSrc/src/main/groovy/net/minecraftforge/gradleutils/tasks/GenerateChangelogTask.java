@@ -40,7 +40,7 @@ public abstract class GenerateChangelogTask extends DefaultTask
 
         //Setup defaults: Using merge-base based text changelog generation of the local project into build/changelog.txt
         getGitDirectory().convention(getProject().getLayout().getProjectDirectory().dir(".git"));
-        getUseMarkdown().convention(false);
+        getBuildMarkdown().convention(false);
         getOutputFile().convention(getProject().getLayout().getBuildDirectory().file("changelog.txt"));
         getStartingCommit().convention("");
         getStartingTag().convention("");
@@ -52,7 +52,7 @@ public abstract class GenerateChangelogTask extends DefaultTask
     public abstract DirectoryProperty getGitDirectory();
 
     @Input
-    public abstract Property<Boolean> getUseMarkdown();
+    public abstract Property<Boolean> getBuildMarkdown();
 
     @OutputFile
     public abstract RegularFileProperty getOutputFile();
@@ -77,13 +77,13 @@ public abstract class GenerateChangelogTask extends DefaultTask
 
         String changelog = "";
         if (startingCommit.isBlank() && startingTag.isBlank()) {
-            changelog = ChangelogUtils.generateChangelog(getGitDirectory().getAsFile().get(), getProjectUrl().get(), getUseMarkdown().get());
+            changelog = ChangelogUtils.generateChangelog(getGitDirectory().getAsFile().get(), getProjectUrl().get(), getBuildMarkdown().get());
         }
         else if (startingCommit.isBlank())  {
-            changelog = ChangelogUtils.generateChangelog(getGitDirectory().getAsFile().get(), getProjectUrl().get(), getUseMarkdown().get(), startingTag);
+            changelog = ChangelogUtils.generateChangelog(getGitDirectory().getAsFile().get(), getProjectUrl().get(), getBuildMarkdown().get(), startingTag);
         }
         else {
-            changelog = ChangelogUtils.generateChangelogFromCommit(getGitDirectory().getAsFile().get(), getProjectUrl().get(), getUseMarkdown().get(), startingCommit);
+            changelog = ChangelogUtils.generateChangelogFromCommit(getGitDirectory().getAsFile().get(), getProjectUrl().get(), getBuildMarkdown().get(), startingCommit);
         }
 
         final File outputFile = getOutputFile().getAsFile().get();

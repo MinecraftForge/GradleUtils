@@ -110,7 +110,7 @@ publishing {
 
 task generateChangelog(type: GenerateChangelogTask) {
     projectUrl = GradleUtils.buildProjectUrl("GradleUtils")
-    usesMarkdown = false
+    buildMarkdown = false
 }
 
 build.dependsOn generateChangelog
