@@ -24,6 +24,7 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.errors.RepositoryNotFoundException
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.transport.URIish
 import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.authentication.http.BasicAuthentication
@@ -234,5 +235,70 @@ class GradleUtils {
      */
     static String buildProjectUrl(String organisation, String project) {
         return "https://github.com/$organisation/$project";
+    }
+
+    /**
+     * Builds the github url from the origin remotes push uri.
+     * Processes the URI from three different variants into the URL:
+     * 1) If the protocol is http(s) based then ".git" is stripped and returned as url.
+     * 2) If the protocol is ssh and does contain authentication information then the
+     *    username and password are stripped and the url is returned without the ".git"
+     *    ending.
+     * 3) If the protocol is ssh and does not contain authentication information then
+     *    the protocol is switched to https and the ".git" ending is stripped.
+     *
+     * @param projectDir THe project directory.
+     * @return
+     */
+    static String buildProjectUrl(final File projectDir) {
+        Git git = Git.open(projectDir); //Create a git workspace.
+
+        def remotes = git.remoteList().call(); //Get all remotes.
+        if (remotes.size() == 0)
+            throw new IllegalStateException("No remotes found in " + projectDir);
+
+        //Get the origin remote.
+        def originRemote = remotes.toList().stream()
+            .filter(r -> r.getName().equals("origin"))
+            .findFirst()
+            .orElse(null);
+
+        //We do not have an origin named remote
+        if (originRemote == null)
+        {
+            return "";
+        }
+
+        //Get the origin push url.
+        def originUrl = originRemote.getURIs().toList().stream()
+            .findFirst()
+            .orElse(null);
+
+        //We do not have a origin url
+        if (originUrl == null)
+        {
+            return "";
+        }
+
+        //Grab its string representation and process.
+        def originUrlString = originUrl.toString();
+        //Determine the protocol
+        if (originUrlString.startsWith("ssh")) {
+            //If ssh then check for authentication data.
+            if (originUrlString.contains("@")) {
+                //We have authentication data: Strip it.
+                return "https://" + originUrlString.substring(originUrlString.indexOf("@") + 1).replace(".git", "")
+            } else
+            {
+                //No authentication data: Switch to https.
+                return "https://" + originUrlString.substring(6).replace(".git", "");
+            }
+        } else if (originUrlString.startsWith("http")) {
+            //Standard http protocol: Strip the ".git" ending only.
+            return originUrlString.replace(".git", "")
+        }
+
+        //What other case exists? Just to be sure lets return this.
+        return originUrlString;
     }
 }

@@ -21,6 +21,7 @@
 package net.minecraftforge.gradleutils.tasks;
 
 import net.minecraftforge.gradleutils.ChangelogUtils;
+import net.minecraftforge.gradleutils.GradleUtils;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
@@ -44,7 +45,7 @@ public abstract class GenerateChangelogTask extends DefaultTask
         getOutputFile().convention(getProject().getLayout().getBuildDirectory().file("changelog.txt"));
         getStartingCommit().convention("");
         getStartingTag().convention("");
-        getProjectUrl().convention("");
+        getProjectUrl().convention(GradleUtils.buildProjectUrl(getProject().getProjectDir()));
     }
 
     @InputDirectory
