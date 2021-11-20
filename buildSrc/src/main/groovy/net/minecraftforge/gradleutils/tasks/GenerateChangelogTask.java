@@ -77,13 +77,13 @@ public abstract class GenerateChangelogTask extends DefaultTask
 
         String changelog = "";
         if (startingCommit.isBlank() && startingTag.isBlank()) {
-            changelog = ChangelogUtils.generateChangelog(getGitDirectory().getAsFile().get(), getProjectUrl().get(), getBuildMarkdown().get());
+            changelog = ChangelogUtils.generateChangelog(getGitDirectory().getAsFile().get(), getProjectUrl().get(), !getBuildMarkdown().get());
         }
         else if (startingCommit.isBlank())  {
-            changelog = ChangelogUtils.generateChangelog(getGitDirectory().getAsFile().get(), getProjectUrl().get(), getBuildMarkdown().get(), startingTag);
+            changelog = ChangelogUtils.generateChangelog(getGitDirectory().getAsFile().get(), getProjectUrl().get(), !getBuildMarkdown().get(), startingTag);
         }
         else {
-            changelog = ChangelogUtils.generateChangelogFromCommit(getGitDirectory().getAsFile().get(), getProjectUrl().get(), getBuildMarkdown().get(), startingCommit);
+            changelog = ChangelogUtils.generateChangelogFromCommit(getGitDirectory().getAsFile().get(), getProjectUrl().get(), !getBuildMarkdown().get(), startingCommit);
         }
 
         final File outputFile = getOutputFile().getAsFile().get();
