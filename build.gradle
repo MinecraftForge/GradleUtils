@@ -1,3 +1,4 @@
+import net.minecraftforge.gradleutils.ChangelogUtils
 import net.minecraftforge.gradleutils.GradleUtils
 import net.minecraftforge.gradleutils.tasks.GenerateChangelogTask
 
@@ -55,12 +56,6 @@ license {
     exclude '**/*.properties'
 }
 
-
-task generateChangelog(type: GenerateChangelogTask) {
-}
-
-build.dependsOn generateChangelog
-
 gradlePlugin {
     plugins {
         gradleutils {
@@ -70,12 +65,12 @@ gradlePlugin {
     }
 }
 
+ChangelogUtils.setupChangelogGeneration(project);
+
 publishing {
     publications {
         pluginMaven(MavenPublication) {
             artifact sourcesJar
-            artifact tasks.generateChangelog
-
 
             pom {
                 name = 'Gradle Utils'

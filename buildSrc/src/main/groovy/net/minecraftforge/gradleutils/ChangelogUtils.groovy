@@ -20,6 +20,7 @@
 
 package net.minecraftforge.gradleutils
 
+import net.minecraftforge.gradleutils.tasks.GenerateChangelogTask
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.ListBranchCommand
 import org.eclipse.jgit.errors.MissingObjectException
@@ -30,7 +31,14 @@ import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.revwalk.RevSort
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.revwalk.filter.RevFilter
+import org.gradle.api.Action
+import org.gradle.api.Project
+import org.gradle.api.publish.Publication
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenArtifact
+import org.gradle.api.publish.maven.MavenPublication
 
+import java.util.function.Consumer
 import java.util.function.Function
 import java.util.regex.Pattern
 
@@ -550,5 +558,117 @@ class ChangelogUtils {
             return null;
 
         return commitList.get(commitList.size() - 1);
+    }
+
+    /**
+     * Sets up the default merge-base based changelog generation on the current project.
+     * Creating the default task, setting it as a dependency of the build task and adding it
+     * as a publishing artifact to any maven publication in the project.
+     *
+     * @param project The project to add changelog generation to.
+     */
+    static void setupChangelogGeneration(final Project project) {
+        //Generate the default task
+        final GenerateChangelogTask task =  project.getTasks().create("createChangelog", GenerateChangelogTask.class);
+
+        //Setup publishing, add the task as a publishing artifact.
+        setupChangelogGenerationOnAllPublishTasks(project)
+
+        //Setup the task as a dependency of the build task.
+        project.getTasks().getByName("build").dependsOn(task)
+    }
+
+    /**
+     * Sets up the tag based changelog generation on the current project.
+     * Creating the default task, setting it as a dependency of the build task and adding it
+     * as a publishing artifact to any maven publication in the project.
+     *
+     * @param project The project to add changelog generation to.
+     * @param tag The name of the tag to start the changelog from.
+     */
+    static void setupChangelogGenerationFromTag(final Project project, final String tag) {
+        //Create the task and configure it for tag based generation.
+        final GenerateChangelogTask task = project.getTasks().create("createChangelog", GenerateChangelogTask.class);
+        task.getStartingTag().set(tag);
+
+        //Setup publishing, add the task as a publishing artifact.
+        setupChangelogGenerationOnAllPublishTasks(project)
+
+        //Setup the task as a dependency of the build task.
+        project.getTasks().getByName("build").dependsOn(task)
+    }
+
+    /**
+     * Sets up the commit based changelog generation on the current project.
+     * Creating the default task, setting it as a dependency of the build task and adding it
+     * as a publishing artifact to any maven publication in the project.
+     *
+     * @param project The project to add changelog generation to.
+     * @param commit The commit hash to start the changelog from.
+     */
+    static void setupChangelogGenerationFromCommit(final Project project, final String commit) {
+        //Create the task and configure it for commit based generation.
+        final GenerateChangelogTask task = project.getTasks().create("createChangelog", GenerateChangelogTask.class);
+        task.getStartingCommit().set(commit);
+
+        //Setup publishing, add the task as a publishing artifact.
+        setupChangelogGenerationOnAllPublishTasks(project)
+
+        //Setup the task as a dependency of the build task.
+        project.getTasks().getByName("build").dependsOn(task)
+    }
+
+    /**
+     * Sets up the changelog generation on all maven publications in the project.
+     * Adds the `createChangelog` task as a publishing artifact producing task to all MAVEN publications.
+     *
+     * @param project The project to add changelog generation publishing to.
+     */
+    private static void setupChangelogGenerationOnAllPublishTasks(final Project project) {
+        //Grab the extension.
+        final PublishingExtension publishingExtension = project.getExtensions().getByName("publishing") as PublishingExtension
+        //Get each extension and add the publishing task as a publishing artifact.
+        publishingExtension.getPublications().all(new Action<Publication>() {
+            @Override
+            void execute(final Publication publication) {
+                if (publication instanceof MavenPublication)
+                {
+                    //Add the task as a publishing artifact.
+                    setupChangelogGenerationForPublishing(project, publication as MavenPublication);
+                }
+            }
+        })
+    }
+
+    /**
+     * Sets up the changelog generation on the given maven publication.
+     *
+     * @param project The project in question.
+     * @param publication The publication in question.
+     */
+    private static void setupChangelogGenerationForPublishing(final Project project, final MavenPublication publication) {
+        //Check if we have the correct task.
+        if (project.getTasks().getByPath("createChangelog") == null)
+            throw new IllegalArgumentException("The project does not have a createChangelog task.");
+
+        //After evaluation run the publishing modifier.
+        project.afterEvaluate(new Action<Project>() {
+            @Override
+            void execute(final Project evaluatedProject) {
+                //Grab the task
+                final GenerateChangelogTask task = project.getTasks().getByPath("createChangelog") as GenerateChangelogTask;
+                //Add a new changelog artifact and publish it.
+                publication.artifact(task.getOutputFile().get(), new Action<MavenArtifact>() {
+                    @Override
+                    void execute(final MavenArtifact mavenArtifact) {
+                        mavenArtifact.builtBy(task)
+                        mavenArtifact.classifier = "changelog";
+                        mavenArtifact.extension = "txt";
+                    }
+                })
+            }
+        })
+
+
     }
 }

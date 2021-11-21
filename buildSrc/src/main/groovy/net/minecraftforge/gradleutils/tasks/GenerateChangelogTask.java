@@ -40,7 +40,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.function.BiFunction;
 
-public abstract class GenerateChangelogTask extends DefaultTask implements ProviderInternal<MavenArtifact>
+public abstract class GenerateChangelogTask extends DefaultTask
 {
 
     public GenerateChangelogTask()
@@ -109,60 +109,5 @@ public abstract class GenerateChangelogTask extends DefaultTask implements Provi
         {
             throw new IllegalStateException("Failed to write changelog to file: " + outputFile.getAbsolutePath());
         }
-    }
-
-    @Nullable
-    @Override
-    public MavenArtifact getOrNull() {
-        return new SingleOutputTaskMavenArtifact(
-                getProject().getTasks().named(getName()),
-                "txt",
-                "changelog"
-        );
-    }
-
-    @Override
-    public boolean isPresent() {
-        return true;
-    }
-
-    @Override
-    public MavenArtifact get() {
-        return getOrNull();
-    }
-
-    @Override
-    public MavenArtifact getOrElse(MavenArtifact mavenArtifact) {
-        return getOrNull();
-    }
-
-    @Override
-    public <S> Provider<S> map(Transformer<? extends S, ? super MavenArtifact> transformer) {
-        return new TransformBackedProvider<>();
-    }
-
-    @Override
-    public <S> Provider<S> flatMap(Transformer<? extends Provider<? extends S>, ? super MavenArtifact> transformer) {
-        return null;
-    }
-
-    @Override
-    public Provider<MavenArtifact> orElse(MavenArtifact mavenArtifact) {
-        return null;
-    }
-
-    @Override
-    public Provider<MavenArtifact> orElse(Provider<? extends MavenArtifact> provider) {
-        return null;
-    }
-
-    @Override
-    public Provider<MavenArtifact> forUseAtConfigurationTime() {
-        return null;
-    }
-
-    @Override
-    public <B, R> Provider<R> zip(Provider<B> provider, BiFunction<MavenArtifact, B, R> biFunction) {
-        return null;
     }
 }

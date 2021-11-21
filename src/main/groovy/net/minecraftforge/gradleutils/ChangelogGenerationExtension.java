@@ -18,15 +18,28 @@
  * USA
  */
 
-package net.minecraftforge.gradleutils
+package net.minecraftforge.gradleutils;
 
-import org.gradle.api.Plugin
-import org.gradle.api.Project
+import org.gradle.api.Project;
 
-class GradleUtilsPlugin implements Plugin<Project> {
-    @Override
-    void apply(Project project) {
-        GradleUtilsExtension extension = project.extensions.create("gradleutils", GradleUtilsExtension.class, project)
-        ChangelogGenerationExtension changelogGenerationExtension = project.extensions.create("changelog", ChangelogGenerationExtension.class, project)
+import javax.inject.Inject;
+
+public class ChangelogGenerationExtension
+{
+    private final Project project;
+
+    @Inject
+    public ChangelogGenerationExtension(final Project project) {this.project = project;}
+
+    public void fromMergeBase() {
+        ChangelogUtils.setupChangelogGeneration(project);
+    }
+
+    public void fromTag(final String tag) {
+        ChangelogUtils.setupChangelogGenerationFromTag(project, tag);
+    }
+
+    public void fromCommit(final String commit) {
+        ChangelogUtils.setupChangelogGenerationFromCommit(project, commit);
     }
 }
