@@ -37,6 +37,7 @@ import org.gradle.api.tasks.*;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.function.BiFunction;
 
@@ -80,15 +81,15 @@ public abstract class GenerateChangelogTask extends DefaultTask
         final String startingCommit = getStartingCommit().getOrElse("");
         final String startingTag = getStartingTag().getOrElse("");
 
-        if (!startingCommit.isBlank() && !startingTag.isBlank()) {
+        if (!startingCommit.isEmpty() && !startingTag.isEmpty()) {
             throw new IllegalStateException("Both starting commit and tag are supplied to the task: " + getName() + ". Only supply one!");
         }
 
         String changelog = "";
-        if (startingCommit.isBlank() && startingTag.isBlank()) {
+        if (startingCommit.isEmpty() && startingTag.isEmpty()) {
             changelog = ChangelogUtils.generateChangelog(getGitDirectory().getAsFile().get(), getProjectUrl().get(), !getBuildMarkdown().get());
         }
-        else if (startingCommit.isBlank())  {
+        else if (startingCommit.isEmpty())  {
             changelog = ChangelogUtils.generateChangelog(getGitDirectory().getAsFile().get(), getProjectUrl().get(), !getBuildMarkdown().get(), startingTag);
         }
         else {
@@ -103,7 +104,7 @@ public abstract class GenerateChangelogTask extends DefaultTask
 
         try
         {
-            Files.writeString(outputFile.toPath(), changelog);
+            Files.write(outputFile.toPath(), changelog.getBytes(StandardCharsets.UTF_8));
         }
         catch (IOException e)
         {

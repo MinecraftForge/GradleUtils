@@ -13,6 +13,12 @@ ext {
     GIT_INFO = GradleUtils.gitInfo(file('.'))
 }
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+}
+
 group 'net.minecraftforge.gradleutils'
 version GradleUtils.getTagOffsetVersion(GIT_INFO)
 println('Version: ' + version)
