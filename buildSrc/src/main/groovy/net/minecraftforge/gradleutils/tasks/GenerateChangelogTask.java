@@ -23,16 +23,24 @@ package net.minecraftforge.gradleutils.tasks;
 import net.minecraftforge.gradleutils.ChangelogUtils;
 import net.minecraftforge.gradleutils.GradleUtils;
 import org.gradle.api.DefaultTask;
+import org.gradle.api.Transformer;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.internal.provider.ProviderInternal;
+import org.gradle.api.internal.provider.TransformBackedProvider;
 import org.gradle.api.provider.Property;
+import org.gradle.api.provider.Provider;
+import org.gradle.api.publish.maven.MavenArtifact;
+import org.gradle.api.publish.maven.internal.artifact.SingleOutputTaskMavenArtifact;
 import org.gradle.api.tasks.*;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.function.BiFunction;
 
-public abstract class GenerateChangelogTask extends DefaultTask
+public abstract class GenerateChangelogTask extends DefaultTask implements ProviderInternal<MavenArtifact>
 {
 
     public GenerateChangelogTask()
@@ -101,5 +109,60 @@ public abstract class GenerateChangelogTask extends DefaultTask
         {
             throw new IllegalStateException("Failed to write changelog to file: " + outputFile.getAbsolutePath());
         }
+    }
+
+    @Nullable
+    @Override
+    public MavenArtifact getOrNull() {
+        return new SingleOutputTaskMavenArtifact(
+                getProject().getTasks().named(getName()),
+                "txt",
+                "changelog"
+        );
+    }
+
+    @Override
+    public boolean isPresent() {
+        return true;
+    }
+
+    @Override
+    public MavenArtifact get() {
+        return getOrNull();
+    }
+
+    @Override
+    public MavenArtifact getOrElse(MavenArtifact mavenArtifact) {
+        return getOrNull();
+    }
+
+    @Override
+    public <S> Provider<S> map(Transformer<? extends S, ? super MavenArtifact> transformer) {
+        return new TransformBackedProvider<>();
+    }
+
+    @Override
+    public <S> Provider<S> flatMap(Transformer<? extends Provider<? extends S>, ? super MavenArtifact> transformer) {
+        return null;
+    }
+
+    @Override
+    public Provider<MavenArtifact> orElse(MavenArtifact mavenArtifact) {
+        return null;
+    }
+
+    @Override
+    public Provider<MavenArtifact> orElse(Provider<? extends MavenArtifact> provider) {
+        return null;
+    }
+
+    @Override
+    public Provider<MavenArtifact> forUseAtConfigurationTime() {
+        return null;
+    }
+
+    @Override
+    public <B, R> Provider<R> zip(Provider<B> provider, BiFunction<MavenArtifact, B, R> biFunction) {
+        return null;
     }
 }

@@ -55,6 +55,12 @@ license {
     exclude '**/*.properties'
 }
 
+
+task generateChangelog(type: GenerateChangelogTask) {
+}
+
+build.dependsOn generateChangelog
+
 gradlePlugin {
     plugins {
         gradleutils {
@@ -68,6 +74,8 @@ publishing {
     publications {
         pluginMaven(MavenPublication) {
             artifact sourcesJar
+            artifact tasks.generateChangelog
+
 
             pom {
                 name = 'Gradle Utils'
@@ -107,8 +115,3 @@ publishing {
         maven GradleUtils.getPublishingForgeMaven(project)
     }
 }
-
-task generateChangelog(type: GenerateChangelogTask) {
-}
-
-build.dependsOn generateChangelog
