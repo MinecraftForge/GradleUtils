@@ -129,4 +129,5 @@ publishing {
 }
 
 task setupTeamCityProject(type: ExtractTeamCityProjectConfigurationTask) {
+    shouldAutoCommit = false;
 }
