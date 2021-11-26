@@ -30,6 +30,7 @@ class GradleUtilsPlugin implements Plugin<Project> {
         GradleUtilsExtension extension = project.extensions.create("gradleutils", GradleUtilsExtension.class, project)
         ChangelogGenerationExtension changelogGenerationExtension = project.extensions.create("changelog", ChangelogGenerationExtension.class, project)
 
+        //Setup the teamcity project task.
         project.getTasks().create("setupTeamCityProject", ExtractTeamCityProjectConfigurationTask.class);
     }
 }
