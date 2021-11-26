@@ -40,7 +40,6 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
     public ExtractTeamCityProjectConfigurationTask()
     {
         getDestination().convention(getProject().getRootProject().getLayout().getProjectDirectory().dir(getProject().provider(() -> "./")));
-        getShouldAutoCommit().convention(true);
         getRequiresCleanWorkspace().convention(true);
 
         setGroup("publishing");
@@ -50,9 +49,6 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
     @InputDirectory
     @PathSensitive(PathSensitivity.NONE)
     public abstract DirectoryProperty getDestination();
-
-    @Input
-    public abstract Property<Boolean> getShouldAutoCommit();
 
     @Input
     public abstract Property<Boolean> getRequiresCleanWorkspace();
@@ -80,11 +76,6 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
 
         ExtractTeamCityZip(fileZip, destDir);
         ReplaceTeamCityTestProjectIds(destDir);
-
-        if (getShouldAutoCommit().get())
-        {
-            CommitTeamCityProjectDirectory(destDir);
-        }
     }
 
     private static void ExtractTeamCityZip(final String fileZip, final File destDir) throws Exception
@@ -197,11 +188,5 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
         if (!status.isClean()) {
             throw new Exception("Workspace is not clean. Please commit your changes and try again.");
         }
-    }
-
-    private static void CommitTeamCityProjectDirectory(final File projectDir) throws Exception {
-        final Git git = Git.open(projectDir);
-        git.add().addFilepattern("./teamcity/*").setUpdate(false).call();
-        git.commit().setMessage("Added or updated support for building the project in TeamCity.").call();
     }
 }
