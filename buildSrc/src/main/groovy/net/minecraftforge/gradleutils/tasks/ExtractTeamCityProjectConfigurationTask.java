@@ -60,7 +60,8 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
     @TaskAction
     public void run() throws Exception
     {
-        File destDir = getDestination().getAsFile().get();
+        final File destDir = getDestination().getAsFile().get();
+        final File teamcityDir = new File(destDir, ".teamcity");
 
         if (getRequiresCleanWorkspace().get())
         {
@@ -69,9 +70,9 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
 
         String fileZip = ExportResource();
 
-        if (destDir.exists())
+        if (teamcityDir.exists())
         {
-            if (!destDir.delete())
+            if (!teamcityDir.delete())
             {
                 throw new IllegalStateException("Could not delete the existing .teamcity project directory!");
             }
