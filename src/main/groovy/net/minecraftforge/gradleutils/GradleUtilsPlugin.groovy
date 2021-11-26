@@ -20,6 +20,7 @@
 
 package net.minecraftforge.gradleutils
 
+import net.minecraftforge.gradleutils.tasks.ExtractTeamCityProjectConfigurationTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -28,5 +29,7 @@ class GradleUtilsPlugin implements Plugin<Project> {
     void apply(Project project) {
         GradleUtilsExtension extension = project.extensions.create("gradleutils", GradleUtilsExtension.class, project)
         ChangelogGenerationExtension changelogGenerationExtension = project.extensions.create("changelog", ChangelogGenerationExtension.class, project)
+
+        project.getTasks().create("setupTeamCityProject", ExtractTeamCityProjectConfigurationTask.class);
     }
 }

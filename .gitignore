@@ -19,3 +19,5 @@ out
 src/main/groovy/net/minecraftforge/gradleutils/GradleUtils.groovy
 src/main/groovy/net/minecraftforge/gradleutils/ChangelogUtils.groovy
 src/main/groovy/net/minecraftforge/gradleutils/tasks/GenerateChangelogTask.java
+src/main/groovy/net/minecraftforge/gradleutils/tasks/ExtractTeamCityProjectConfigurationTask.java
+src/main/resources/.teamcity.zip

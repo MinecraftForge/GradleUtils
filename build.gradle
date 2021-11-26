@@ -1,5 +1,6 @@
 import net.minecraftforge.gradleutils.ChangelogUtils
 import net.minecraftforge.gradleutils.GradleUtils
+import net.minecraftforge.gradleutils.tasks.ExtractTeamCityProjectConfigurationTask
 import net.minecraftforge.gradleutils.tasks.GenerateChangelogTask
 
 plugins {
@@ -31,7 +32,7 @@ dependencies {
     implementation 'org.eclipse.jgit:org.eclipse.jgit:5.10.0.202012080955-r'
 }
 
-task copyGradleUtils(type: Copy) {
+task copyGradleUtilsGroovy(type: Copy) {
     outputs.upToDateWhen { false }
     into 'src/main/groovy'
     from('buildSrc/src/main/groovy') {
@@ -40,8 +41,18 @@ task copyGradleUtils(type: Copy) {
     }
 }
 
-compileGroovy.dependsOn(copyGradleUtils)
-checkLicenseMain.dependsOn(copyGradleUtils)
+task copyGradleUtilsResources(type: Copy) {
+    outputs.upToDateWhen { false }
+    into 'src/main/resources'
+    from('buildSrc/src/main/resources') {
+        include '**/*.zip'
+    }
+}
+
+compileGroovy.dependsOn(copyGradleUtilsResources)
+checkLicenseMain.dependsOn(copyGradleUtilsResources)
+compileGroovy.dependsOn(copyGradleUtilsGroovy)
+checkLicenseMain.dependsOn(copyGradleUtilsGroovy)
 
 task sourcesJar(type: Jar, dependsOn: classes) {
     archiveClassifier = 'sources'
@@ -115,4 +126,7 @@ publishing {
     repositories {
         maven GradleUtils.getPublishingForgeMaven(project)
     }
+}
+
+task setupTeamCityProject(type: ExtractTeamCityProjectConfigurationTask) {
 }
