@@ -68,11 +68,11 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
         if (getRequiresCleanWorkspace().get())
         {
             //Check it.
-            CheckForCleanWorkspace(destDir);
+            checkForCleanWorkspace(destDir);
         }
 
         //Export the zip file from our resources.
-        String fileZip = ExportResource();
+        String fileZip = exportResource();
 
         //Check if the directory exists, if so then delete it.
         if (teamcityDir.exists())
@@ -86,9 +86,9 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
         }
 
         //Extract the zip from our runtime file.
-        ExtractTeamCityZip(fileZip, destDir);
+        extractTeamCityZip(fileZip, destDir);
         //Replace the default project ids, with ours.
-        ReplaceTeamCityTestProjectIds(destDir);
+        replaceTeamCityTestProjectIds(destDir);
     }
 
     /**
@@ -97,7 +97,7 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
      * @param fileZip The teamcity zip file.
      * @param destDir The target directory (generally the project directory), where the .teamcity.zip file will be extracted.
      */
-    private static void ExtractTeamCityZip(final String fileZip, final File destDir) throws Exception
+    private static void extractTeamCityZip(final String fileZip, final File destDir) throws Exception
     {
         byte[] buffer = new byte[1024];
         ZipInputStream zis = new ZipInputStream(new FileInputStream(fileZip));
@@ -134,7 +134,7 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
      *
      * @return The path to the file.
      */
-    private static String ExportResource() throws Exception
+    private static String exportResource() throws Exception
     {
         InputStream stream = null;
         OutputStream resStreamOut = null;
@@ -194,9 +194,9 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
      *
      * @param projectDir The project directory to run the replacement in.
      */
-    private static void ReplaceTeamCityTestProjectIds(final File projectDir) throws Exception
+    private static void replaceTeamCityTestProjectIds(final File projectDir) throws Exception
     {
-        final String projectId = DetermineGitHubProjectName(projectDir);
+        final String projectId = determineGitHubProjectName(projectDir);
         final File teamcityDir = new File(projectDir, ".teamcity");
         if (!teamcityDir.exists())
         {
@@ -218,7 +218,7 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
      * @param projectDir The project directory.
      * @return The project name of the project on github.
      */
-    private static String DetermineGitHubProjectName(final File projectDir) throws Exception
+    private static String determineGitHubProjectName(final File projectDir) throws Exception
     {
         final Git git = Git.open(projectDir);
         final String repositoryPath = git.remoteList().call().get(0).getURIs().get(0).getPath();
@@ -232,7 +232,7 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
      *
      * @param projectDir The project directory to check.
      */
-    private static void CheckForCleanWorkspace(final File projectDir) throws Exception {
+    private static void checkForCleanWorkspace(final File projectDir) throws Exception {
         final Git git = Git.open(projectDir);
         final Status status = git.status().call();
         if (!status.isClean()) {
