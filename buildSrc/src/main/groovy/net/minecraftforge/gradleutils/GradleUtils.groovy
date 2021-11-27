@@ -92,7 +92,7 @@ class GradleUtils {
         return { MavenArtifactRepository it ->
             name 'forge'
             if (System.env.MAVEN_USER) {
-                url 'https://maven.minecraftforge.net/'
+                url 'https://maven.minecraftforge.net/releases/'
                 authentication {
                     basic(BasicAuthentication)
                 }
