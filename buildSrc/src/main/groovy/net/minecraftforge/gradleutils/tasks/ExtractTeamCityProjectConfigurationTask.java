@@ -25,11 +25,14 @@ import org.eclipse.jgit.api.Status;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.provider.Property;
+import org.gradle.api.publish.PublishingExtension;
+import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.tasks.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -194,7 +197,8 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
      *
      * @param projectDir The project directory to run the replacement in.
      */
-    private static void replaceTeamCityTestProjectIds(final File projectDir) throws Exception
+    @SuppressWarnings("ReadWriteStringCanBeUsed") //We still need to support older versions of the JDK.
+    private void replaceTeamCityTestProjectIds(final File projectDir) throws Exception
     {
         final String projectId = determineGitHubProjectName(projectDir);
         final File teamcityDir = new File(projectDir, ".teamcity");
@@ -207,8 +211,40 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
         {
             String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
             content = content.replaceAll("TeamCityTest", projectId);
+            content = content.replaceAll("tctArtifactId", determineArtifactId(projectId));
+            content = content.replaceAll("tctGroup", determineGroup(getProject().getGroup().toString()));
             Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
         }
+    }
+
+    private String determineArtifactId(String projectId) {
+        return getProject().getExtensions().getByType(PublishingExtension.class)
+                 .getPublications()
+                 .stream()
+                 .filter(MavenPublication.class::isInstance)
+                 .map(MavenPublication.class::cast)
+                 .filter(publication -> !publication.getName().contains("PluginMarker")) //Exclude gradles plugin markers!
+                 .findFirst()
+                 .map(MavenPublication::getArtifactId)
+                 .orElseGet(() -> {
+                     getProject().getLogger().warn("Could not find the Maven artifact Id from normal publication falling back to the lower cased project name.");
+                     return projectId.toLowerCase();
+                 });
+    }
+
+    private String determineGroup(String fallback) {
+        return getProject().getExtensions().getByType(PublishingExtension.class)
+          .getPublications()
+          .stream()
+          .filter(MavenPublication.class::isInstance)
+          .map(MavenPublication.class::cast)
+          .filter(publication -> !publication.getName().contains("PluginMarker")) //Exclude gradles plugin markers!
+          .findFirst()
+          .map(MavenPublication::getGroupId)
+          .orElseGet(() -> {
+              getProject().getLogger().warn("Could not find the Maven artifact Id from normal publication falling back to the lower cased project group.");
+              return fallback.toLowerCase();
+          });
     }
 
     /**
