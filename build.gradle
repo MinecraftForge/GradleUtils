@@ -130,3 +130,5 @@ publishing {
 
 task setupTeamCityProject(type: ExtractTeamCityProjectConfigurationTask) {
 }
+
+GradleUtils.setupCITasks(project);

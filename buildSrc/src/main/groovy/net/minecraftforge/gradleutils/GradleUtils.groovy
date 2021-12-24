@@ -398,8 +398,6 @@ class GradleUtils {
                     println "##teamcity[setParameter name='env.PUBLISHED_JAVA_ARTIFACT_VERSION' value='${project.version}']"
                 }
             }
-        } else {
-            project.getLogger().lifecycle("Missing teamcity version variable. Not configuring CI tasks.")
         }
     }
 }
