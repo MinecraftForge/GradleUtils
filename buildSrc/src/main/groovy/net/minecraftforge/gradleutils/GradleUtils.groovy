@@ -394,7 +394,8 @@ class GradleUtils {
             def teamCityCITask = project.tasks.register("configureTeamCity") {
                 //Print the marker lines into the log which configure the pipeline.
                 doLast {
-                    println "##teamcity[setParameter name='buildNumber' value='${project.version}']"
+                    project.getLogger().lifecycle("Setting project variables and parameters.")
+                    println "##teamcity[buildNumber '${project.version}']"
                     println "##teamcity[setParameter name='env.PUBLISHED_JAVA_ARTIFACT_VERSION' value='${project.version}']"
                 }
             }
