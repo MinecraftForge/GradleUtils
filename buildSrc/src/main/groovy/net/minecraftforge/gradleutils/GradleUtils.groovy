@@ -389,7 +389,7 @@ class GradleUtils {
      * @param project The project to configure it on.
      */
     private static void setupTeamCityTasks(Project project) {
-        if (System.env.TEAMCITY_VERSION && System.env.TEAMCITY_BUILDCONF_NAME) {
+        if (System.env.TEAMCITY_VERSION) {
             //Only setup the CI environment if and only if the environment variables are set.
             def teamCityCITask = project.tasks.create("configureTeamCity") {
                 //Print the marker lines into the log which configure the pipeline.
@@ -398,6 +398,8 @@ class GradleUtils {
                     println "##teamcity[setParameter name='env.PUBLISHED_JAVA_ARTIFACT_VERSION' value='${project.version}']"
                 }
             }
+        } else {
+            println("Missing teamcity version variable. Not configuring CI tasks.")
         }
     }
 }
