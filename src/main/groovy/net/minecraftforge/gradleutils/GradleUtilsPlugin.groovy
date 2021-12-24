@@ -32,5 +32,6 @@ class GradleUtilsPlugin implements Plugin<Project> {
 
         //Setup the teamcity project task.
         project.getTasks().register("setupTeamCityProject", ExtractTeamCityProjectConfigurationTask.class);
+        GradleUtils.setupCITasks(project);
     }
 }
