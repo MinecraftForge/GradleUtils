@@ -95,7 +95,7 @@ class GradleUtils {
      * @return a closure
      */
     static getPublishingForgeMaven(Project project, File defaultFolder = project.rootProject.file('repo')) {
-        return setupSnapshotCompatiblePublishing(project, 'https://maven.minecraftforge.net/', defaultFolder);
+        return setupSnapshotCompatiblePublishing(project, 'https://maven.minecraftforge.net/', defaultFolder)
     }
 
     /**
@@ -123,9 +123,9 @@ class GradleUtils {
         return { MavenArtifactRepository it ->
             name 'forge'
             if (System.env.MAVEN_USER && System.env.MAVEN_PASSWORD) {
-                def publishingEndpoint = fallbackPublishingEndpoint;
-                if (System.env.MAVEN_URL_RELEASES) {
-                    publishingEndpoint = System.env.MAVEN_URL_RELEASES;
+                def publishingEndpoint = fallbackPublishingEndpoint
+                if (System.env.MAVEN_URL_RELEASE) {
+                    publishingEndpoint = System.env.MAVEN_URL_RELEASE
                 }
 
                 if (project.version.toString().endsWith("-SNAPSHOT") && System.env.MAVEN_URL_SNAPSHOTS) {
@@ -304,7 +304,7 @@ class GradleUtils {
      * @return The github url of the project.
      */
     static String buildProjectUrl(String organisation, String project) {
-        return "https://github.com/$organisation/$project";
+        return "https://github.com/$organisation/$project"
     }
 
     /**
@@ -321,37 +321,37 @@ class GradleUtils {
      * @return
      */
     static String buildProjectUrl(final File projectDir) {
-        Git git = Git.open(projectDir); //Create a git workspace.
+        Git git = Git.open(projectDir) //Create a git workspace.
 
-        def remotes = git.remoteList().call(); //Get all remotes.
+        def remotes = git.remoteList().call() //Get all remotes.
         if (remotes.size() == 0)
-            throw new IllegalStateException("No remotes found in " + projectDir);
+            throw new IllegalStateException("No remotes found in " + projectDir)
 
         //Get the origin remote.
         def originRemote = remotes.toList().stream()
             .filter(r -> r.getName().equals("origin"))
             .findFirst()
-            .orElse(null);
+            .orElse(null)
 
         //We do not have an origin named remote
         if (originRemote == null)
         {
-            return "";
+            return ""
         }
 
         //Get the origin push url.
         def originUrl = originRemote.getURIs().toList().stream()
             .findFirst()
-            .orElse(null);
+            .orElse(null)
 
         //We do not have a origin url
         if (originUrl == null)
         {
-            return "";
+            return ""
         }
 
         //Grab its string representation and process.
-        def originUrlString = originUrl.toString();
+        def originUrlString = originUrl.toString()
         //Determine the protocol
         if (originUrlString.startsWith("ssh")) {
             //If ssh then check for authentication data.
@@ -361,7 +361,7 @@ class GradleUtils {
             } else
             {
                 //No authentication data: Switch to https.
-                return "https://" + originUrlString.substring(6).replace(".git", "");
+                return "https://" + originUrlString.substring(6).replace(".git", "")
             }
         } else if (originUrlString.startsWith("http")) {
             //Standard http protocol: Strip the ".git" ending only.
@@ -369,7 +369,7 @@ class GradleUtils {
         }
 
         //What other case exists? Just to be sure lets return this.
-        return originUrlString;
+        return originUrlString
     }
 
     /**
