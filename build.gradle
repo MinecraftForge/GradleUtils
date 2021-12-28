@@ -82,7 +82,7 @@ gradlePlugin {
     }
 }
 
-ChangelogUtils.setupChangelogGeneration(project);
+ChangelogUtils.setupChangelogGenerationFromTag(project, "1.0");
 
 publishing {
     publications {

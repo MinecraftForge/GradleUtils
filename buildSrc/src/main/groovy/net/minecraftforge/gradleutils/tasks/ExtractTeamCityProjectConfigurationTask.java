@@ -207,12 +207,26 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
             return;
         }
 
-        for (final File file : Objects.requireNonNull(teamcityDir.listFiles()))
+        for (final File file : Objects.requireNonNull(teamcityDir.listFiles((dir, name) -> name.endsWith("kts"))))
         {
             String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
-            content = content.replaceAll("TeamCityTest", projectId);
-            content = content.replaceAll("tctArtifactId", determineArtifactId(projectId));
-            content = content.replaceAll("tctGroup", determineGroup(getProject().getGroup().toString()));
+            content = content.replaceAll("%projectName%", projectId);
+            content = content.replaceAll("%projectOrg%", determineGitHubProjectOrganisation(projectDir));
+            content = content.replaceAll("%projectArtifactId%", determineArtifactId(projectId));
+            content = content.replaceAll("%projectArtifactGroup%", determineGroup(getProject().getGroup().toString()));
+            Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
+        }
+
+        String projectGroup = determineGitHubProjectOrganisation(projectDir);
+        if (!projectGroup.equals("MinecraftForge")) {
+            projectGroup = "MinecraftForge_" + projectGroup;
+        }
+
+        for (final File file : Objects.requireNonNull(teamcityDir.listFiles((dir, name) -> name.endsWith("xml"))))
+        {
+            String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+            content = content.replaceAll("%projectName%", projectId);
+            content = content.replaceAll("%projectGroup%", projectGroup);
             Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
         }
     }
@@ -260,6 +274,22 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
         final String repositoryPath = git.remoteList().call().get(0).getURIs().get(0).getPath();
 
         return repositoryPath.substring(repositoryPath.lastIndexOf("/") + 1).replace(".git", "");
+    }
+
+    /**
+     * Determines the project name of the organisation of github.
+     * Querries the first remote of the current git project and pulls its fetch URL information to extract the name.
+     *
+     * @param projectDir The project directory.
+     * @return The organisation name of the project on github.
+     */
+    private static String determineGitHubProjectOrganisation(final File projectDir) throws Exception
+    {
+        final Git git = Git.open(projectDir);
+        final String repositoryPath = git.remoteList().call().get(0).getURIs().get(0).getPath();
+
+        final String[] pathMembers = repositoryPath.split("/");
+        return pathMembers[pathMembers.length - 2];
     }
 
     /**
