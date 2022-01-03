@@ -69,6 +69,8 @@ object BuildSecondaryBranches : BuildType({
                -:refs/heads/(develop|release|staging|main|master)
                -:<default>
                -:refs/heads/%git_main_branch%
+               -:refs/heads/main*
+               -:refs/heads/master*
             """.trimIndent(),
             label = "The branch specification of the repository",
             description = "By default all main branches are build by the configuration. Modify this value to adapt the branches build.",
