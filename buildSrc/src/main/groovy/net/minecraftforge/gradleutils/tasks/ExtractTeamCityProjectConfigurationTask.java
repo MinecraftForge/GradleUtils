@@ -46,7 +46,6 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
     public ExtractTeamCityProjectConfigurationTask()
     {
         getDestination().convention(getProject().getRootProject().getLayout().getProjectDirectory().dir(getProject().provider(() -> "./")));
-        getRequiresCleanWorkspace().convention(true);
 
         setGroup("publishing");
         setDescription("Creates (or recreates) a default TeamCity project configuration directory for use with the MinecraftForge TeamCity server.");
@@ -56,9 +55,6 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
     @PathSensitive(PathSensitivity.NONE)
     public abstract DirectoryProperty getDestination();
 
-    @Input
-    public abstract Property<Boolean> getRequiresCleanWorkspace();
-
     @TaskAction
     public void run() throws Exception
     {
@@ -66,13 +62,6 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
         final File destDir = getDestination().getAsFile().get();
         //Grab the target directory, to check if it exists.
         final File teamcityDir = new File(destDir, ".teamcity");
-
-        //If requested validate that the repository is clean.
-        if (getRequiresCleanWorkspace().get())
-        {
-            //Check it.
-            checkForCleanWorkspace(destDir);
-        }
 
         //Export the zip file from our resources.
         String fileZip = exportResource();
@@ -290,19 +279,5 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
 
         final String[] pathMembers = repositoryPath.split("/");
         return pathMembers[pathMembers.length - 2];
-    }
-
-    /**
-     * Checks if the workspace of the current project is clean or has pending changes.
-     * Throws an exception if that is not the case.
-     *
-     * @param projectDir The project directory to check.
-     */
-    private static void checkForCleanWorkspace(final File projectDir) throws Exception {
-        final Git git = Git.open(projectDir);
-        final Status status = git.status().call();
-        if (!status.isClean()) {
-            throw new Exception("Workspace is not clean. Please commit your changes and try again.");
-        }
     }
 }
