@@ -23,6 +23,7 @@ package net.minecraftforge.gradleutils.tasks;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.Status;
 import org.gradle.api.DefaultTask;
+import org.gradle.api.UnknownDomainObjectException;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.publish.PublishingExtension;
@@ -221,33 +222,56 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
     }
 
     private String determineArtifactId(String projectId) {
-        return getProject().getExtensions().getByType(PublishingExtension.class)
-                 .getPublications()
-                 .stream()
-                 .filter(MavenPublication.class::isInstance)
-                 .map(MavenPublication.class::cast)
-                 .filter(publication -> !publication.getName().contains("PluginMarker")) //Exclude gradles plugin markers!
-                 .findFirst()
-                 .map(MavenPublication::getArtifactId)
-                 .orElseGet(() -> {
-                     getProject().getLogger().warn("Could not find the Maven artifact Id from normal publication falling back to the lower cased project name.");
-                     return projectId.toLowerCase();
-                 });
+        if (getProject().getExtensions().findByType(PublishingExtension.class) == null) {
+            getProject().getLogger().warn("Could not find the Maven publication extension, falling back to the lower cased project name.");
+            return projectId.toLowerCase();
+        }
+
+        try {
+            return getProject().getExtensions().getByType(PublishingExtension.class)
+              .getPublications()
+              .stream()
+              .filter(MavenPublication.class::isInstance)
+              .map(MavenPublication.class::cast)
+              .filter(publication -> !publication.getName().contains("PluginMarker")) //Exclude gradles plugin markers!
+              .findFirst()
+              .map(MavenPublication::getArtifactId)
+              .orElseGet(() -> {
+                  getProject().getLogger().warn("Could not find the Maven artifact Id from normal publication falling back to the lower cased project name.");
+                  return projectId.toLowerCase();
+              });
+        }
+        catch (UnknownDomainObjectException unknownDomainObjectException) {
+            getProject().getLogger().warn("Could not find the Maven publication extension, falling back to the lower cased project name.");
+            return projectId.toLowerCase();
+        }
+
     }
 
     private String determineGroup(String fallback) {
-        return getProject().getExtensions().getByType(PublishingExtension.class)
-          .getPublications()
-          .stream()
-          .filter(MavenPublication.class::isInstance)
-          .map(MavenPublication.class::cast)
-          .filter(publication -> !publication.getName().contains("PluginMarker")) //Exclude gradles plugin markers!
-          .findFirst()
-          .map(MavenPublication::getGroupId)
-          .orElseGet(() -> {
-              getProject().getLogger().warn("Could not find the Maven artifact Id from normal publication falling back to the lower cased project group.");
-              return fallback.toLowerCase();
-          });
+        if (getProject().getExtensions().findByType(PublishingExtension.class) == null) {
+            getProject().getLogger().warn("Could not find the Maven publication extension, falling back to the lower cased project group.");
+            return fallback.toLowerCase();
+        }
+
+        try {
+            return getProject().getExtensions().getByType(PublishingExtension.class)
+              .getPublications()
+              .stream()
+              .filter(MavenPublication.class::isInstance)
+              .map(MavenPublication.class::cast)
+              .filter(publication -> !publication.getName().contains("PluginMarker")) //Exclude gradles plugin markers!
+              .findFirst()
+              .map(MavenPublication::getGroupId)
+              .orElseGet(() -> {
+                  getProject().getLogger().warn("Could not find the Maven artifact Id from normal publication falling back to the lower cased project group.");
+                  return fallback.toLowerCase();
+              });
+        }
+        catch (UnknownDomainObjectException unknownDomainObjectException) {
+            getProject().getLogger().warn("Could not find the Maven publication extension, falling back to the lower cased project group.");
+            return fallback.toLowerCase();
+        }
     }
 
     /**
