@@ -57,27 +57,10 @@ object Build : BuildType({
 })
 
 object BuildSecondaryBranches : BuildType({
-    templates(AbsoluteId("MinecraftForge_SetupGradleUtilsCiEnvironmen"), AbsoluteId("MinecraftForge_BuildWithDiscordNotifications"), AbsoluteId("MinecraftForge_BuildMainBranches"), AbsoluteId("MinecraftForge_BuildUsingGradle"))
+    templates(AbsoluteId("MinecraftForge_ExcludesBuildingDefaultBranch"), AbsoluteId("MinecraftForge_SetupGradleUtilsCiEnvironmen"), AbsoluteId("MinecraftForge_BuildWithDiscordNotifications"), AbsoluteId("MinecraftForge_BuildMainBranches"), AbsoluteId("MinecraftForge_BuildUsingGradle"))
     id("GradleUtils__BuildSecondaryBranches")
     name = "Build - Secondary Branches"
     description = "Builds and Publishes the secondary branches of the project."
-
-    params {
-        text(
-            "git_branch_spec",
-            """+:ref/heads/(*)
-               -:refs/heads/(develop|release|staging|main|master)
-               -:<default>
-               -:refs/heads/%git_main_branch%
-               -:refs/heads/main*
-               -:refs/heads/master*
-            """.trimIndent(),
-            label = "The branch specification of the repository",
-            description = "By default all main branches are build by the configuration. Modify this value to adapt the branches build.",
-            display = ParameterDisplay.HIDDEN,
-            allowEmpty = true
-        )
-    }
 })
 
 object PullRequests : BuildType({
