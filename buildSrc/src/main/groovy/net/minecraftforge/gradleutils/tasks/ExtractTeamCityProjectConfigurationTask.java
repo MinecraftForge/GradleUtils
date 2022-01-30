@@ -22,6 +22,7 @@ package net.minecraftforge.gradleutils.tasks;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.Status;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.UnknownDomainObjectException;
 import org.gradle.api.file.DirectoryProperty;
@@ -283,7 +284,7 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
      */
     private static String determineGitHubProjectName(final File projectDir) throws Exception
     {
-        final Git git = Git.open(projectDir);
+        final Git git = Git.wrap(new FileRepositoryBuilder().readEnvironment().findGitDir(projectDir).setMustExist(true).build());
         final String repositoryPath = git.remoteList().call().get(0).getURIs().get(0).getPath();
 
         return repositoryPath.substring(repositoryPath.lastIndexOf("/") + 1).replace(".git", "");
@@ -298,7 +299,7 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
      */
     private static String determineGitHubProjectOrganisation(final File projectDir) throws Exception
     {
-        final Git git = Git.open(projectDir);
+        final Git git = Git.wrap(new FileRepositoryBuilder().readEnvironment().findGitDir(projectDir).setMustExist(true).build());
         final String repositoryPath = git.remoteList().call().get(0).getURIs().get(0).getPath();
 
         final String[] pathMembers = repositoryPath.split("/");

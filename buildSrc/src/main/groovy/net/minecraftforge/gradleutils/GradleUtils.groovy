@@ -25,6 +25,7 @@ import org.eclipse.jgit.errors.RepositoryNotFoundException
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.transport.URIish
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.authentication.http.BasicAuthentication
@@ -47,7 +48,7 @@ class GradleUtils {
     static gitInfo(File dir, String... globFilters) {
         def git
         try {
-            git = Git.open(dir)
+            git = Git.wrap(new FileRepositoryBuilder().readEnvironment().findGitDir(dir).setMustExist(true).build())
         } catch (RepositoryNotFoundException e) {
             return [
                     tag: '0.0',
@@ -321,7 +322,7 @@ class GradleUtils {
      * @return
      */
     static String buildProjectUrl(final File projectDir) {
-        Git git = Git.open(projectDir) //Create a git workspace.
+        Git git = Git.wrap(new FileRepositoryBuilder().readEnvironment().findGitDir(projectDir).setMustExist(true).build()) //Create a git workspace.
 
         def remotes = git.remoteList().call() //Get all remotes.
         if (remotes.size() == 0)
