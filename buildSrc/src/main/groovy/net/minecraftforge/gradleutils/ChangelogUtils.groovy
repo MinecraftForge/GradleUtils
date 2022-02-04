@@ -327,7 +327,7 @@ class ChangelogUtils {
      * @return The commit log.
      */
     private static Iterable<RevCommit> getCommitLogFromTo(final Git git, final RevCommit start, final RevCommit end) {
-        return git.log().addRange(start.getParentCount() > 0 ? start.getParent(0).toObjectId() : start.toObjectId(), end.toObjectId()).call();
+        return git.log().add(start.getParentCount() > 0 ? start.getParent(0).toObjectId() : start.toObjectId()).add(end.toObjectId()).call();
     }
 
     /**
