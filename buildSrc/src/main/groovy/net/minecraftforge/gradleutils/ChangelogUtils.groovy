@@ -324,7 +324,16 @@ class ChangelogUtils {
      * @return The commit log.
      */
     private static Iterable<RevCommit> getCommitLogFromTo(final Git git, final RevCommit start, final RevCommit end) {
-        return git.log().add(start.getParentCount() > 0 ? start.getParent(0).toObjectId() : start.toObjectId()).add(end.toObjectId()).call();
+        def log = git.log().add(end)
+
+        // If our starting commit contains at least one parent (it is not the 'root' commit), exclude all of those parents
+        for (RevCommit parent : start.getParents()) {
+            log.not(parent)
+        }
+        // In the other case where our commit does _not_ have a parent (i.e. it is the 'root' commit),
+        // we do _not_ exclude it so it is present in the returned iterable
+
+        return log.call()
     }
 
     /**
