@@ -330,8 +330,7 @@ class ChangelogUtils {
         for (RevCommit parent : start.getParents()) {
             log.not(parent)
         }
-        // In the other case where our commit does _not_ have a parent (i.e. it is the 'root' commit),
-        // we do _not_ exclude it so it is present in the returned iterable
+        // We do not exclude the starting commit itself, so the commit is present in the returned iterable
 
         return log.call()
     }
