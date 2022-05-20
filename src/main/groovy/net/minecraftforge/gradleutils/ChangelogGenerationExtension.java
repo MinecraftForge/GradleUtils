@@ -20,26 +20,37 @@
 
 package net.minecraftforge.gradleutils;
 
+import org.gradle.api.Action;
 import org.gradle.api.Project;
+import org.gradle.api.publish.maven.MavenPublication;
 
 import javax.inject.Inject;
 
 public class ChangelogGenerationExtension
 {
     private final Project project;
+    private boolean registerAllPublications = true;
 
     @Inject
     public ChangelogGenerationExtension(final Project project) {this.project = project;}
 
     public void fromMergeBase() {
-        ChangelogUtils.setupChangelogGeneration(project);
+        project.afterEvaluate(project -> ChangelogUtils.setupChangelogGeneration(project, registerAllPublications));
     }
 
     public void fromTag(final String tag) {
-        ChangelogUtils.setupChangelogGenerationFromTag(project, tag);
+        project.afterEvaluate(project -> ChangelogUtils.setupChangelogGenerationFromTag(project, tag, registerAllPublications));
     }
 
     public void fromCommit(final String commit) {
-        ChangelogUtils.setupChangelogGenerationFromCommit(project, commit);
+        project.afterEvaluate(project -> ChangelogUtils.setupChangelogGenerationFromCommit(project, commit, registerAllPublications));
+    }
+
+    public void disableAutomaticPublicationRegistration() {
+        this.registerAllPublications = false;
+    }
+
+    public void publish(final MavenPublication mavenPublication) {
+        ChangelogUtils.setupChangelogGenerationForPublishing(project, mavenPublication);
     }
 }

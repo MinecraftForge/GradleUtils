@@ -82,12 +82,14 @@ gradlePlugin {
     }
 }
 
-ChangelogUtils.setupChangelogGenerationFromTag(project, "1.0");
+ChangelogUtils.setupChangelogGenerationFromTag(project, "1.0", false)
 
 publishing {
     publications {
-        pluginMaven(MavenPublication) {
+        pluginMaven(MavenPublication) { mavenPublication ->
             artifact sourcesJar
+
+            ChangelogUtils.setupChangelogGenerationForPublishing(project, mavenPublication)
 
             pom {
                 name = 'Gradle Utils'

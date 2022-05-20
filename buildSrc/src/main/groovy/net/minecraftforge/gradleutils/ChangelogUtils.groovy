@@ -572,13 +572,16 @@ class ChangelogUtils {
      * as a publishing artifact to any maven publication in the project.
      *
      * @param project The project to add changelog generation to.
+     * @param registerAllPublications {@code true} to register all publications for publishing the changelog automatically.
      */
-    static void setupChangelogGeneration(final Project project) {
+    static void setupChangelogGeneration(final Project project, boolean registerAllPublications) {
         //Generate the default task
         final GenerateChangelogTask task =  project.getTasks().create("createChangelog", GenerateChangelogTask.class);
 
         //Setup publishing, add the task as a publishing artifact.
-        setupChangelogGenerationOnAllPublishTasks(project)
+        if (registerAllPublications) {
+            setupChangelogGenerationOnAllPublishTasks(project)
+        }
 
         //Setup the task as a dependency of the build task.
         if (project.getTasks().findByName("build") != null) {
@@ -593,14 +596,17 @@ class ChangelogUtils {
      *
      * @param project The project to add changelog generation to.
      * @param tag The name of the tag to start the changelog from.
+     * @param registerAllPublications {@code true} to register all publications for publishing the changelog automatically.
      */
-    static void setupChangelogGenerationFromTag(final Project project, final String tag) {
+    static void setupChangelogGenerationFromTag(final Project project, final String tag, boolean registerAllPublications) {
         //Create the task and configure it for tag based generation.
         final GenerateChangelogTask task = project.getTasks().create("createChangelog", GenerateChangelogTask.class);
         task.getStartingTag().set(tag);
 
         //Setup publishing, add the task as a publishing artifact.
-        setupChangelogGenerationOnAllPublishTasks(project)
+        if (registerAllPublications) {
+            setupChangelogGenerationOnAllPublishTasks(project)
+        }
 
         //Setup the task as a dependency of the build task.
         if (project.getTasks().findByName("build") != null) {
@@ -615,14 +621,17 @@ class ChangelogUtils {
      *
      * @param project The project to add changelog generation to.
      * @param commit The commit hash to start the changelog from.
+     * @param registerAllPublications {@code true} to register all publications for publishing the changelog automatically.
      */
-    static void setupChangelogGenerationFromCommit(final Project project, final String commit) {
+    static void setupChangelogGenerationFromCommit(final Project project, final String commit, boolean registerAllPublications) {
         //Create the task and configure it for commit based generation.
         final GenerateChangelogTask task = project.getTasks().create("createChangelog", GenerateChangelogTask.class);
         task.getStartingCommit().set(commit);
 
         //Setup publishing, add the task as a publishing artifact.
-        setupChangelogGenerationOnAllPublishTasks(project)
+        if (registerAllPublications) {
+            setupChangelogGenerationOnAllPublishTasks(project)
+        }
 
         //Setup the task as a dependency of the build task.
         if (project.getTasks().findByName("build") != null) {
@@ -683,7 +692,7 @@ class ChangelogUtils {
      * @param project The project in question.
      * @param publication The publication in question.
      */
-    private static void setupChangelogGenerationForPublishing(final Project project, final MavenPublication publication) {
+    static void setupChangelogGenerationForPublishing(final Project project, final MavenPublication publication) {
         try {
             //After evaluation run the publishing modifier.
             project.afterEvaluate(new Action<Project>() {
