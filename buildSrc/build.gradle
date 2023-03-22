@@ -19,3 +19,12 @@ license {
     }
     exclude '**/*.properties'
 }
+
+final extraResources = new File(buildDir, 'extraresources')
+sourceSets.main.resources.srcDir(extraResources)
+tasks.register('teamcityTemplateZip', Zip) {
+    from(project.file('../teamcityTemplate'))
+    archiveFileName.set('.teamcity.zip')
+    destinationDirectory.set(extraResources)
+}
+tasks.classes.dependsOn(tasks.teamcityTemplateZip)

@@ -25,10 +25,13 @@ import org.eclipse.jgit.api.Status;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.UnknownDomainObjectException;
 import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
 import org.gradle.api.publish.PublishingExtension;
 import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.tasks.*;
+import org.gradle.jvm.toolchain.JavaLanguageVersion;
+import org.gradle.util.GradleVersion;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -190,35 +193,51 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
     @SuppressWarnings("ReadWriteStringCanBeUsed") //We still need to support older versions of the JDK.
     private void replaceTeamCityTestProjectIds(final File projectDir) throws Exception
     {
-        final String projectId = determineGitHubProjectName(projectDir);
-        final File teamcityDir = new File(projectDir, ".teamcity");
-        if (!teamcityDir.exists())
-        {
-            return;
+        try (final Git git = Git.open(projectDir)) {
+            final String projectId = determineGitHubProjectName(git);
+            final File teamcityDir = new File(projectDir, ".teamcity");
+            if (!teamcityDir.exists())
+            {
+                return;
+            }
+
+            for (final File file : Objects.requireNonNull(teamcityDir.listFiles((dir, name) -> name.endsWith("kts"))))
+            {
+                String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+                content = content.replaceAll("%projectName%", projectId);
+                content = content.replaceAll("%projectOrg%", determineGitHubProjectOrganisation(git));
+                content = content.replaceAll("%projectArtifactId%", determineArtifactId(projectId));
+                content = content.replaceAll("%projectArtifactGroup%", determineGroup(getProject().getGroup().toString()));
+                content = content.replaceAll("%jdkVersion%", determineJDKVersion());
+                content = content.replaceAll("%gradleVersion%", GradleVersion.current().getVersion());
+                Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
+            }
+
+            String projectGroup = determineGitHubProjectOrganisation(git);
+            if (!projectGroup.equals("MinecraftForge")) {
+                projectGroup = "MinecraftForge_" + projectGroup;
+            }
+
+            for (final File file : Objects.requireNonNull(teamcityDir.listFiles((dir, name) -> name.endsWith("xml"))))
+            {
+                String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+                content = content.replaceAll("%projectName%", projectId);
+                content = content.replaceAll("%projectGroup%", projectGroup);
+                Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
+            }
+        }
+    }
+
+    private String determineJDKVersion() {
+        if (getProject().getExtensions().findByType(JavaPluginExtension.class) == null) {
+            getProject().getLogger().warn("Could not find the Java extension, falling back to JDK 8.");
+            return "8";
         }
 
-        for (final File file : Objects.requireNonNull(teamcityDir.listFiles((dir, name) -> name.endsWith("kts"))))
-        {
-            String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
-            content = content.replaceAll("%projectName%", projectId);
-            content = content.replaceAll("%projectOrg%", determineGitHubProjectOrganisation(projectDir));
-            content = content.replaceAll("%projectArtifactId%", determineArtifactId(projectId));
-            content = content.replaceAll("%projectArtifactGroup%", determineGroup(getProject().getGroup().toString()));
-            Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
-        }
-
-        String projectGroup = determineGitHubProjectOrganisation(projectDir);
-        if (!projectGroup.equals("MinecraftForge")) {
-            projectGroup = "MinecraftForge_" + projectGroup;
-        }
-
-        for (final File file : Objects.requireNonNull(teamcityDir.listFiles((dir, name) -> name.endsWith("xml"))))
-        {
-            String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
-            content = content.replaceAll("%projectName%", projectId);
-            content = content.replaceAll("%projectGroup%", projectGroup);
-            Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
-        }
+        return getProject().getExtensions().getByType(JavaPluginExtension.class)
+                .getToolchain().getLanguageVersion()
+                .orElse(getProject().provider(() -> JavaLanguageVersion.of(8)))
+                .get().toString();
     }
 
     private String determineArtifactId(String projectId) {
@@ -278,12 +297,11 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
      * Determines the project name of the project of github.
      * Querries the first remote of the current git project and pulls its fetch URL information to extract the name.
      *
-     * @param projectDir The project directory.
+     * @param git the project git
      * @return The project name of the project on github.
      */
-    private static String determineGitHubProjectName(final File projectDir) throws Exception
+    private static String determineGitHubProjectName(final Git git) throws Exception
     {
-        final Git git = Git.open(projectDir);
         final String repositoryPath = git.remoteList().call().get(0).getURIs().get(0).getPath();
 
         return repositoryPath.substring(repositoryPath.lastIndexOf("/") + 1).replace(".git", "");
@@ -293,12 +311,11 @@ public abstract class ExtractTeamCityProjectConfigurationTask extends DefaultTas
      * Determines the project name of the organisation of github.
      * Querries the first remote of the current git project and pulls its fetch URL information to extract the name.
      *
-     * @param projectDir The project directory.
+     * @param git the project git
      * @return The organisation name of the project on github.
      */
-    private static String determineGitHubProjectOrganisation(final File projectDir) throws Exception
+    private static String determineGitHubProjectOrganisation(final Git git) throws Exception
     {
-        final Git git = Git.open(projectDir);
         final String repositoryPath = git.remoteList().call().get(0).getURIs().get(0).getPath();
 
         final String[] pathMembers = repositoryPath.split("/");

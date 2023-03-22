@@ -44,7 +44,7 @@ task copyGradleUtilsGroovy(type: Copy) {
 task copyGradleUtilsResources(type: Copy) {
     outputs.upToDateWhen { false }
     into 'src/main/resources'
-    from('buildSrc/src/main/resources') {
+    from('buildSrc/build/extraresources') {
         include '**/*.zip'
     }
 }
