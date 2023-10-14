@@ -20,12 +20,15 @@
 
 package net.minecraftforge.gradleutils
 
+import groovy.json.JsonOutput
+import groovy.transform.CompileStatic
+import groovy.transform.Immutable
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.errors.RepositoryNotFoundException
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.transport.URIish
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.authentication.http.BasicAuthentication
 
@@ -153,39 +156,36 @@ class GradleUtils {
     /**
      * Get a closure for the Forge maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
      * in a repositories block.
-     *
-     * @return a closure
      */
-    static getForgeMaven() {
-        return { MavenArtifactRepository it ->
-            name 'forge'
-            url 'https://maven.minecraftforge.net/'
+    @CompileStatic
+    static Closure getForgeMaven() {
+        return { MavenArtifactRepository repo ->
+            repo.name = 'MinecraftForge'
+            repo.url = 'https://maven.minecraftforge.net/'
         }
     }
 
     /**
      * Get a closure for the Forge maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
      * in a repositories block.
-     *
-     * @return a closure
      */
-    static getForgeReleaseMaven() {
-        return { MavenArtifactRepository it ->
-            name 'forge-releases'
-            url 'https://maven.minecraftforge.net/releases'
+    @CompileStatic
+    static Closure getForgeReleaseMaven() {
+        return { MavenArtifactRepository repo ->
+            repo.name = 'MinecraftForge releases'
+            repo.url = 'https://maven.minecraftforge.net/releases'
         }
     }
 
     /**
      * Get a closure for the Forge maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
      * in a repositories block.
-     *
-     * @return a closure
      */
-    static getForgeSnapshotMaven() {
-        return { MavenArtifactRepository it ->
-            name 'forge-snapshots'
-            url 'https://maven.minecraftforge.net/snapshots'
+    @CompileStatic
+    static Closure getForgeSnapshotMaven() {
+        return { MavenArtifactRepository repo ->
+            repo.name = 'MinecraftForge snapshots'
+            repo.url = 'https://maven.minecraftforge.net/snapshots'
         }
     }
 
@@ -378,9 +378,8 @@ class GradleUtils {
      * @param project The project to configure them on.
      */
     static void setupCITasks(Project project) {
-        //Future proofing.
-        //For now we only support the TeamCity environment
         setupTeamCityTasks(project)
+        GitHubActions.setupTasks(project)
     }
 
     /**
@@ -398,6 +397,39 @@ class GradleUtils {
                     println "##teamcity[buildNumber '${project.version}']"
                     println "##teamcity[setParameter name='env.PUBLISHED_JAVA_ARTIFACT_VERSION' value='${project.version}']"
                 }
+            }
+        }
+    }
+
+    @CompileStatic
+    private static class GitHubActions {
+        private static void setupTasks(final Project project) {
+            // Setup the GitHub Actions project info task
+            project.tasks.register('ghActionsProjectInfoJson') { Task task ->
+                task.onlyIf { System.getenv('GITHUB_ENV') !== null }
+                task.doLast {
+                    project.file(System.getenv('GITHUB_ENV')) << "\nPROJ_INFO_JSON=" + JsonOutput.toJson(getProjectInfo(project))
+                }
+            }
+
+            project.tasks.register('ghActionsProjectVersion') { Task task ->
+                task.onlyIf { System.getenv('GITHUB_ENV') !== null }
+                task.doLast {
+                    project.file(System.getenv('GITHUB_ENV')) << "\nPROJ_VERSION=${project.version}"
+                }
+            }
+        }
+
+        @Immutable
+        private static final class ProjectInfo {
+            String group = ''
+            String name = ''
+            String version = ''
+        }
+
+        private static List<ProjectInfo> getProjectInfo(final Project project) {
+            return project.allprojects.collect { Project proj ->
+                new ProjectInfo(project.group.toString(), proj.name, proj.version.toString())
             }
         }
     }

@@ -22,7 +22,7 @@ java {
 
 group 'net.minecraftforge.gradleutils' //Test
 version GradleUtils.getTagOffsetVersion(GIT_INFO)
-println('Version: ' + version)
+println "Version: $version"
 
 repositories {
     mavenCentral()
@@ -49,9 +49,12 @@ task copyGradleUtilsResources(type: Copy) {
     }
 }
 
-compileGroovy.dependsOn(copyGradleUtilsResources)
+tasks.withType(GroovyCompile).configureEach {
+    dependsOn 'copyGradleUtilsResources', 'copyGradleUtilsGroovy'
+    groovyOptions.optimizationOptions.indy = true
+}
+
 checkLicenseMain.dependsOn(copyGradleUtilsResources)
-compileGroovy.dependsOn(copyGradleUtilsGroovy)
 checkLicenseMain.dependsOn(copyGradleUtilsGroovy)
 
 task sourcesJar(type: Jar, dependsOn: classes) {
