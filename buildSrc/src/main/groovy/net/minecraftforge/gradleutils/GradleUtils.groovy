@@ -20,12 +20,15 @@
 
 package net.minecraftforge.gradleutils
 
+import groovy.json.JsonOutput
 import groovy.transform.CompileStatic
+import groovy.transform.Immutable
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.errors.RepositoryNotFoundException
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.authentication.http.BasicAuthentication
 
@@ -376,7 +379,7 @@ class GradleUtils {
      */
     static void setupCITasks(Project project) {
         setupTeamCityTasks(project)
-        setupGitHubActionsTasks(project)
+        GitHubActions.setupTasks(project)
     }
 
     /**
@@ -399,12 +402,34 @@ class GradleUtils {
     }
 
     @CompileStatic
-    private static void setupGitHubActionsTasks(final Project project) {
-        // Setup the GitHub Actions project version task
-        project.tasks.register('ghActionsProjectVersion') { task ->
-            task.onlyIf { System.getenv('GITHUB_ENV') !== null }
-            task.doLast {
-                project.file(System.getenv('GITHUB_ENV')) << "\nPROJ_VERSION=${project.version}"
+    private static class GitHubActions {
+        private static void setupTasks(final Project project) {
+            // Setup the GitHub Actions project info task
+            project.tasks.register('ghActionsProjectInfoJson') { Task task ->
+                task.onlyIf { System.getenv('GITHUB_ENV') !== null }
+                task.doLast {
+                    project.file(System.getenv('GITHUB_ENV')) << "\nPROJ_INFO_JSON=" + JsonOutput.toJson(getProjectInfo(project))
+                }
+            }
+
+            project.tasks.register('ghActionsProjectVersion') { Task task ->
+                task.onlyIf { System.getenv('GITHUB_ENV') !== null }
+                task.doLast {
+                    project.file(System.getenv('GITHUB_ENV')) << "\nPROJ_VERSION=${project.version}"
+                }
+            }
+        }
+
+        @Immutable
+        private static final class ProjectInfo {
+            String group = ''
+            String name = ''
+            String version = ''
+        }
+
+        private static List<ProjectInfo> getProjectInfo(final Project project) {
+            return project.allprojects.collect { Project proj ->
+                new ProjectInfo(project.group.toString(), proj.name, proj.version.toString())
             }
         }
     }
