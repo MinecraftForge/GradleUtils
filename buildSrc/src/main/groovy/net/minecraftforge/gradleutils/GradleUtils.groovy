@@ -153,39 +153,36 @@ class GradleUtils {
     /**
      * Get a closure for the Forge maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
      * in a repositories block.
-     *
-     * @return a closure
      */
-    static getForgeMaven() {
-        return { MavenArtifactRepository it ->
-            name 'forge'
-            url 'https://maven.minecraftforge.net/'
+    @CompileStatic
+    static Closure getForgeMaven() {
+        return { MavenArtifactRepository repo ->
+            repo.name = 'MinecraftForge'
+            repo.url = 'https://maven.minecraftforge.net/'
         }
     }
 
     /**
      * Get a closure for the Forge maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
      * in a repositories block.
-     *
-     * @return a closure
      */
-    static getForgeReleaseMaven() {
-        return { MavenArtifactRepository it ->
-            name 'forge-releases'
-            url 'https://maven.minecraftforge.net/releases'
+    @CompileStatic
+    static Closure getForgeReleaseMaven() {
+        return { MavenArtifactRepository repo ->
+            repo.name = 'MinecraftForge releases'
+            repo.url = 'https://maven.minecraftforge.net/releases'
         }
     }
 
     /**
      * Get a closure for the Forge maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
      * in a repositories block.
-     *
-     * @return a closure
      */
-    static getForgeSnapshotMaven() {
-        return { MavenArtifactRepository it ->
-            name 'forge-snapshots'
-            url 'https://maven.minecraftforge.net/snapshots'
+    @CompileStatic
+    static Closure getForgeSnapshotMaven() {
+        return { MavenArtifactRepository repo ->
+            repo.name = 'MinecraftForge snapshots'
+            repo.url = 'https://maven.minecraftforge.net/snapshots'
         }
     }
 
