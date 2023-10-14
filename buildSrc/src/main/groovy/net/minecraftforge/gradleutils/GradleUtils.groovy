@@ -20,11 +20,11 @@
 
 package net.minecraftforge.gradleutils
 
+import groovy.transform.CompileStatic
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.errors.RepositoryNotFoundException
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.transport.URIish
 import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.authentication.http.BasicAuthentication
@@ -378,9 +378,8 @@ class GradleUtils {
      * @param project The project to configure them on.
      */
     static void setupCITasks(Project project) {
-        //Future proofing.
-        //For now we only support the TeamCity environment
         setupTeamCityTasks(project)
+        setupGitHubActionsTasks(project)
     }
 
     /**
@@ -398,6 +397,17 @@ class GradleUtils {
                     println "##teamcity[buildNumber '${project.version}']"
                     println "##teamcity[setParameter name='env.PUBLISHED_JAVA_ARTIFACT_VERSION' value='${project.version}']"
                 }
+            }
+        }
+    }
+
+    @CompileStatic
+    private static void setupGitHubActionsTasks(final Project project) {
+        // Setup the GitHub Actions project version task
+        project.tasks.register('ghActionsProjectVersion') { task ->
+            task.onlyIf { System.getenv('GITHUB_ENV') !== null }
+            task.doLast {
+                project.file(System.getenv('GITHUB_ENV')) << "\nPROJ_VERSION=${project.version}"
             }
         }
     }
