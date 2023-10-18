@@ -1,5 +1,7 @@
 import net.minecraftforge.gradleutils.ChangelogUtils
 import net.minecraftforge.gradleutils.GradleUtils
+import net.minecraftforge.gradleutils.PomUtils
+
 import net.minecraftforge.gradleutils.tasks.ExtractTeamCityProjectConfigurationTask
 
 plugins {
@@ -93,7 +95,7 @@ ChangelogUtils.setupChangelogGenerationFromTag(project, '1.0')
 
 publishing {
     publications.register('pluginMaven', MavenPublication) { mavenPublication ->
-        artifact sourcesJar
+        artifact tasks.named('sourcesJar', Jar)
 
         ChangelogUtils.setupChangelogGenerationForPublishing(project, mavenPublication)
 
@@ -101,35 +103,19 @@ publishing {
             name = 'Gradle Utils'
             description = 'Used by MinecraftForge projects as a util library for Gradle buildscripts'
             url = 'https://github.com/MinecraftForge/GradleUtils'
-            scm {
-                url = 'https://github.com/MinecraftForge/GradleUtils'
-                connection = 'scm:git:git://github.com/MinecraftForge/GradleUtils.git'
-                developerConnection = 'scm:git:git@github.com:MinecraftForge/GradleUtils.git'
-            }
-            issueManagement {
-                system = 'github'
-                url = 'https://github.com/MinecraftForge/GradleUtils/issues'
-            }
 
-            licenses {
-                license {
-                    name = 'LGPLv2.1'
-                    url = 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt'
-                }
-            }
+            PomUtils.setGitHubDetails(pom, 'GradleUtils')
+
+            license PomUtils.Licenses.LGPLv2_1
 
             developers {
-                developer {
-                    id = 'LexManos'
-                    name = 'Lex Manos'
-                }
-                developer {
-                    id = 'SizableShrimp'
-                    name = 'SizableShrimp'
-                }
+                developer PomUtils.Developers.LexManos
+                developer PomUtils.Developers.SizableShrimp
+                developer PomUtils.Developers.Paint_Ninja
             }
         }
     }
+
     repositories {
         maven GradleUtils.getPublishingForgeMaven(project)
     }
