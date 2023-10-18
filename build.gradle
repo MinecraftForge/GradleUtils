@@ -1,7 +1,8 @@
 import net.minecraftforge.gradleutils.ChangelogUtils
 import net.minecraftforge.gradleutils.GradleUtils
+import net.minecraftforge.gradleutils.PomUtils
+
 import net.minecraftforge.gradleutils.tasks.ExtractTeamCityProjectConfigurationTask
-import net.minecraftforge.gradleutils.tasks.GenerateChangelogTask
 
 plugins {
     id 'java-gradle-plugin'
@@ -10,18 +11,8 @@ plugins {
     id 'org.cadixdev.licenser' version '0.6.1'
 }
 
-ext {
-    GIT_INFO = GradleUtils.gitInfo(file('.'))
-}
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(8)
-    }
-}
-
-group 'net.minecraftforge.gradleutils' //Test
-version GradleUtils.getTagOffsetVersion(GIT_INFO)
+group 'net.minecraftforge.gradleutils'
+version GradleUtils.getTagOffsetVersion(GradleUtils.gitInfo(file('.')))
 println "Version: $version"
 
 repositories {
@@ -32,7 +23,14 @@ dependencies {
     implementation 'org.eclipse.jgit:org.eclipse.jgit:5.10.0.202012080955-r'
 }
 
-task copyGradleUtilsGroovy(type: Copy) {
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+    withSourcesJar()
+}
+
+tasks.register('copyGradleUtilsGroovy', Copy) {
     outputs.upToDateWhen { false }
     into 'src/main/groovy'
     from('buildSrc/src/main/groovy') {
@@ -41,7 +39,7 @@ task copyGradleUtilsGroovy(type: Copy) {
     }
 }
 
-task copyGradleUtilsResources(type: Copy) {
+tasks.register('copyGradleUtilsResources', Copy) {
     outputs.upToDateWhen { false }
     into 'src/main/resources'
     from('buildSrc/build/extraresources') {
@@ -54,25 +52,25 @@ tasks.withType(GroovyCompile).configureEach {
     groovyOptions.optimizationOptions.indy = true
 }
 
-checkLicenseMain.dependsOn(copyGradleUtilsResources)
-checkLicenseMain.dependsOn(copyGradleUtilsGroovy)
-
-task sourcesJar(type: Jar, dependsOn: classes) {
-    archiveClassifier = 'sources'
-    from sourceSets.main.allSource
+tasks.named('checkLicenseMain').configure {
+    dependsOn 'copyGradleUtilsResources', 'copyGradleUtilsGroovy'
 }
 
-artifacts {
-    archives sourcesJar
+tasks.named('processResources', ProcessResources).configure {
+    dependsOn 'copyGradleUtilsResources'
 }
+
+tasks.named('sourcesJar', Jar).configure {
+    dependsOn 'copyGradleUtilsResources', 'copyGradleUtilsGroovy'
+}
+
+tasks.register('setupTeamCityProject', ExtractTeamCityProjectConfigurationTask) {}
+
+GradleUtils.setupCITasks(project)
 
 license {
-    header = file('HEADER')
-    ext {
-        name = 'GradleUtils'
-        year = 2021
-        fullname = 'Forge Development LLC'
-    }
+    header = file('LICENSE-header.txt')
+    newLine = false
     exclude '**/*.properties'
 }
 
@@ -88,52 +86,27 @@ gradlePlugin {
 ChangelogUtils.setupChangelogGenerationFromTag(project, '1.0')
 
 publishing {
-    publications {
-        pluginMaven(MavenPublication) { mavenPublication ->
-            artifact sourcesJar
+    publications.register('pluginMaven', MavenPublication) { mavenPublication ->
+        ChangelogUtils.setupChangelogGenerationForPublishing(project, mavenPublication)
 
-            ChangelogUtils.setupChangelogGenerationForPublishing(project, mavenPublication)
+        pom {
+            name = 'Gradle Utils'
+            description = 'Used by MinecraftForge projects as a util library for Gradle buildscripts'
+            url = 'https://github.com/MinecraftForge/GradleUtils'
 
-            pom {
-                name = 'Gradle Utils'
-                description = 'Used by MinecraftForge projects as a util library for Gradle buildscripts'
-                url = 'https://github.com/MinecraftForge/GradleUtils'
-                scm {
-                    url = 'https://github.com/MinecraftForge/GradleUtils'
-                    connection = 'scm:git:git://github.com/MinecraftForge/GradleUtils.git'
-                    developerConnection = 'scm:git:git@github.com:MinecraftForge/GradleUtils.git'
-                }
-                issueManagement {
-                    system = 'github'
-                    url = 'https://github.com/MinecraftForge/GradleUtils/issues'
-                }
+            PomUtils.setGitHubDetails(pom, 'GradleUtils')
 
-                licenses {
-                    license {
-                        name = 'LGPLv2.1'
-                        url = 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt'
-                    }
-                }
+            license PomUtils.Licenses.LGPLv2_1
 
-                developers {
-                    developer {
-                        id = 'LexManos'
-                        name = 'Lex Manos'
-                    }
-                    developer {
-                        id = 'SizableShrimp'
-                        name = 'SizableShrimp'
-                    }
-                }
+            developers {
+                developer PomUtils.Developers.LexManos
+                developer PomUtils.Developers.SizableShrimp
+                developer PomUtils.Developers.Paint_Ninja
             }
         }
     }
+
     repositories {
         maven GradleUtils.getPublishingForgeMaven(project)
     }
 }
-
-task setupTeamCityProject(type: ExtractTeamCityProjectConfigurationTask) {
-}
-
-GradleUtils.setupCITasks(project);

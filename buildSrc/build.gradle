@@ -11,20 +11,25 @@ dependencies {
 }
 
 license {
-    header = new File(projectDir.parentFile, 'HEADER')
-    ext {
-        name = 'GradleUtils'
-        year = 2021
-        fullname = 'Forge Development LLC'
-    }
+    header = new File(projectDir.parentFile, 'LICENSE-header.txt')
+    newLine = false
     exclude '**/*.properties'
 }
 
-final extraResources = new File(buildDir, 'extraresources')
+final extraResources = new File(layout.buildDirectory.getAsFile().get(), 'extraresources')
+
 sourceSets.main.resources.srcDir(extraResources)
+
 tasks.register('teamcityTemplateZip', Zip) {
     from(project.file('../teamcityTemplate'))
     archiveFileName.set('.teamcity.zip')
     destinationDirectory.set(extraResources)
 }
-tasks.classes.dependsOn(tasks.teamcityTemplateZip)
+
+tasks.named('processResources').configure {
+    dependsOn 'teamcityTemplateZip'
+}
+
+tasks.named('classes').configure {
+    dependsOn 'teamcityTemplateZip'
+}
