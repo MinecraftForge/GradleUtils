@@ -11,12 +11,8 @@ dependencies {
 }
 
 license {
-    header = new File(projectDir.parentFile, 'HEADER')
-    ext {
-        name = 'GradleUtils'
-        year = 2023
-        fullname = 'Forge Development LLC'
-    }
+    header = new File(projectDir.parentFile, 'LICENSE-header.txt')
+    newLine = false
     exclude '**/*.properties'
 }
 

@@ -73,12 +73,8 @@ artifacts {
 }
 
 license {
-    header = file('HEADER')
-    ext {
-        name = 'GradleUtils'
-        year = 2023
-        fullname = 'Forge Development LLC'
-    }
+    header = file('LICENSE-header.txt')
+    newLine = false
     exclude '**/*.properties'
 }
 
