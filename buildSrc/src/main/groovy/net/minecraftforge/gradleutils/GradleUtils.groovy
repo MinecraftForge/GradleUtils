@@ -21,34 +21,47 @@
 package net.minecraftforge.gradleutils
 
 import groovy.json.JsonOutput
+import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import groovy.transform.Immutable
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.errors.RepositoryNotFoundException
 import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.transport.RemoteConfig
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.authentication.http.BasicAuthentication
 
+import javax.annotation.Nullable
+
+@CompileStatic
 class GradleUtils {
-    static {
-        String.metaClass.rsplit = { String del, int limit = -1 ->
-            def lst = new ArrayList()
-            def x = 0, idx
-            def tmp = delegate
-            while ((idx = tmp.lastIndexOf(del)) != -1 && (limit == -1 || x++ < limit)) {
-                lst.add(0, tmp.substring(idx + del.length(), tmp.length()))
-                tmp = tmp.substring(0, idx)
-            }
-            lst.add(0, tmp)
-            return lst
-        }
+
+    @CompileDynamic
+    private static void initDynamic() {
+        String.metaClass.rsplit = GradleUtils.&rsplit
     }
 
-    static gitInfo(File dir, String... globFilters) {
-        def git
+    @Nullable
+    static List<String> rsplit(@Nullable String input, String del, int limit = -1) {
+        if (input === null) return null
+        List<String> lst = []
+        int x = 0
+        int idx
+        String tmp = input
+        while ((idx = tmp.lastIndexOf(del)) !== -1 && (limit === -1 || x++ < limit)) {
+            lst.add(0, tmp.substring(idx + del.length(), tmp.length()))
+            tmp = tmp.substring(0, idx)
+        }
+        lst.add(0, tmp)
+        return lst
+    }
+
+    static Map<String, String> gitInfo(File dir, String... globFilters) {
+        var git
         try {
             git = Git.open(dir)
         } catch (RepositoryNotFoundException e) {
@@ -61,24 +74,24 @@ class GradleUtils {
                     abbreviatedId: '00000000'
             ]
         }
-        def tag = git.describe().setLong(true).setTags(true).setMatch(globFilters ?: new String[0]).call()
-        def desc = tag?.rsplit('-', 2) ?: ['0.0', '0', '00000000']
-        def head = git.repository.exactRef('HEAD')
-        def longBranch = head.symbolic ? head?.target?.name : null // matches Repository.getFullBranch() but returning null when on a detached HEAD
+        String tag = git.describe().setLong(true).setTags(true).setMatch(globFilters ?: new String[0]).call()
+        List<String> desc = rsplit(tag, '-', 2) ?: ['0.0', '0', '00000000']
+        Ref head = git.repository.exactRef('HEAD')
+        String longBranch = head.symbolic ? head?.target?.name : null // matches Repository.getFullBranch() but returning null when on a detached HEAD
 
-        def ret = [:]
+        Map<String, String> ret = [:]
         ret.dir = dir.absolutePath
         ret.tag = desc[0]
         if (ret.tag.startsWith("v") && ret.tag.length() > 1 && ret.tag.charAt(1).digit)
             ret.tag = ret.tag.substring(1)
         ret.offset = desc[1]
         ret.hash = desc[2]
-        ret.branch = longBranch != null ? Repository.shortenRefName(longBranch) : null
+        ret.branch = longBranch !== null ? Repository.shortenRefName(longBranch) : null
         ret.commit = ObjectId.toString(head.objectId)
         ret.abbreviatedId = head.objectId.abbreviate(8).name()
 
         // Remove any lingering null values
-        ret.removeAll {it.value == null }
+        ret.removeAll {it.value === null }
 
         return ret
     }
@@ -97,7 +110,7 @@ class GradleUtils {
      * @param defaultFolder The default folder if the required maven information is not currently set
      * @return a closure
      */
-    static getPublishingForgeMaven(Project project, File defaultFolder = project.rootProject.file('repo')) {
+    static Closure getPublishingForgeMaven(Project project, File defaultFolder = project.rootProject.file('repo')) {
         return setupSnapshotCompatiblePublishing(project, 'https://maven.minecraftforge.net/', defaultFolder)
     }
 
@@ -122,32 +135,33 @@ class GradleUtils {
      * @param defaultFolder The default folder if the required maven information is not currently set
      * @return a closure
      */
-    static setupSnapshotCompatiblePublishing(Project project, String fallbackPublishingEndpoint = 'https://maven.minecraftforge.net/', File defaultFolder = project.rootProject.file('repo'), File defaultSnapshotFolder = project.rootProject.file('snapshots')) {
-        return { MavenArtifactRepository it ->
-            name 'forge'
-            if (System.env.MAVEN_USER && System.env.MAVEN_PASSWORD) {
-                def publishingEndpoint = fallbackPublishingEndpoint
-                if (System.env.MAVEN_URL_RELEASE) {
-                    publishingEndpoint = System.env.MAVEN_URL_RELEASE
+    static Closure setupSnapshotCompatiblePublishing(Project project, String fallbackPublishingEndpoint = 'https://maven.minecraftforge.net/', File defaultFolder = project.rootProject.file('repo'), File defaultSnapshotFolder = project.rootProject.file('snapshots')) {
+        return { MavenArtifactRepository repo ->
+            repo.name = 'forge'
+
+            if (System.getenv('MAVEN_USER') && System.getenv('MAVEN_PASSWORD')) {
+                String publishingEndpoint = fallbackPublishingEndpoint
+                if (System.getenv('MAVEN_URL_RELEASE')) {
+                    publishingEndpoint = System.getenv('MAVEN_URL_RELEASE')
                 }
 
-                if (project.version.toString().endsWith("-SNAPSHOT") && System.env.MAVEN_URL_SNAPSHOTS) {
-                    url System.env.MAVEN_URL_SNAPSHOTS
+                if (project.version.toString().endsWith('-SNAPSHOT') && System.getenv('MAVEN_URL_SNAPSHOTS')) {
+                    repo.url = System.getenv('MAVEN_URL_SNAPSHOTS')
                 } else {
-                    url publishingEndpoint
+                    repo.url = publishingEndpoint
                 }
-                authentication {
-                    basic(BasicAuthentication)
+                repo.authentication { auth ->
+                    auth.create('basic', BasicAuthentication)
                 }
-                credentials {
-                    username = System.env.MAVEN_USER
-                    password = System.env.MAVEN_PASSWORD
+                repo.credentials { creds ->
+                    creds.username = System.getenv('MAVEN_USER')
+                    creds.password = System.getenv('MAVEN_PASSWORD')
                 }
             } else {
-                if (project.version.toString().endsWith("-SNAPSHOT")) {
-                    url 'file://' + defaultSnapshotFolder.getAbsolutePath()
+                if (project.version.toString().endsWith('-SNAPSHOT')) {
+                    repo.url = 'file://' + defaultSnapshotFolder.absolutePath
                 } else {
-                    url 'file://' + defaultFolder.getAbsolutePath()
+                    repo.url = 'file://' + defaultFolder.absolutePath
                 }
             }
         }
@@ -157,7 +171,6 @@ class GradleUtils {
      * Get a closure for the Forge maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
      * in a repositories block.
      */
-    @CompileStatic
     static Closure getForgeMaven() {
         return { MavenArtifactRepository repo ->
             repo.name = 'MinecraftForge'
@@ -169,7 +182,6 @@ class GradleUtils {
      * Get a closure for the Forge maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
      * in a repositories block.
      */
-    @CompileStatic
     static Closure getForgeReleaseMaven() {
         return { MavenArtifactRepository repo ->
             repo.name = 'MinecraftForge releases'
@@ -181,7 +193,6 @@ class GradleUtils {
      * Get a closure for the Forge maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
      * in a repositories block.
      */
-    @CompileStatic
     static Closure getForgeSnapshotMaven() {
         return { MavenArtifactRepository repo ->
             repo.name = 'MinecraftForge snapshots'
@@ -189,10 +200,10 @@ class GradleUtils {
         }
     }
 
-    private static getFilteredInfo(info, boolean prefix, String filter) {
+    private static Map<String, String> getFilteredInfo(Map<String, String> info, boolean prefix, String filter) {
         if (prefix)
             filter += '**'
-        return gitInfo(new File(info.dir as String), filter)
+        return gitInfo(new File(info.dir), filter)
     }
 
     /**
@@ -201,7 +212,7 @@ class GradleUtils {
      * @param info A git info object generated from {@link #gitInfo}
      * @return a version in the form {@code $tag.$offset}, e.g. 1.0.5
      */
-    static String getTagOffsetVersion(info) {
+    static String getTagOffsetVersion(Map<String, String> info) {
         return "${info.tag}.${info.offset}"
     }
 
@@ -215,7 +226,7 @@ class GradleUtils {
      * @param filter A non-null string filter used when retrieving the tag
      * @return a version in the form {@code $tag.$offset}, e.g. 1.0.5
      */
-    static String getFilteredTagOffsetVersion(info, boolean prefix = false, String filter) {
+    static String getFilteredTagOffsetVersion(Map<String, String> info, boolean prefix = false, String filter) {
         return getTagOffsetVersion(getFilteredInfo(info, prefix, filter))
     }
 
@@ -227,13 +238,13 @@ class GradleUtils {
      * @param allowedBranches A list of allowed branches; the current branch is appended if not in this list
      * @return a version in the form {@code $tag.$offset} or {@code $tag.$offset-$branch}
      */
-    static String getTagOffsetBranchVersion(info, String... allowedBranches) {
-        if (!allowedBranches || allowedBranches.length == 0)
+    static String getTagOffsetBranchVersion(Map<String, String> info, String... allowedBranches) {
+        if (!allowedBranches || allowedBranches.length === 0)
             allowedBranches = [null, 'master', 'main', 'HEAD']
-        def version = getTagOffsetVersion(info)
+        final version = getTagOffsetVersion(info)
         String branch = info.branch
         if (branch?.startsWith('pulls/'))
-            branch = 'pr' + branch.rsplit('/', 1)[1]
+            branch = 'pr' + rsplit(branch, '/', 1)[1]
         branch = branch?.replaceAll(/[\\\/]/, '-')
         return branch in allowedBranches ? version : "$version-${branch}"
     }
@@ -250,7 +261,7 @@ class GradleUtils {
      * @param allowedBranches A list of allowed branches; the current branch is appended if not in this list
      * @return a version in the form {@code $tag.$offset} or {@code $tag.$offset-$branch}
      */
-    static String getFilteredTagOffsetBranchVersion(info, boolean prefix = false, String filter, String... allowedBranches) {
+    static String getFilteredTagOffsetBranchVersion(Map<String, String> info, boolean prefix = false, String filter, String... allowedBranches) {
         return getTagOffsetBranchVersion(getFilteredInfo(info, prefix, filter), allowedBranches)
     }
 
@@ -263,9 +274,9 @@ class GradleUtils {
      * @param allowedBranches A list of allowed branches; the current branch is appended if not in this list
      * @return a version in the form {@code $mcVersion-$tag.$offset} or {@code $mcVersion-$tag.$offset-$branch}
      */
-    static String getMCTagOffsetBranchVersion(info, String mcVersion, String... allowedBranches) {
-        if (!allowedBranches || allowedBranches.length == 0)
-            allowedBranches = [null, 'master', 'main', 'HEAD', mcVersion, mcVersion + '.0', mcVersion + '.x', mcVersion.rsplit('.', 1)[0] + '.x']
+    static String getMCTagOffsetBranchVersion(Map<String, String> info, String mcVersion, String... allowedBranches) {
+        if (!allowedBranches || allowedBranches.length === 0)
+            allowedBranches = [null, 'master', 'main', 'HEAD', mcVersion, mcVersion + '.0', mcVersion + '.x', rsplit(mcVersion, '.', 1)[0] + '.x']
         return "$mcVersion-${getTagOffsetBranchVersion(info, allowedBranches)}"
     }
 
@@ -282,7 +293,7 @@ class GradleUtils {
      * @param allowedBranches A list of allowed branches; the current branch is appended if not in this list
      * @return a version in the form {@code $mcVersion-$tag.$offset} or {@code $mcVersion-$tag.$offset-$branch}
      */
-    static String getFilteredMCTagOffsetBranchVersion(info, boolean prefix = false, String filter, String mcVersion, String... allowedBranches) {
+    static String getFilteredMCTagOffsetBranchVersion(Map<String, String> info, boolean prefix = false, String filter, String mcVersion, String... allowedBranches) {
         return getMCTagOffsetBranchVersion(getFilteredInfo(info, prefix, filter), mcVersion, allowedBranches)
     }
 
@@ -323,43 +334,33 @@ class GradleUtils {
     static String buildProjectUrl(final File projectDir) {
         Git git = Git.open(projectDir) //Create a git workspace.
 
-        def remotes = git.remoteList().call() //Get all remotes.
-        if (remotes.size() == 0)
+        List<RemoteConfig> remotes = git.remoteList().call() //Get all remotes.
+        if (remotes.isEmpty())
             throw new IllegalStateException("No remotes found in " + projectDir)
 
         //Get the origin remote.
-        def originRemote = remotes.toList().stream()
-            .filter(r -> r.getName().equals("origin"))
-            .findFirst()
-            .orElse(null)
+        final originRemote = remotes.find { remote -> remote.name == 'origin' }
 
         //We do not have an origin named remote
-        if (originRemote == null)
-        {
-            return ""
-        }
+        if (originRemote === null)
+            return ''
 
         //Get the origin push url.
-        def originUrl = originRemote.getURIs().toList().stream()
-            .findFirst()
-            .orElse(null)
+        final originUrl = originRemote.URIs.first()
 
         //We do not have a origin url
-        if (originUrl == null)
-        {
-            return ""
-        }
+        if (originUrl === null)
+            return ''
 
         //Grab its string representation and process.
-        def originUrlString = originUrl.toString()
+        final originUrlString = originUrl.toString()
         //Determine the protocol
         if (originUrlString.startsWith("ssh")) {
             //If ssh then check for authentication data.
             if (originUrlString.contains("@")) {
                 //We have authentication data: Strip it.
                 return "https://" + originUrlString.substring(originUrlString.indexOf("@") + 1).replace(".git", "")
-            } else
-            {
+            } else {
                 //No authentication data: Switch to https.
                 return "https://" + originUrlString.substring(6).replace(".git", "")
             }
@@ -387,13 +388,14 @@ class GradleUtils {
      *
      * @param project The project to configure it on.
      */
+    @CompileDynamic
     private static void setupTeamCityTasks(Project project) {
-        if (System.env.TEAMCITY_VERSION) {
+        if (System.getenv('TEAMCITY_VERSION')) {
             //Only setup the CI environment if and only if the environment variables are set.
             def teamCityCITask = project.tasks.register("configureTeamCity") {
                 //Print the marker lines into the log which configure the pipeline.
                 doLast {
-                    project.getLogger().lifecycle("Setting project variables and parameters.")
+                    project.logger.lifecycle("Setting project variables and parameters.")
                     println "##teamcity[buildNumber '${project.version}']"
                     println "##teamcity[setParameter name='env.PUBLISHED_JAVA_ARTIFACT_VERSION' value='${project.version}']"
                 }
@@ -401,7 +403,6 @@ class GradleUtils {
         }
     }
 
-    @CompileStatic
     private static class GitHubActions {
         private static void setupTasks(final Project project) {
             // Setup the GitHub Actions project info task

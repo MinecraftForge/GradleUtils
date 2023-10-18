@@ -20,18 +20,20 @@
 
 package net.minecraftforge.gradleutils
 
+import groovy.transform.CompileStatic
 import net.minecraftforge.gradleutils.tasks.ExtractTeamCityProjectConfigurationTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
+@CompileStatic
 class GradleUtilsPlugin implements Plugin<Project> {
     @Override
     void apply(Project project) {
-        GradleUtilsExtension extension = project.extensions.create("gradleutils", GradleUtilsExtension.class, project)
-        ChangelogGenerationExtension changelogGenerationExtension = project.extensions.create("changelog", ChangelogGenerationExtension.class, project)
+        GradleUtilsExtension extension = project.extensions.create("gradleutils", GradleUtilsExtension, project)
+        ChangelogGenerationExtension changelogGenerationExtension = project.extensions.create("changelog", ChangelogGenerationExtension, project)
 
         //Setup the teamcity project task.
-        project.getTasks().register("setupTeamCityProject", ExtractTeamCityProjectConfigurationTask.class);
-        GradleUtils.setupCITasks(project);
+        project.tasks.register("setupTeamCityProject", ExtractTeamCityProjectConfigurationTask)
+        GradleUtils.setupCITasks(project)
     }
 }
