@@ -27,6 +27,7 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(8)
     }
+    withSourcesJar()
 }
 
 tasks.register('copyGradleUtilsGroovy', Copy) {
@@ -59,18 +60,13 @@ tasks.named('processResources', ProcessResources).configure {
     dependsOn 'copyGradleUtilsResources'
 }
 
-tasks.register('sourcesJar', Jar) {
+tasks.named('sourcesJar', Jar).configure {
     dependsOn 'copyGradleUtilsResources', 'copyGradleUtilsGroovy'
-    archiveClassifier = 'sources'
 }
 
 tasks.register('setupTeamCityProject', ExtractTeamCityProjectConfigurationTask) {}
 
 GradleUtils.setupCITasks(project)
-
-artifacts {
-    archives tasks.named('sourcesJar', Jar)
-}
 
 license {
     header = file('LICENSE-header.txt')
@@ -91,8 +87,6 @@ ChangelogUtils.setupChangelogGenerationFromTag(project, '1.0')
 
 publishing {
     publications.register('pluginMaven', MavenPublication) { mavenPublication ->
-        artifact tasks.named('sourcesJar', Jar)
-
         ChangelogUtils.setupChangelogGenerationForPublishing(project, mavenPublication)
 
         pom {
