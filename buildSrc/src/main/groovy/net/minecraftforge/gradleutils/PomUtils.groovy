@@ -31,9 +31,15 @@ final class PomUtils {
         }
 
         @Lazy
+        public static final Closure LGPLv3 = { MavenPomLicense license ->
+            license.name.set('LGPLv3')
+            license.url.set('https://www.gnu.org/licenses/lgpl-3.0.txt')
+        }
+
+        @Lazy
         public static final Closure MIT = { MavenPomLicense license ->
             license.name.set('MIT')
-            license.url.set('https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt')
+            license.url.set('https://opensource.org/license/mit/')
         }
     }
 
