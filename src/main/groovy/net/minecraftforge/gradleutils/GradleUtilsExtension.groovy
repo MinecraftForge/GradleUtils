@@ -127,4 +127,8 @@ class GradleUtilsExtension {
     static Closure getForgeMaven() {
         return GradleUtils.getForgeMaven()
     }
+
+    static Closure getMinecraftLibsMaven() {
+        return GradleUtils.getMinecraftLibsMaven()
+    }
 }
