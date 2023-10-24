@@ -184,6 +184,17 @@ class GradleUtils {
         }
     }
 
+    /**
+     * Get a closure for the Minecraft libraries maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
+     * in a repositories block.
+     */
+    static Closure getMinecraftLibsMaven() {
+        return { MavenArtifactRepository repo ->
+            repo.name = 'Minecraft libraries'
+            repo.url = 'https://libraries.minecraft.net/'
+        }
+    }
+
     private static Map<String, String> getFilteredInfo(Map<String, String> info, boolean prefix, String filter) {
         if (prefix)
             filter += '**'
