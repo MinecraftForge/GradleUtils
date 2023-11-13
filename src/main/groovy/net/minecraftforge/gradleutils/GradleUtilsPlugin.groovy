@@ -5,7 +5,6 @@
 package net.minecraftforge.gradleutils
 
 import groovy.transform.CompileStatic
-import net.minecraftforge.gradleutils.tasks.ExtractTeamCityProjectConfigurationTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -17,7 +16,6 @@ class GradleUtilsPlugin implements Plugin<Project> {
         ChangelogGenerationExtension changelogGenerationExtension = project.extensions.create("changelog", ChangelogGenerationExtension, project)
 
         //Setup the teamcity project task.
-        project.tasks.register("setupTeamCityProject", ExtractTeamCityProjectConfigurationTask)
         GradleUtils.setupCITasks(project)
     }
 }

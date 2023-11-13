@@ -131,4 +131,12 @@ class GradleUtilsExtension {
     static Closure getMinecraftLibsMaven() {
         return GradleUtils.getMinecraftLibsMaven()
     }
+
+    /**
+     * Gets an instance of {@link PomUtils} allowing the groovy script to not need to import the PomUtils class.
+     */
+    static PomUtils getPom() {
+        return POM_INSTANCE
+    }
+    private static final PomUtils POM_INSTANCE = new PomUtils()
 }

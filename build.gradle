@@ -1,18 +1,13 @@
-import net.minecraftforge.gradleutils.ChangelogUtils
-import net.minecraftforge.gradleutils.GradleUtils
-import net.minecraftforge.gradleutils.PomUtils
-
-import net.minecraftforge.gradleutils.tasks.ExtractTeamCityProjectConfigurationTask
-
 plugins {
     id 'java-gradle-plugin'
     id 'groovy'
     id 'maven-publish'
     id 'org.cadixdev.licenser' version '0.6.1'
+    id 'net.minecraftforge.gradleutils'
 }
 
-group 'net.minecraftforge.gradleutils'
-version GradleUtils.getTagOffsetVersion(GradleUtils.gitInfo(file('.')))
+group 'net.minecraftforge'
+version gradleutils.tagOffsetVersion
 println "Version: $version"
 
 repositories {
@@ -30,43 +25,9 @@ java {
     withSourcesJar()
 }
 
-tasks.register('copyGradleUtilsGroovy', Copy) {
-    outputs.upToDateWhen { false }
-    into 'src/main/groovy'
-    from('buildSrc/src/main/groovy') {
-        include '**/*.groovy'
-        include '**/*.java'
-    }
-}
-
-tasks.register('copyGradleUtilsResources', Copy) {
-    outputs.upToDateWhen { false }
-    into 'src/main/resources'
-    from('buildSrc/build/extraresources') {
-        include '**/*.zip'
-    }
-}
-
 tasks.withType(GroovyCompile).configureEach {
-    dependsOn 'copyGradleUtilsResources', 'copyGradleUtilsGroovy'
     groovyOptions.optimizationOptions.indy = true
 }
-
-tasks.named('checkLicenseMain').configure {
-    dependsOn 'copyGradleUtilsResources', 'copyGradleUtilsGroovy'
-}
-
-tasks.named('processResources', ProcessResources).configure {
-    dependsOn 'copyGradleUtilsResources'
-}
-
-tasks.named('sourcesJar', Jar).configure {
-    dependsOn 'copyGradleUtilsResources', 'copyGradleUtilsGroovy'
-}
-
-tasks.register('setupTeamCityProject', ExtractTeamCityProjectConfigurationTask) {}
-
-GradleUtils.setupCITasks(project)
 
 license {
     header = file('LICENSE-header.txt')
@@ -83,30 +44,33 @@ gradlePlugin {
     }
 }
 
-ChangelogUtils.setupChangelogGenerationFromTag(project, '1.0')
+changelog {
+    fromTag '1.0'
+    publishAll = false
+}
 
 publishing {
-    publications.register('pluginMaven', MavenPublication) { mavenPublication ->
-        ChangelogUtils.setupChangelogGenerationForPublishing(project, mavenPublication)
-
+    publications.register('pluginMaven', MavenPublication) {
+        changelog.publish(it)
         pom {
+            artifactId = 'gradleutils'
             name = 'Gradle Utils'
             description = 'Used by MinecraftForge projects as a util library for Gradle buildscripts'
             url = 'https://github.com/MinecraftForge/GradleUtils'
 
-            PomUtils.setGitHubDetails(pom, 'GradleUtils')
+            gradleutils.pom.setGitHubDetails(pom, 'GradleUtils')
 
-            license PomUtils.Licenses.LGPLv2_1
+            license gradleutils.pom.licenses.LGPLv2_1
 
             developers {
-                developer PomUtils.Developers.LexManos
-                developer PomUtils.Developers.SizableShrimp
-                developer PomUtils.Developers.Paint_Ninja
+                developer gradleutils.pom.Developers.LexManos
+                developer gradleutils.pom.Developers.SizableShrimp
+                developer gradleutils.pom.Developers.Paint_Ninja
             }
         }
     }
 
     repositories {
-        maven GradleUtils.getPublishingForgeMaven(project)
+        maven gradleutils.publishingForgeMaven
     }
 }

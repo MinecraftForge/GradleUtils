@@ -13,7 +13,7 @@ jobs:
     with:
       java: 8
       gradle_tasks: "publish"
-      artifact_name: "GradleUtils"
+      artifact_name: "gradleutils"
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       PROMOTE_ARTIFACT_WEBHOOK: ${{ secrets.PROMOTE_ARTIFACT_WEBHOOK }}

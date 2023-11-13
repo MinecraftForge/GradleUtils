@@ -43,6 +43,14 @@ final class PomUtils {
         }
     }
 
+    /**
+     * Gets an instance of {@link Licenses} allowing the groovy script to not need to import the Licenses class.
+     */
+    static Licenses getLicenses() {
+        return LICENSES_INSTANCE
+    }
+    private static final Licenses LICENSES_INSTANCE = new Licenses();
+
     public static final Map<String, Action<? super MavenPomDeveloper>> Developers = [
             LexManos: makeDev('LexManos', 'Lex Manos'),
             Paint_Ninja: makeDev('Paint_Ninja'),

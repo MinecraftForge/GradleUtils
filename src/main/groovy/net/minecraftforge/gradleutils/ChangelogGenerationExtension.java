@@ -15,21 +15,29 @@ public class ChangelogGenerationExtension
     private boolean registerAllPublications = true;
 
     @Inject
-    public ChangelogGenerationExtension(final Project project) {this.project = project;}
+    public ChangelogGenerationExtension(final Project project) {
+        this.project = project;
+        project.afterEvaluate(this::afterEvaluate);
+    }
 
     public void fromMergeBase() {
         ChangelogUtils.setupChangelogGeneration(project);
-        project.afterEvaluate(this::afterEvaluate);
     }
 
     public void fromTag(final String tag) {
         ChangelogUtils.setupChangelogGenerationFromTag(project, tag);
-        project.afterEvaluate(this::afterEvaluate);
     }
 
     public void fromCommit(final String commit) {
         ChangelogUtils.setupChangelogGenerationFromCommit(project, commit);
-        project.afterEvaluate(this::afterEvaluate);
+    }
+
+    public void setPublishAll(boolean value) {
+        this.registerAllPublications = value;
+    }
+
+    public boolean isPublishAll() {
+        return this.registerAllPublications;
     }
 
     public void disableAutomaticPublicationRegistration() {

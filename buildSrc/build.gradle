@@ -1,4 +1,5 @@
 plugins {
+    id 'java-gradle-plugin'
     id 'org.cadixdev.licenser' version '0.6.1'
 }
 
@@ -6,30 +7,25 @@ repositories {
     mavenCentral()
 }
 
+java.toolchain.languageVersion = JavaLanguageVersion.of(8)
+
 dependencies {
     implementation 'org.eclipse.jgit:org.eclipse.jgit:5.10.0.202012080955-r'
 }
 
-license {
-    header = new File(projectDir.parentFile, 'LICENSE-header.txt')
-    newLine = false
-    exclude '**/*.properties'
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['../src/main/groovy']
+        }
+    }
 }
 
-final extraResources = new File(layout.buildDirectory.getAsFile().get(), 'extraresources')
-
-sourceSets.main.resources.srcDir(extraResources)
-
-tasks.register('teamcityTemplateZip', Zip) {
-    from(project.file('../teamcityTemplate'))
-    archiveFileName.set('.teamcity.zip')
-    destinationDirectory.set(extraResources)
-}
-
-tasks.named('processResources').configure {
-    dependsOn 'teamcityTemplateZip'
-}
-
-tasks.named('classes').configure {
-    dependsOn 'teamcityTemplateZip'
+gradlePlugin {
+    plugins {
+        gradleutils {
+            id = 'net.minecraftforge.gradleutils'
+            implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
+        }
+    }
 }
