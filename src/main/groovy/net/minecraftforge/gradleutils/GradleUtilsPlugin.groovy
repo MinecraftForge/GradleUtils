@@ -5,6 +5,7 @@
 package net.minecraftforge.gradleutils
 
 import groovy.transform.CompileStatic
+import net.minecraftforge.gradleutils.changelog.ChangelogPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -12,9 +13,8 @@ import org.gradle.api.Project
 class GradleUtilsPlugin implements Plugin<Project> {
     @Override
     void apply(Project project) {
-        GradleUtilsExtension extension = project.extensions.create("gradleutils", GradleUtilsExtension, project)
-        ChangelogGenerationExtension changelogGenerationExtension = project.extensions.create("changelog", ChangelogGenerationExtension, project)
-
+        project.plugins.apply(ChangelogPlugin)
+        project.extensions.create("gradleutils", GradleUtilsExtension, project)
         //Setup the teamcity project task.
         GradleUtils.setupCITasks(project)
     }

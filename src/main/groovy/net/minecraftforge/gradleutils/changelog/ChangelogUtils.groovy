@@ -2,9 +2,9 @@
  * Copyright (c) Forge Development LLC and contributors
  * SPDX-License-Identifier: LGPL-2.1-only
  */
-package net.minecraftforge.gradleutils
+package net.minecraftforge.gradleutils.changelog
 
-import net.minecraftforge.gradleutils.tasks.GenerateChangelogTask
+import groovy.transform.PackageScope
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.ListBranchCommand
 import org.eclipse.jgit.errors.MissingObjectException
@@ -14,82 +14,21 @@ import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.revwalk.filter.RevFilter
-import org.gradle.api.Action
 import org.gradle.api.InvalidUserCodeException
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.publish.PublishingExtension
-import org.gradle.api.publish.maven.MavenArtifact
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.TaskProvider
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 import java.util.function.Function
 import java.util.regex.Pattern
 
+@PackageScope
 class ChangelogUtils {
-
-    /**
-     * Generates a changelog string that can be written to a file from a given git directory and repository url.
-     * The changelog will be generated from the last merge base point to the current HEAD.
-     *
-     * @param projectDirectory The directory from which to pull the git commit information.
-     * @param repositoryUrl The github url of the repository.
-     * @param justText Indicates if plain text ({@code true}) should be used, or changelog should be used ({@code false}).
-     * @return A multiline changelog string.
-     */
-    static String generateChangelog(final File projectDirectory, final String repositoryUrl, final boolean justText) {
-        def git = Git.open(projectDirectory); //Grab git from the given project directory.
-
-        def headCommit = getHead(git); //Grab the head commit.
-        def logFromCommit = getMergeBaseCommit(git); //Grab the last merge base commit on the current branch.
-        if (logFromCommit == null) {
-            //Deal with a single branch repository without merge-base
-            logFromCommit = getFirstCommitInRepository(git); //Just grab the first.
-        }
-
-        return generateChangelogFromTo(git, repositoryUrl, justText, logFromCommit, headCommit) //Generate the changelog.
-    }
-
-    /**
-     * Generates a changelog string that can be written to a file from a given git directory and repository url.
-     * The changelog will be generated from the commit referenced by the given tag to the current HEAD.
-     *
-     * @param projectDirectory The directory from which to pull the git commit information.
-     * @param repositoryUrl The github url of the repository.
-     * @param justText Indicates if plain text ({@code true}) should be used, or changelog should be used ({@code false}).
-     * @param sourceTag The tag to use as the beginning of the changelog.
-     * @return A multiline changelog string.
-     */
-    static String generateChangelog(final File projectDirectory, final String repositoryUrl, final boolean justText, final String sourceTag) {
-        def git = Git.open(projectDirectory); //Grab git from the given project directory.
-
-        def tagMap = getTagToCommitMap(git); //Get the tag to commit map so that the beginning commit can be found.
-        if (!tagMap.containsKey(sourceTag)) //Check if it even exists.
-            throw new IllegalArgumentException("The tag: " + sourceTag + " does not exist in the repository");
-
-        def commitHash = tagMap.get(sourceTag) //Get the commit hash from the tag.
-        def commit = getCommitFromId(git, ObjectId.fromString(commitHash)) //Generate a commit object from the hash.
-        def headCommit = getHead(git); //Get the current head commit.
-
-        return generateChangelogFromTo(git, repositoryUrl, justText, commit, headCommit) //Generate the changelog.
-    }
-
-    /**
-     * Generates a changelog string that can be written to a file from a given git directory and repository url.
-     * The changes will be generated from the given commit to the current HEAD.
-     *
-     * @param projectDirectory The directory from which to pull the git commit information.
-     * @param repositoryUrl The github url of the repository.
-     * @param justText Indicates if plain text ({@code true}) should be used, or changelog should be used ({@code false}).
-     * @param commitHash The commit hash of the commit to use as the beginning of the changelog.
-     * @return A multiline changelog string.
-     */
-    static String generateChangelogFromCommit(final File projectDirectory, final String repositoryUrl, final boolean justText, final String commitHash) {
-        def git = Git.open(projectDirectory); //Grab git from the given project directory.
-
-        def commit = getCommitFromId(git, ObjectId.fromString(commitHash)) //Grab the start commit.
-        def headCommit = getHead(git); //Grab the current head commit.
-
-        return generateChangelogFromTo(git, repositoryUrl, justText, commit, headCommit) //Generate the changelog.
-    }
+    private static final String TASK_NAME = "createChangelog";
+    private static final String COPY_TASK_NAME = "copyChangelog";
 
     /**
      * Generates a changelog string that can be written to a file from a given git directory and repository url.
@@ -208,7 +147,7 @@ class ChangelogUtils {
      * @param git The git workspace to find the merge base in.
      * @return The merge base commit or null.
      */
-    private static RevCommit getMergeBaseCommit(final Git git) {
+    static RevCommit getMergeBaseCommit(final Git git) {
         def headCommit = getHead(git);
         def remoteBranches = getAvailableRemoteBranches(git);
         return remoteBranches.stream()
@@ -267,7 +206,7 @@ class ChangelogUtils {
      * @param git The git workspace to get the head commit from.
      * @return The head commit.
      */
-    private static RevCommit getHead(final Git git) {
+    static RevCommit getHead(final Git git) {
         def headId = git.repository.resolve(Constants.HEAD);
         return getCommitFromId(git, headId);
     }
@@ -292,7 +231,7 @@ class ChangelogUtils {
      * @param other The object to get the commit for.
      * @return The commit referenced by the given object in the given git workspace.
      */
-    private static RevCommit getCommitFromId(final Git git, final ObjectId other) {
+    static RevCommit getCommitFromId(final Git git, final ObjectId other) {
         try (RevWalk revWalk = new RevWalk(git.repository)) {
             return revWalk.parseCommit(other);
         }
@@ -341,7 +280,7 @@ class ChangelogUtils {
      * @param git The git workspace to get the tags from.
      * @return The tags to commit hash map.
      */
-    private static Map<String, String> getTagToCommitMap(final Git git) {
+    static Map<String, String> getTagToCommitMap(final Git git) {
         final Map<String, String> versionMap = new HashMap<>();
         for(Ref tag : git.tagList().call()) {
             ObjectId tagId = git.getRepository().getRefDatabase().peel(tag).peeledObjectId ?: tag.objectId;
@@ -534,13 +473,7 @@ class ChangelogUtils {
         return String.join("\n", resultingLines).trim(); //Join the result again.
     }
 
-    /**
-     * Returns the first commit in the repository.
-     *
-     * @param git The git workspace.
-     * @return The first commit.
-     */
-    private static RevCommit getFirstCommitInRepository(final Git git) {
+    static RevCommit getFirstCommitInRepository(final Git git) {
         final Iterable<RevCommit> commits = git.log().call();
         final List<RevCommit> commitList = commits.toList();
 
@@ -551,105 +484,107 @@ class ChangelogUtils {
     }
 
     /**
-     * Sets up the default merge-base based changelog generation on the current project.
-     * Creating the default task, setting it as a dependency of the build task and adding it
-     * as a publishing artifact to any maven publication in the project.
+     * Adds the createChangelog task to the target project.
+     * Also exposes it as a artifact of the 'createChangelog' configuration.
+     * As this is the
+     * <a href="https://docs.gradle.org/current/samples/sample_cross_project_output_sharing.html">
+     * recommended way</a> to share task outputs between multiple projects
      *
-     * @param project The project to add changelog generation to.
+     * @param project Project to add the task to
+     * @return The task responsible for generating the changelog
      */
-    static void setupChangelogGeneration(final Project project) {
-        //Generate the default task
-        final GenerateChangelogTask task =  project.getTasks().create("createChangelog", GenerateChangelogTask.class);
+    static TaskProvider<GenerateChangelog> setupChangelogTask(Project project) {
+        var ret = project.tasks.register(TASK_NAME, GenerateChangelog)
 
-        //Setup the task as a dependency of the build task.
-        if (project.getTasks().findByName("build") != null) {
-            project.getTasks().getByName("build").dependsOn(task)
+        project.configurations.register(TASK_NAME) {
+            canBeResolved = false
         }
-    }
 
-    /**
-     * Sets up the tag based changelog generation on the current project.
-     * Creating the default task, setting it as a dependency of the build task and adding it
-     * as a publishing artifact to any maven publication in the project.
-     *
-     * @param project The project to add changelog generation to.
-     * @param tag The name of the tag to start the changelog from.
-     */
-    static void setupChangelogGenerationFromTag(final Project project, final String tag) {
-        //Create the task and configure it for tag based generation.
-        final GenerateChangelogTask task = project.getTasks().create("createChangelog", GenerateChangelogTask.class);
-        task.getStartingTag().set(tag);
+        project.artifacts.add(TASK_NAME, ret)
 
-        //Setup the task as a dependency of the build task.
-        if (project.getTasks().findByName("build") != null) {
-            project.getTasks().getByName("build").dependsOn(task)
+        def assembleTask = LifecycleBasePlugin.ASSEMBLE_TASK_NAME
+        project.plugins.withType(LifecycleBasePlugin).configureEach {
+            project.tasks.named(assembleTask).configure {
+                dependsOn(ret)
+            }
         }
-    }
 
-    /**
-     * Sets up the commit based changelog generation on the current project.
-     * Creating the default task, setting it as a dependency of the build task and adding it
-     * as a publishing artifact to any maven publication in the project.
-     *
-     * @param project The project to add changelog generation to.
-     * @param commit The commit hash to start the changelog from.
-     */
-    static void setupChangelogGenerationFromCommit(final Project project, final String commit) {
-        //Create the task and configure it for commit based generation.
-        final GenerateChangelogTask task = project.getTasks().create("createChangelog", GenerateChangelogTask.class);
-        task.getStartingCommit().set(commit);
-
-        //Setup the task as a dependency of the build task.
-        if (project.getTasks().findByName("build") != null) {
-            project.getTasks().getByName("build").dependsOn(task)
-        }
+        return ret
     }
 
     /**
      * Sets up the changelog generation on all maven publications in the project.
-     * Adds the `createChangelog` task as a publishing artifact producing task to all MAVEN publications.
+     * It also sets up publishing for all subprojects as long as that subproject does not
+     * have another changelog plugin overriding the propagation
      *
      * @param project The project to add changelog generation publishing to.
      */
-    static void setupChangelogGenerationOnAllPublishTasks(final Project project) {
-        project.gradle.projectsEvaluated {
-            project.getAllprojects().forEach { innerProject ->
-                if (innerProject.getExtensions().findByName("publishing") == null)
-                    return
-
-                //Grab the extension.
-                final PublishingExtension publishingExtension = innerProject.getExtensions().getByName("publishing") as PublishingExtension
-                //Get each extension and add the publishing task as a publishing artifact.
-                publishingExtension.getPublications().all { publication ->
-                    if (publication instanceof MavenPublication) {
-                        //Add the task as a publishing artifact.
-                        //noinspection UnnecessaryQualifiedReference -> Class cast exception else!
-                        ChangelogUtils.setupChangelogGenerationForPublishing(innerProject, publication as MavenPublication)
-                    }
+    static void setupChangelogGenerationOnAllPublishTasks(Project project) {
+        setupChangelogGenerationForAllPublications(project)
+        project.subprojects.forEach {sub ->
+            sub.afterEvaluate {
+                def ext = sub.extensions.findByType(ChangelogExtension)
+                def parent = project
+                while (ext == null && parent != null) {
+                    ext = parent.extensions.findByType(ChangelogExtension)
+                    parent = parent.parent == parent ? null : parent.parent
                 }
+                if (ext != null && ext.publishAll)
+                    setupChangelogGenerationForAllPublications(sub)
             }
         }
     }
 
+    private static void setupChangelogGenerationForAllPublications(Project project) {
+        var ext = project.getExtensions().findByName("publishing") as PublishingExtension
+        if (ext == null)
+            return
+
+        //Get each extension and add the publishing task as a publishing artifact.
+        ext.publications.withType(MavenPublication).configureEach {
+            //Add the task as a publishing artifact.
+            setupChangelogGenerationForPublishing(project, it)
+        }
+    }
+
+    private static ChangelogExtension findParent(Project project) {
+        var ext = project.extensions.findByType(ChangelogExtension)
+        if (ext?.task != null)
+            return ext
+
+        var parent = project.getParent() == project ? null : project.getParent()
+        return parent == null ? null : findParent(parent)
+    }
+
     /**
-     * Finds the nearest `createChangelog` task in the project tree, searching upwards until the root is found.
-     * If no project with the task is found, an error is thrown.
-     *
-     * @param project The project in question.
-     * @return The task.
+     * The recommended way to share task outputs across projects is to export them as dependencies
+     * So for any project that doesn't generate the changelog directly, we must create a copy task
+     * and new configuration
      */
-    private static GenerateChangelogTask findNearestChangelogTask(final Project project) {
-        if (project.getParent() == null || project.getParent() == project) {
-            if (project.getTasks().findByName("createChangelog") == null) {
-                throw new IllegalArgumentException("The project tree does not have a createChangelog task.")
-            }
+    private static TaskProvider<Task> findChangelogTask(final Project project) {
+        // See if we've already made the task
+        if (project.tasks.names.contains(TASK_NAME))
+            return project.tasks.named(TASK_NAME)
+
+        if (project.tasks.names.contains(COPY_TASK_NAME))
+            return project.tasks.named(COPY_TASK_NAME)
+
+        // See if there is any parent with a changelog configured
+        var parent = findParent(project)
+        if (parent == null)
+            return null
+
+        var cfg = project.configurations.register(COPY_TASK_NAME) {
+            canBeConsumed = false
         }
 
-        if (project.getTasks().findByName("createChangelog") == null) {
-            return findNearestChangelogTask(project.getParent())
+        project.dependencies.add(COPY_TASK_NAME, project.dependencies.project('path': parent.project.path, 'configuration': TASK_NAME))
+
+        var task = project.tasks.register(COPY_TASK_NAME, CopyChangelog) {
+            configuration = cfg.get()
         }
 
-        return project.getTasks().findByName("createChangelog") as GenerateChangelogTask
+        return task
     }
 
     /**
@@ -661,11 +596,8 @@ class ChangelogUtils {
     static void setupChangelogGenerationForPublishing(final Project project, final MavenPublication publication) {
         try {
             //After evaluation run the publishing modifier.
-            project.afterEvaluate(new Action<Project>() {
-                @Override
-                void execute(final Project evaluatedProject) {
-                    setupChangelogGenerationForPublishingAfterEvaluation(project, publication)
-                }
+            project.afterEvaluate({
+                setupChangelogGenerationForPublishingAfterEvaluation(project, publication)
             })
         }
         catch (InvalidUserCodeException ignored) {
@@ -675,21 +607,18 @@ class ChangelogUtils {
     }
 
     private static void setupChangelogGenerationForPublishingAfterEvaluation(final Project project, final MavenPublication publication) {
-        //Grab the task
-        final GenerateChangelogTask task = findNearestChangelogTask(project);
+        boolean existing = !publication.artifacts.findAll { it.classifier == 'changelog' && it.extension == 'txt'}.isEmpty()
+        if (existing)
+            return
 
-        if (task.project.tasks.findByName("build") != null) {
-            task.project.tasks.findByName("build").dependsOn task
-        }
+        //Grab the task
+        var task = findChangelogTask(project);
 
         //Add a new changelog artifact and publish it.
-        publication.artifact(task.getOutputFile().get(), new Action<MavenArtifact>() {
-            @Override
-            void execute(final MavenArtifact mavenArtifact) {
-                mavenArtifact.builtBy(task)
-                mavenArtifact.classifier = "changelog";
-                mavenArtifact.extension = "txt";
-            }
-        })
+        publication.artifact(task.get().outputs.files.singleFile) {
+            builtBy(task)
+            classifier = 'changelog'
+            extension = 'txt'
+        }
     }
 }

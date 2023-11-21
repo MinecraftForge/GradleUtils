@@ -326,12 +326,10 @@ class GradleUtils {
      * @param projectDir THe project directory.
      * @return
      */
-    static String buildProjectUrl(final File projectDir) {
-        Git git = Git.open(projectDir) //Create a git workspace.
-
+    static String buildProjectUrl(Git git) {
         List<RemoteConfig> remotes = git.remoteList().call() //Get all remotes.
         if (remotes.isEmpty())
-            throw new IllegalStateException("No remotes found in " + projectDir)
+            throw new IllegalStateException("No remotes found in " + git.repository.directory)
 
         //Get the origin remote.
         final originRemote = remotes.find { remote -> remote.name == 'origin' }

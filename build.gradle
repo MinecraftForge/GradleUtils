@@ -41,11 +41,15 @@ gradlePlugin {
             id = 'net.minecraftforge.gradleutils'
             implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
         }
+        changelog {
+            id = 'net.minecraftforge.changelog'
+            implementationClass = 'net.minecraftforge.gradleutils.changelog.ChangelogPlugin'
+        }
     }
 }
 
 changelog {
-    fromTag '1.0'
+    fromBase()
     publishAll = false
 }
 
