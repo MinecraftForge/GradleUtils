@@ -46,12 +46,14 @@ gradlePlugin {
             implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
             displayName = 'Forge Gradle Utilities'
             description = 'Small collection of utilities for standerdizing our gradle scripts'
+            tags.set(['minecraftforge'])
         }
         changelog {
             id = 'net.minecraftforge.changelog'
             implementationClass = 'net.minecraftforge.gradleutils.changelog.ChangelogPlugin'
             displayName = 'Git Changelog'
             description = 'Creates a changelog text file based on git history'
+            tags.set(['git', 'changelog'])
         }
     }
 }
