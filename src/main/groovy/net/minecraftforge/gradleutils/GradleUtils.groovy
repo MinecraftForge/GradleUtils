@@ -10,10 +10,14 @@ import groovy.transform.CompileStatic
 import groovy.transform.Immutable
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.errors.RepositoryNotFoundException
+import org.eclipse.jgit.lib.Config
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.storage.file.FileBasedConfig
 import org.eclipse.jgit.transport.RemoteConfig
+import org.eclipse.jgit.util.FS
+import org.eclipse.jgit.util.SystemReader
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
@@ -44,8 +48,27 @@ class GradleUtils {
         return lst
     }
 
+    @CompileStatic
+    static class DisableSystemConfig extends SystemReader {
+        @Delegate final SystemReader parent
+        DisableSystemConfig(SystemReader parent) {
+            this.parent = parent
+        }
+
+        @Override
+        FileBasedConfig openSystemConfig(Config parent, FS fs) {
+            return new FileBasedConfig(parent, null, fs) {
+                @Override void load() {}
+                @Override boolean isOutdated() { false }
+            }
+        }
+    }
+
     static Map<String, String> gitInfo(File dir, String... globFilters) {
         var git
+        var parent = SystemReader.instance
+        SystemReader.instance = new DisableSystemConfig(parent)
+
         try {
             git = Git.open(dir)
         } catch (RepositoryNotFoundException e) {
@@ -77,6 +100,7 @@ class GradleUtils {
         // Remove any lingering null values
         ret.removeAll {it.value === null }
 
+        SystemReader.instance = parent
         return ret
     }
 

@@ -2,21 +2,18 @@
  * Copyright (c) Forge Development LLC and contributors
  * SPDX-License-Identifier: LGPL-2.1-only
  */
-package net.minecraftforge.gradleutils.changelog;
+package net.minecraftforge.gradleutils.changelog
 
 import net.minecraftforge.gradleutils.GradleUtils;
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevCommit
+import org.eclipse.jgit.util.SystemReader;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.*
-import org.gradle.internal.impldep.org.glassfish.jaxb.core.api.impl.NameConverter
-
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 
 abstract class GenerateChangelog extends DefaultTask {
     GenerateChangelog() {
@@ -48,6 +45,8 @@ abstract class GenerateChangelog extends DefaultTask {
     void exec() throws IOException {
 
         String changelog = ""
+        def parent = SystemReader.instance
+        SystemReader.instance = new GradleUtils.DisableSystemConfig(parent)
         try(Git git = Git.open(getGitDirectory().getAsFile().get())) {
             def url = projectUrl.getOrNull()
             if (url == null)
@@ -72,6 +71,8 @@ abstract class GenerateChangelog extends DefaultTask {
 
             def head = ChangelogUtils.getHead(git)
             changelog = ChangelogUtils.generateChangelogFromTo(git, url, !buildMarkdown.get(), from, head)
+        } finally {
+            SystemReader.instance = parent
         }
 
         var file = outputFile.asFile.get()
