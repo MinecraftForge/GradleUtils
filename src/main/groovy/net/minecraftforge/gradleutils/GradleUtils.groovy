@@ -50,12 +50,12 @@ class GradleUtils {
             git = Git.open(dir)
         } catch (RepositoryNotFoundException e) {
             return [
-                    tag: '0.0',
-                    offset: '0',
-                    hash: '00000000',
-                    branch: 'master',
-                    commit: '0000000000000000000000',
-                    abbreviatedId: '00000000'
+                tag: '0.0',
+                offset: '0',
+                hash: '00000000',
+                branch: 'master',
+                commit: '0000000000000000000000',
+                abbreviatedId: '00000000'
             ]
         }
         String tag = git.describe().setLong(true).setTags(true).setMatch(globFilters ?: new String[0]).call()

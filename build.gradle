@@ -3,7 +3,9 @@ plugins {
     id 'groovy'
     id 'maven-publish'
     id 'org.cadixdev.licenser' version '0.6.1'
+    id 'com.gradle.plugin-publish' version '1.2.1'
     id 'net.minecraftforge.gradleutils'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 group 'net.minecraftforge'
@@ -15,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:5.10.0.202012080955-r'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.7.0.202309050840-r'
 }
 
 java {
@@ -36,16 +38,32 @@ license {
 }
 
 gradlePlugin {
+    website = 'https://github.com/MinecraftForge/GradleUtils'
+    vcsUrl = 'https://github.com/MinecraftForge/GradleUtils.git'
     plugins {
         gradleutils {
             id = 'net.minecraftforge.gradleutils'
             implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
+            displayName = 'Forge Gradle Utilities'
+            description = 'Small collection of utilities for standerdizing our gradle scripts'
         }
         changelog {
             id = 'net.minecraftforge.changelog'
             implementationClass = 'net.minecraftforge.gradleutils.changelog.ChangelogPlugin'
+            displayName = 'Git Changelog'
+            description = 'Creates a changelog text file based on git history'
         }
     }
+}
+
+jar {
+    archiveClassifier = 'thin'
+}
+
+tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
+    enableRelocation true
+    archiveClassifier = null
+    relocationPrefix = 'net.minecraftforge.gradleutils.shadow'
 }
 
 changelog {
