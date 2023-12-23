@@ -6,7 +6,8 @@ repositories {
     mavenCentral()
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(8)
+// JGit 6.7 requires Java 11
+java.toolchain.languageVersion = JavaLanguageVersion.of(11)
 
 dependencies {
     implementation 'org.eclipse.jgit:org.eclipse.jgit:6.7.0.202309050840-r'

@@ -21,9 +21,8 @@ dependencies {
 }
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(8)
-    }
+    // JGit 6.7 requires Java 11
+    toolchain.languageVersion = JavaLanguageVersion.of(11)
     withSourcesJar()
 }
 
