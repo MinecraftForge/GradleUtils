@@ -1,6 +1,5 @@
 plugins {
     id 'java-gradle-plugin'
-    id 'org.cadixdev.licenser' version '0.6.1'
 }
 
 repositories {
@@ -10,7 +9,7 @@ repositories {
 java.toolchain.languageVersion = JavaLanguageVersion.of(8)
 
 dependencies {
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:5.10.0.202012080955-r'
+    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.7.0.202309050840-r'
 }
 
 sourceSets {

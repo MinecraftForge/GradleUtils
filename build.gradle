@@ -2,7 +2,7 @@ plugins {
     id 'java-gradle-plugin'
     id 'groovy'
     id 'maven-publish'
-    //id 'org.cadixdev.licenser' version '0.6.1'
+    id 'net.minecraftforge.licenser' version '1.0.1'
     id 'com.gradle.plugin-publish' version '1.2.1'
     id 'net.minecraftforge.gradleutils'
     id 'com.github.johnrengelman.shadow' version '8.1.1'
@@ -31,13 +31,11 @@ tasks.withType(GroovyCompile).configureEach {
     groovyOptions.optimizationOptions.indy = true
 }
 
-/*
 license {
     header = file('LICENSE-header.txt')
     newLine = false
     exclude '** /*.properties'
 }
-*/
 
 gradlePlugin {
     website = 'https://github.com/MinecraftForge/GradleUtils'
