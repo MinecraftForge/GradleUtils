@@ -97,11 +97,11 @@ class ChangelogUtils {
             if (versionMap.containsKey(commitHash)) {
                 def version = versionMap.get(commitHash);
                 if (tagMap.containsKey(commitHash) && !justText) {
-                    commitHeader+="[${version.padRight(primaryVersionPrefixLengthMap.get(currentPrimaryVersion))}]($repositoryUrl/tree/$version)"
+                    commitHeader+="[${version.padRight(primaryVersionPrefixLengthMap.getOrDefault(currentPrimaryVersion, 0))}]($repositoryUrl/tree/$version)"
                 }
                 else
                 {
-                    commitHeader+="${version.padRight(primaryVersionPrefixLengthMap.get(currentPrimaryVersion))}"
+                    commitHeader+="${version.padRight(primaryVersionPrefixLengthMap.getOrDefault(currentPrimaryVersion, 0))}"
                 }
             }
 
@@ -153,7 +153,8 @@ class ChangelogUtils {
         return remoteBranches.stream()
                 .filter(branch -> branch.getObjectId().getName() != headCommit.toObjectId().getName())
                 .map(branch -> getMergeBase(git, branch))
-                .filter(revCommit -> revCommit.toObjectId().getName() != headCommit.toObjectId().getName())
+                .filter(revCommit -> (revCommit != null) &&
+                        (revCommit.toObjectId().getName() != headCommit.toObjectId().getName()))
                 .sorted(Comparator.comparing(new Function<RevCommit, Integer>() {
                     @Override
                     Integer apply(final RevCommit revCommit) {
