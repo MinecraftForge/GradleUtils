@@ -153,7 +153,7 @@ class ChangelogUtils {
         return remoteBranches.stream()
                 .filter(branch -> branch.getObjectId().getName() != headCommit.toObjectId().getName())
                 .map(branch -> getMergeBase(git, branch))
-                .filter(revCommit -> (revCommit != null) &&
+                .filter(revCommit -> (revCommit !== null) &&
                         (revCommit.toObjectId().getName() != headCommit.toObjectId().getName()))
                 .sorted(Comparator.comparing(new Function<RevCommit, Integer>() {
                     @Override
