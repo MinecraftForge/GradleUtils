@@ -7,13 +7,16 @@ package net.minecraftforge.gradleutils.changelog
 import groovy.transform.PackageScope
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.ListBranchCommand
+import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.errors.MissingObjectException
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.ObjectReader
 import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.revwalk.filter.RevFilter
+import org.eclipse.jgit.treewalk.CanonicalTreeParser
 import org.gradle.api.InvalidUserCodeException
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -256,7 +259,37 @@ class ChangelogUtils {
         }
         // We do not exclude the starting commit itself, so the commit is present in the returned iterable
 
-        return log.call()
+        def commits = log.call()
+
+        for (final def c in commits) {
+            System.out.println("FOR COMMIT: " + c)
+            // prepare the two iterators to compute the diff between
+            try (def reader = git.repository.newObjectReader()) {
+                if (c.getParentCount() == 0) {
+                    System.out.println()
+                    continue
+                }
+
+                CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
+                oldTreeIter.reset(reader, c.getParent(0).getTree());
+                CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
+                newTreeIter.reset(reader, c.getTree());
+
+                // finally get the list of changed files
+                List<DiffEntry> diffs = git.diff()
+                        .setNewTree(newTreeIter)
+                        .setOldTree(oldTreeIter)
+                        .call();
+                for (DiffEntry entry : diffs) {
+                    System.out.println("old: " + entry.getOldPath() +
+                            ", new: " + entry.getNewPath() +
+                            ", entry: " + entry);
+                }
+            }
+            System.out.println()
+        }
+
+        return commits
     }
 
     /**

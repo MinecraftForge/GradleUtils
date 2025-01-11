@@ -9,18 +9,43 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.util.SystemReader;
-import org.gradle.api.DefaultTask;
+import org.gradle.api.DefaultTask
+import org.gradle.api.Project
+import org.gradle.api.file.Directory;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
-import org.gradle.api.provider.Property;
+import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.*
 
 abstract class GenerateChangelog extends DefaultTask {
+    private final Directory projectDir
+
     GenerateChangelog() {
         //Setup defaults: Using merge-base based text changelog generation of the local project into build/changelog.txt
-        getGitDirectory().convention(getProject().getLayout().getProjectDirectory().dir(".git"));
+        gitDirectory.convention findGitDirectory(this.project)
         getBuildMarkdown().convention(false);
+        filter.convention makeFilterFromSubproject(this.project)
         getOutputFile().convention(getProject().getLayout().getBuildDirectory().file("changelog.txt"));
+    }
+
+    private static Provider<Directory> findGitDirectory(Project project) {
+        return project.provider {
+            // first, try the current project dir. we might be a submodule
+            project.layout.projectDirectory.dir(".git")
+        }.orElse(project.provider {
+            // if that fails, try the root project dir
+            project.rootProject.layout.projectDirectory.dir(".git")
+        })
+    }
+
+    private static Provider<String> makeFilterFromSubproject(Project project) {
+        return project.provider {
+            def root = project.rootProject.projectDir
+            def local = project.projectDir
+
+            local.absolutePath.substring(root.absolutePath.length())
+        }
     }
 
     @OutputFile
@@ -29,6 +54,9 @@ abstract class GenerateChangelog extends DefaultTask {
     @InputDirectory
     @PathSensitive(PathSensitivity.NONE)
     abstract DirectoryProperty getGitDirectory();
+
+    @Input
+    abstract Property<String> getFilter();
 
     @Input
     abstract Property<Boolean> getBuildMarkdown();
@@ -43,6 +71,10 @@ abstract class GenerateChangelog extends DefaultTask {
 
     @TaskAction
     void exec() throws IOException {
+        def filter = getFilter().getOrNull()
+        println "filter = $filter"
+        println "filter null? = ${filter == null}"
+        println "filter empty? = ${filter == null || filter.isEmpty()}"
 
         String changelog = ""
         def parent = SystemReader.instance
