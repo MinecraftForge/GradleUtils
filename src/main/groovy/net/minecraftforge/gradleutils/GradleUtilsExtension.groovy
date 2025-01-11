@@ -22,7 +22,7 @@ class GradleUtilsExtension {
     GradleUtilsExtension(Project project) {
         this.project = project
 
-        this.gitRoot = project.objects.directoryProperty().convention(project.layout.projectDirectory)
+        this.gitRoot = project.objects.directoryProperty().convention(GradleUtils.findGitRoot(project))
         this.gitInfo = project.objects.mapProperty(String, String)
                 .convention(gitRoot.map((Directory dir) -> GradleUtils.gitInfo(dir.asFile)))
     }

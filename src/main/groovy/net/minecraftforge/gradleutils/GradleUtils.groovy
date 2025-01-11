@@ -21,6 +21,8 @@ import org.eclipse.jgit.util.SystemReader
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+import org.gradle.api.file.Directory
+import org.gradle.api.provider.Provider
 import org.gradle.authentication.http.BasicAuthentication
 
 import javax.annotation.Nullable
@@ -62,6 +64,36 @@ class GradleUtils {
                 @Override boolean isOutdated() { false }
             }
         }
+    }
+
+    /**
+     * Gets the root folder of the Git repository the given project might be in. If we are not in a Git repository, this
+     * provider will resolve to the root project's directory.
+     *
+     * @param project The project to find the Git root for
+     * @return A provider that resolves to the Git root directory
+     */
+    static Provider<Directory> findGitRoot(Project project) {
+        return project.provider {
+            // first, try the current project dir. we might be a submodule
+            def dir = project.layout.projectDirectory
+            if (dir.dir(".git").getAsFile().exists())
+                return dir
+
+            // ok, we're not a submodule, try the root project
+            return project.rootProject.layout.projectDirectory
+        }
+    }
+
+    /**
+     * Find the {@code .git} directory of the Git repository the given project might be in. If we are not in a Git
+     * repository, this provider will still try to point to the Git directory of the root project.
+     *
+     * @param project The project to find the Git directory for
+     * @return A provider that resolves to the Git directory
+     */
+    static Provider<Directory> findGitDirectory(Project project) {
+        return findGitRoot(project).map { it.dir(".git") }
     }
 
     static Map<String, String> gitInfo(File dir, String... globFilters) {

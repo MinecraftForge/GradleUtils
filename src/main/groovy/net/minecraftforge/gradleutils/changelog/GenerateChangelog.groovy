@@ -23,20 +23,10 @@ abstract class GenerateChangelog extends DefaultTask {
 
     GenerateChangelog() {
         //Setup defaults: Using merge-base based text changelog generation of the local project into build/changelog.txt
-        gitDirectory.convention findGitDirectory(this.project)
+        gitDirectory.convention GradleUtils.findGitDirectory(this.project)
         getBuildMarkdown().convention(false);
         filter.convention makeFilterFromSubproject(this.project)
         getOutputFile().convention(getProject().getLayout().getBuildDirectory().file("changelog.txt"));
-    }
-
-    private static Provider<Directory> findGitDirectory(Project project) {
-        return project.provider {
-            // first, try the current project dir. we might be a submodule
-            project.layout.projectDirectory.dir(".git")
-        }.orElse(project.provider {
-            // if that fails, try the root project dir
-            project.rootProject.layout.projectDirectory.dir(".git")
-        })
     }
 
     private static Provider<String> makeFilterFromSubproject(Project project) {
@@ -44,7 +34,10 @@ abstract class GenerateChangelog extends DefaultTask {
             def root = project.rootProject.projectDir
             def local = project.projectDir
 
-            local.absolutePath.substring(root.absolutePath.length())
+            def result = local.absolutePath.substring(root.absolutePath.length())
+            if (result.startsWith(File.separator))
+                result = result.substring(1)
+            return result
         }
     }
 
