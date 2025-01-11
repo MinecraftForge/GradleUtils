@@ -2,34 +2,12 @@ plugins {
     id 'java-gradle-plugin'
 }
 
-repositories {
-    mavenCentral()
-}
-
-// JGit 6.7 requires Java 11
-java.toolchain.languageVersion = JavaLanguageVersion.of(11)
-
-dependencies {
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.7.0.202309050840-r'
-}
+apply from: '../build_shared.gradle'
 
 sourceSets {
     main {
         groovy {
             srcDirs = ['../src/main/groovy']
-        }
-    }
-}
-
-gradlePlugin {
-    plugins {
-        gradleutils {
-            id = 'net.minecraftforge.gradleutils'
-            implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
-        }
-        changelog {
-            id = 'net.minecraftforge.changelog'
-            implementationClass = 'net.minecraftforge.gradleutils.changelog.ChangelogPlugin'
         }
     }
 }

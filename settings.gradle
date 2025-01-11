@@ -3,3 +3,5 @@ plugins {
 }
 
 rootProject.name = 'GradleUtils'
+
+apply from: 'settings_shared.gradle'

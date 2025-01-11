@@ -5,16 +5,20 @@
 package net.minecraftforge.gradleutils.changelog
 
 import groovy.transform.CompileStatic
-import net.minecraftforge.gradleutils.GradleUtils
-import net.minecraftforge.gradleutils.GradleUtilsExtension
-import net.minecraftforge.gradleutils.changelog.ChangelogExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.problems.Problems
 
+import javax.inject.Inject
+
+/** The entry point for the Changelog plugin. Exists to create the {@linkplain ChangelogExtension extension}. */
 @CompileStatic
-class ChangelogPlugin implements Plugin<Project> {
+abstract class ChangelogPlugin implements Plugin<Project> {
+    @Inject
+    abstract Problems getProblems()
+
     @Override
     void apply(Project project) {
-        project.extensions.create(ChangelogExtension.NAME, ChangelogExtension, project)
+        project.extensions.create(ChangelogExtension.NAME, ChangelogExtension, project, this.problems)
     }
 }

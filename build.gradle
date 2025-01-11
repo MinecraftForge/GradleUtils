@@ -1,30 +1,19 @@
 plugins {
     id 'java-gradle-plugin'
     id 'groovy'
+    id 'idea'
     id 'maven-publish'
-    id 'net.minecraftforge.licenser' version '1.0.1'
+    id 'net.minecraftforge.licenser' version '1.1.1'
     id 'com.gradle.plugin-publish' version '1.2.1'
     id 'net.minecraftforge.gradleutils'
-    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'com.gradleup.shadow' version '8.3.6'
 }
 
-group 'net.minecraftforge'
-version gradleutils.tagOffsetVersion
+group = 'net.minecraftforge'
+version = gitversion.version.tagOffset
 println "Version: $version"
 
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    implementation 'org.eclipse.jgit:org.eclipse.jgit:6.7.0.202309050840-r'
-}
-
-java {
-    // JGit 6.7 requires Java 11
-    toolchain.languageVersion = JavaLanguageVersion.of(11)
-    withSourcesJar()
-}
+apply from: 'build_shared.gradle'
 
 tasks.withType(GroovyCompile).configureEach {
     groovyOptions.optimizationOptions.indy = true
@@ -36,35 +25,25 @@ license {
     exclude '** /*.properties'
 }
 
-gradlePlugin {
-    website = 'https://github.com/MinecraftForge/GradleUtils'
-    vcsUrl = 'https://github.com/MinecraftForge/GradleUtils.git'
-    plugins {
-        gradleutils {
-            id = 'net.minecraftforge.gradleutils'
-            implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
-            displayName = 'Forge Gradle Utilities'
-            description = 'Small collection of utilities for standerdizing our gradle scripts'
-            tags.set(['minecraftforge'])
-        }
-        changelog {
-            id = 'net.minecraftforge.changelog'
-            implementationClass = 'net.minecraftforge.gradleutils.changelog.ChangelogPlugin'
-            displayName = 'Git Changelog'
-            description = 'Creates a changelog text file based on git history'
-            tags.set(['git', 'changelog'])
-        }
-    }
-}
-
 jar {
     archiveClassifier = 'thin'
 }
 
 tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
-    enableRelocation true
+    enableRelocation =  true
     archiveClassifier = null
     relocationPrefix = 'net.minecraftforge.gradleutils.shadow'
+}
+
+javadoc.enabled = false
+groovydoc.use = true
+
+// javadocJar is created after evaluation, so we need to configure it here
+afterEvaluate {
+    tasks.named('javadocJar', Jar) {
+        dependsOn groovydoc
+        from groovydoc.destinationDir
+    }
 }
 
 changelog {
@@ -75,20 +54,21 @@ changelog {
 publishing {
     publications.register('pluginMaven', MavenPublication) {
         changelog.publish(it)
-        pom {
+        pom { pom ->
             artifactId = 'gradleutils'
             name = 'Gradle Utils'
             description = 'Used by MinecraftForge projects as a util library for Gradle buildscripts'
-            url = 'https://github.com/MinecraftForge/GradleUtils'
 
-            gradleutils.pom.setGitHubDetails(pom, 'GradleUtils')
+            gradleutils.pom.gitHubDetails = pom
 
             license gradleutils.pom.licenses.LGPLv2_1
 
+            // TODO [GradleUtils] Re-evaluate active developers in GU 3.0
             developers {
                 developer gradleutils.pom.Developers.LexManos
                 developer gradleutils.pom.Developers.SizableShrimp
                 developer gradleutils.pom.Developers.Paint_Ninja
+                developer gradleutils.pom.Developers.Jonathing
             }
         }
     }
@@ -97,3 +77,5 @@ publishing {
         maven gradleutils.publishingForgeMaven
     }
 }
+
+idea.module { downloadSources = downloadJavadoc = true }

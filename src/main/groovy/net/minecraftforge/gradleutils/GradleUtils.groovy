@@ -4,37 +4,64 @@
  */
 package net.minecraftforge.gradleutils
 
-import groovy.json.JsonOutput
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
-import groovy.transform.Immutable
+import groovy.transform.PackageScope
+import net.minecraftforge.gitver.api.GitVersion
 import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.errors.RepositoryNotFoundException
+import org.eclipse.jgit.api.errors.GitAPIException
 import org.eclipse.jgit.lib.Config
-import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.lib.Ref
-import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileBasedConfig
 import org.eclipse.jgit.transport.RemoteConfig
 import org.eclipse.jgit.util.FS
 import org.eclipse.jgit.util.SystemReader
+import org.gradle.api.Action
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+import org.gradle.api.problems.ProblemGroup
 import org.gradle.authentication.http.BasicAuthentication
+import org.jetbrains.annotations.ApiStatus
+import org.jetbrains.annotations.Nullable
 
-import javax.annotation.Nullable
-
+/**
+ * Utility methods, usually for GradleUtils itself and is often delegated to from the
+ * {@linkplain GradleUtilsExtension extension}.
+ *
+ * @deprecated In GradleUtils 3.0, this class will be hidden as {@linkplain groovy.transform.PackageScope package-private}.
+ * @see GradleUtilsExtension
+ */
 @CompileStatic
+@ApiStatus.Internal
 class GradleUtils {
+    @PackageScope static final ProblemGroup PROBLEM_GROUP = ProblemGroup.create(GradleUtilsExtension.NAME, 'MinecraftForge GradleUtils')
 
-    @CompileDynamic
-    private static void initDynamic() {
-        String.metaClass.rsplit = GradleUtils.&rsplit
+    static void ensureAfterEvaluate(Project project, Action<? super Project> action) {
+        if (project.state.executed)
+            action.execute(project)
+        else
+            project.afterEvaluate(action)
     }
 
-    @Nullable
-    static List<String> rsplit(@Nullable String input, String del, int limit = -1) {
+    //@formatter:off
+    @CompileDynamic
+    @Deprecated(forRemoval = true, since = '2.4')
+    private static void initDynamic() { String.metaClass.rsplit = GradleUtils.&rsplit }
+    static { initDynamic() }
+    //@formatter:on
+
+    private static boolean rsplitDeprecationLogged
+    @Deprecated(forRemoval = true, since = '2.4')
+    static @Nullable List<String> rsplit(@Nullable String input, String del, int limit = -1) {
+        if (!rsplitDeprecationLogged) {
+            println 'WARNING: Usage of GradleUtils.rsplit is DEPRECATED and will be removed in GradleUtils 3.0!'
+            rsplitDeprecationLogged = true
+        }
+
+        rsplitInternal(input, del, limit)
+    }
+
+    @Deprecated(forRemoval = true, since = '2.4')
+    private static @Nullable List<String> rsplitInternal(@Nullable String input, String del, int limit = -1) {
         if (input === null) return null
         List<String> lst = []
         int x = 0
@@ -48,103 +75,101 @@ class GradleUtils {
         return lst
     }
 
+    /** @deprecated Use {@link GitVersion#disableSystemConfig() */
+    @Deprecated(forRemoval = true, since = '2.4')
     @CompileStatic
-    static class DisableSystemConfig extends SystemReader {
-        @Delegate final SystemReader parent
+    static class DisableSystemConfig extends SystemReader.Delegate {
+        final SystemReader parent
+
         DisableSystemConfig(SystemReader parent) {
+            super(parent)
             this.parent = parent
+
+            println 'WARNING: Usage of GradleUtils.DisableSystemConfig is DEPRECATED and will be removed in GradleUtils 3.0! Consider using GitVersion.disableSystemConfig() instead.'
         }
 
         @Override
         FileBasedConfig openSystemConfig(Config parent, FS fs) {
-            return new FileBasedConfig(parent, null, fs) {
+            new FileBasedConfig(parent, null, fs) {
                 @Override void load() {}
+
                 @Override boolean isOutdated() { false }
             }
         }
     }
 
+    private static boolean gitInfoDeprecationLogged
+    /** @deprecated Use {@link GitVersion#getInfo()} via {@link net.minecraftforge.gradleutils.gitversion.GitVersionExtension#getVersion() GitVersionExtension.getVersion()} */
+    @Deprecated(forRemoval = true, since = '2.4')
     static Map<String, String> gitInfo(File dir, String... globFilters) {
-        var git
-        var parent = SystemReader.instance
-        SystemReader.instance = new DisableSystemConfig(parent)
-
-        try {
-            git = Git.open(dir)
-        } catch (RepositoryNotFoundException e) {
-            return [
-                tag: '0.0',
-                offset: '0',
-                hash: '00000000',
-                branch: 'master',
-                commit: '0000000000000000000000',
-                abbreviatedId: '00000000'
-            ]
+        if (!gitInfoDeprecationLogged) {
+            println 'WARNING: Usage of GradleUtils.gitInfo(File, String...) is DEPRECATED and will be removed in GradleUtils 3.0! Consider using GitVersion.disableSystemConfig() instead.'
+            gitInfoDeprecationLogged = true
         }
-        String tag = git.describe().setLong(true).setTags(true).setMatch(globFilters ?: new String[0]).call()
-        List<String> desc = rsplit(tag, '-', 2) ?: ['0.0', '0', '00000000']
-        Ref head = git.repository.exactRef('HEAD')
-        String longBranch = head.symbolic ? head?.target?.name : null // matches Repository.getFullBranch() but returning null when on a detached HEAD
 
-        Map<String, String> ret = [:]
-        ret.dir = dir.absolutePath
-        ret.tag = desc[0]
-        if (ret.tag.startsWith("v") && ret.tag.length() > 1 && ret.tag.charAt(1).digit)
-            ret.tag = ret.tag.substring(1)
-        ret.offset = desc[1]
-        ret.hash = desc[2]
-        ret.branch = longBranch !== null ? Repository.shortenRefName(longBranch) : null
-        ret.commit = ObjectId.toString(head.objectId)
-        ret.abbreviatedId = head.objectId.abbreviate(8).name()
-
-        // Remove any lingering null values
-        ret.removeAll {it.value === null }
-
-        SystemReader.instance = parent
-        return ret
+        try (var version = GitVersion.builder().project(dir).strict(false).build()) {
+            [
+                dir          : version.gitDir.absolutePath,
+                tag          : version.info.tag,
+                offset       : version.info.offset,
+                hash         : version.info.hash,
+                branch       : version.info.branch,
+                commit       : version.info.commit,
+                abbreviatedId: version.info.abbreviatedId,
+                url          : version.info.url
+            ].tap { it.removeAll { it.value == null } }
+        }
     }
 
     /**
-     * Get a closure to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
-     * in a publishing block.
+     * Get a configuring action to be passed into
+     * {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Action) RepositoryHandler.maven(Action)} in a
+     * publishing block.
      *
-     * Important the following environment variables must be set for this to work:
-     *  - MAVEN_USER: Containing the username to use for authentication
-     *  - MAVEN_PASSWORD: Containing the password to use for authentication
-     *  - MAVEN_URL_RELEASE: Containing the URL to use for the release repository
-     *  - MAVEN_URL_SNAPSHOT: Containing the URL to use for the snapshot repository
+     * <strong>Important:</strong> The following environment variables must be set for this to work:
+     * <ul>
+     *     <li>{@code MAVEN_USER}: Containing the username to use for authentication</li>
+     *     <li>{@code MAVEN_PASSWORD}: Containing the password to use for authentication</li>
+     *     <li>{@code MAVEN_URL_RELEASE}: Containing the URL to use for the release repository</li>
+     *     <li>{@code MAVEN_URL_SNAPSHOT}: Containing the URL to use for the snapshot repository</li>
+     * </ul>
      *
-     * @param project The project
-     * @param defaultFolder The default folder if the required maven information is not currently set
-     * @return a closure
+     * @param project The project to setup publishing for
+     * @param defaultFolder The default folder if the required maven information is not set
+     * @return The action
      */
-    static Closure getPublishingForgeMaven(Project project, File defaultFolder = project.rootProject.file('repo')) {
-        return setupSnapshotCompatiblePublishing(project, 'https://maven.minecraftforge.net/', defaultFolder)
+    static Action<? super MavenArtifactRepository> getPublishingForgeMaven(Project project, File defaultFolder = project.rootProject.file('repo')) {
+        setupSnapshotCompatiblePublishing(project, 'https://maven.minecraftforge.net/', defaultFolder)
     }
 
     /**
-     * Get a closure to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
-     * in a publishing block, this closure respects the current project's version, with regards to publishing to a release
-     * or snapshot repository.
-     *
-     * Important the following environment variables must be set for this to work:
-     *  - MAVEN_USER: Containing the username to use for authentication
-     *  - MAVEN_PASSWORD: Containing the password to use for authentication
-     *
+     * Get a configuring action to be passed into
+     * {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Action) RepositoryHandler.maven(Action)} in a
+     * publishing block. This action respects the current project's version, with regards to publishing to a release or
+     * snapshot repository.
+     * <p>
+     * <strong>Important:</strong> The following environment variables must be set for this to work:
+     * <ul>
+     *     <li>{@code MAVEN_USER}: Containing the username to use for authentication</li>
+     *     <li>{@code MAVEN_PASSWORD}: Containing the password to use for authentication</li>
+     * </ul>
+     * <p>
      * The following environment variables are optional:
-     *  - MAVEN_URL_RELEASE: Containing the URL to use for the release repository
-     *  - MAVEN_URL_SNAPSHOT: Containing the URL to use for the snapshot repository
+     * <ul>
+     *     <li>{@code MAVEN_URL_RELEASE}: Containing the URL to use for the release repository</li>
+     *     <li>{@code MAVEN_URL_SNAPSHOT}: Containing the URL to use for the snapshot repository</li>
+     * </ul>
+     * <p>
+     * If the {@code MAVEN_URL_RELEASE} variable is not set, the passed in fallback URL will be used for the release
+     * repository (by default, this is {@code https://maven.minecraftforge.net/}). This is done to preserve backwards
+     * compatibility with the old {@link #getPublishingForgeMaven(Project, File)} method.
      *
-     * If the MAVEN_URL_RELEASE is not set the passed in fallback URL will be used for the release repository.
-     * By default this is: https://maven.minecraftforge.net/
-     * This is done to preserve backwards compatibility with the old {@link #getPublishingForgeMaven(Project, File)} method.
-     *
-     * @param project The project
-     * @param defaultFolder The default folder if the required maven information is not currently set
-     * @return a closure
+     * @param project The project to setup publishing for
+     * @param defaultFolder The default folder if the required maven information is not set
+     * @return The action
      */
-    static Closure setupSnapshotCompatiblePublishing(Project project, String fallbackPublishingEndpoint = 'https://maven.minecraftforge.net/', File defaultFolder = project.rootProject.file('repo'), File defaultSnapshotFolder = project.rootProject.file('snapshots')) {
-        return { MavenArtifactRepository repo ->
+    static Action<? super MavenArtifactRepository> setupSnapshotCompatiblePublishing(Project project, String fallbackPublishingEndpoint = 'https://maven.minecraftforge.net/', File defaultFolder = project.rootProject.file('repo'), File defaultSnapshotFolder = project.rootProject.file('snapshots')) {
+        { MavenArtifactRepository repo ->
             repo.name = 'forge'
 
             if (System.getenv('MAVEN_USER') && System.getenv('MAVEN_PASSWORD')) {
@@ -176,279 +201,212 @@ class GradleUtils {
     }
 
     /**
-     * Get a closure for the Forge maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
-     * in a repositories block.
+     * Get a configuring action for the Forge maven to be passed into
+     * {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Action) RepositoryHandler.maven(Action)} in a
+     * repositories block.
+     *
+     * @return The action
      */
-    static Closure getForgeMaven() {
-        return { MavenArtifactRepository repo ->
+    static Action<? super MavenArtifactRepository> getForgeMaven() {
+        { MavenArtifactRepository repo ->
             repo.name = 'MinecraftForge'
             repo.url = 'https://maven.minecraftforge.net/'
         }
     }
 
     /**
-     * Get a closure for the Forge maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
-     * in a repositories block.
+     * Get a configuring action for the Forge releases maven to be passed into
+     * {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Action) RepositoryHandler.maven(Action)} in a
+     * repositories block.
+     *
+     * @return The action
      */
-    static Closure getForgeReleaseMaven() {
-        return { MavenArtifactRepository repo ->
+    static Action<? super MavenArtifactRepository> getForgeReleaseMaven() {
+        { MavenArtifactRepository repo ->
             repo.name = 'MinecraftForge releases'
             repo.url = 'https://maven.minecraftforge.net/releases'
         }
     }
 
     /**
-     * Get a closure for the Forge maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
-     * in a repositories block.
+     * Get a configuring action for the Forge snapshots maven to be passed into
+     * {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Action) RepositoryHandler.maven(Action)} in a
+     * repositories block.
+     *
+     * @return The action
      */
-    static Closure getForgeSnapshotMaven() {
-        return { MavenArtifactRepository repo ->
+    static Action<? super MavenArtifactRepository> getForgeSnapshotMaven() {
+        { MavenArtifactRepository repo ->
             repo.name = 'MinecraftForge snapshots'
             repo.url = 'https://maven.minecraftforge.net/snapshots'
         }
     }
 
     /**
-     * Get a closure for the Minecraft libraries maven to be passed into {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(groovy.lang.Closure)}
-     * in a repositories block.
+     * Get a configuring action for the Minecraft libraries maven to be passed into
+     * {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Action) RepositoryHandler.maven(Action)} in a
+     * repositories block.
+     *
+     * @return The action
      */
-    static Closure getMinecraftLibsMaven() {
-        return { MavenArtifactRepository repo ->
+    static Action<? super MavenArtifactRepository> getMinecraftLibsMaven() {
+        { MavenArtifactRepository repo ->
             repo.name = 'Minecraft libraries'
             repo.url = 'https://libraries.minecraft.net/'
         }
     }
 
-    private static Map<String, String> getFilteredInfo(Map<String, String> info, boolean prefix, String filter) {
-        if (prefix)
-            filter += '**'
-        return gitInfo(new File(info.dir), filter)
-    }
-
     /**
      * Returns a version in the form {@code $tag.$offset}, e.g. 1.0.5
      *
-     * @param info A git info object generated from {@link #gitInfo}
+     * @param info A git info object generated from {@code #gitInfo}
      * @return a version in the form {@code $tag.$offset}, e.g. 1.0.5
+     * @deprecated Use {@link GitVersion#getTagOffset()} instead
      */
+    @Deprecated(forRemoval = true, since = '2.4')
     static String getTagOffsetVersion(Map<String, String> info) {
-        return "${info.tag}.${info.offset}"
+        "${info.tag}.${info.offset}"
     }
 
-    /**
-     * Returns a version in the form {@code $tag.$offset}, e.g. 1.0.5.
-     * The provided filter is used to filter the retrieved tag.
-     *
-     * @param info A git info object generated from {@link #gitInfo}
-     * @param prefix If true, will treat the filter as a prefix.
-     * Defaults to false, which means to treat the filter as a glob pattern.
-     * @param filter A non-null string filter used when retrieving the tag
-     * @return a version in the form {@code $tag.$offset}, e.g. 1.0.5
-     */
+    /** @deprecated Filters can no longer be defined at configuration. Use the Git Version config. */
+    @Deprecated(forRemoval = true, since = '2.4')
     static String getFilteredTagOffsetVersion(Map<String, String> info, boolean prefix = false, String filter) {
-        return getTagOffsetVersion(getFilteredInfo(info, prefix, filter))
+        getTagOffsetVersion(info)
     }
 
     /**
-     * Returns a version in the form {@code $tag.$offset}, optionally with the branch
-     * appended if it is not in the defined list of allowed branches
+     * Returns a version in the form {@code $tag.$offset}, optionally with the branch appended if it is not in the
+     * defined list of allowed branches
      *
-     * @param info A git info object generated from {@link #gitInfo}
+     * @param info A git info object generated from {@link #gitInfo(File, String ...)}
      * @param allowedBranches A list of allowed branches; the current branch is appended if not in this list
      * @return a version in the form {@code $tag.$offset} or {@code $tag.$offset-$branch}
+     * @deprecated Use {@link GitVersion#getTagOffsetBranch(String ...)} via {@link net.minecraftforge.gradleutils.gitversion.GitVersionExtension#getVersion() GitVersionExtension.getVersion()}
      */
+    @Deprecated(forRemoval = true, since = '2.4')
     static String getTagOffsetBranchVersion(Map<String, String> info, String... allowedBranches) {
         if (!allowedBranches || allowedBranches.length === 0)
             allowedBranches = [null, 'master', 'main', 'HEAD']
         final version = getTagOffsetVersion(info)
         String branch = info.branch
         if (branch?.startsWith('pulls/'))
-            branch = 'pr' + rsplit(branch, '/', 1)[1]
+            branch = 'pr' + rsplitInternal(branch, '/', 1)[1]
         branch = branch?.replaceAll(/[\\\/]/, '-')
         return branch in allowedBranches ? version : "$version-${branch}"
     }
 
-    /**
-     * Returns a version in the form {@code $tag.$offset}, optionally with the branch
-     * appended if it is not in the defined list of allowed branches.
-     * The provided filter is used to filter the retrieved tag.
-     *
-     * @param info A git info object generated from {@link #gitInfo}
-     * @param prefix If true, will treat the filter as a prefix.
-     * Defaults to false, which means to treat the filter as a glob pattern.
-     * @param filter A non-null string filter used when retrieving the tag
-     * @param allowedBranches A list of allowed branches; the current branch is appended if not in this list
-     * @return a version in the form {@code $tag.$offset} or {@code $tag.$offset-$branch}
-     */
+    /** @deprecated Filters can no longer be defined at configuration. Use the Git Version config. */
+    @Deprecated(forRemoval = true, since = '2.4')
     static String getFilteredTagOffsetBranchVersion(Map<String, String> info, boolean prefix = false, String filter, String... allowedBranches) {
-        return getTagOffsetBranchVersion(getFilteredInfo(info, prefix, filter), allowedBranches)
+        getTagOffsetBranchVersion(info, allowedBranches)
     }
 
     /**
      * Returns a version in the form {@code $mcVersion-$tag.$offset}, optionally with
      * the branch appended if it is not in the defined list of allowed branches
      *
-     * @param info A git info object generated from {@link #gitInfo}
+     * @param info A git info object generated from {@code #gitInfo}
      * @param mcVersion The current minecraft version
      * @param allowedBranches A list of allowed branches; the current branch is appended if not in this list
      * @return a version in the form {@code $mcVersion-$tag.$offset} or {@code $mcVersion-$tag.$offset-$branch}
+     * @deprecated Use {@link GitVersion#getMCTagOffsetBranch(String, String ...)} instead
      */
+    @Deprecated(forRemoval = true, since = '2.4')
     static String getMCTagOffsetBranchVersion(Map<String, String> info, String mcVersion, String... allowedBranches) {
         if (!allowedBranches || allowedBranches.length === 0)
-            allowedBranches = [null, 'master', 'main', 'HEAD', mcVersion, mcVersion + '.0', mcVersion + '.x', rsplit(mcVersion, '.', 1)[0] + '.x']
-        return "$mcVersion-${getTagOffsetBranchVersion(info, allowedBranches)}"
+            allowedBranches = [null, 'master', 'main', 'HEAD', mcVersion, mcVersion + '.0', mcVersion + '.x', rsplitInternal(mcVersion, '.', 1)[0] + '.x']
+
+        "$mcVersion-${getTagOffsetBranchVersion(info, allowedBranches)}"
     }
 
-    /**
-     * Returns a version in the form {@code $mcVersion-$tag.$offset}, optionally with
-     * the branch appended if it is not in the defined list of allowed branches.
-     * The provided filter is used to filter the retrieved tag.
-     *
-     * @param info A git info object generated from {@link #gitInfo}
-     * @param prefix If true, will treat the filter as a prefix.
-     * Defaults to false, which means to treat the filter as a glob pattern.
-     * @param filter A non-null string filter used when retrieving the tag
-     * @param mcVersion The current minecraft version
-     * @param allowedBranches A list of allowed branches; the current branch is appended if not in this list
-     * @return a version in the form {@code $mcVersion-$tag.$offset} or {@code $mcVersion-$tag.$offset-$branch}
-     */
+    /** @deprecated Filters for GitVersion should be set early, using one of the methods in {@link GradleUtilsExtension} */
+    @Deprecated(forRemoval = true, since = '2.4')
     static String getFilteredMCTagOffsetBranchVersion(Map<String, String> info, boolean prefix = false, String filter, String mcVersion, String... allowedBranches) {
-        return getMCTagOffsetBranchVersion(getFilteredInfo(info, prefix, filter), mcVersion, allowedBranches)
+        getMCTagOffsetBranchVersion(info, mcVersion, allowedBranches)
     }
 
-    /**
-     * Builds a project url for a project under the minecraft forge organisation.
-     *
-     * @param project The name of the project. (As in the project slug on github).
-     * @return The github url of the project.
-     */
+    /** @see net.minecraftforge.gitver.internal.GitUtils#buildProjectUrl(String) GitUtils.buildProjectUrl(String) */
+    @Deprecated(forRemoval = true, since = '2.4')
     static String buildProjectUrl(String project) {
-        return buildProjectUrl("MinecraftForge", project)
+        buildProjectUrl("MinecraftForge", project);
+    }
+
+    /** @see net.minecraftforge.gitver.internal.GitUtils#buildProjectUrl(String, String) GitUtils.buildProjectUrl(String, String) */
+    @Deprecated(forRemoval = true, since = '2.4')
+    static String buildProjectUrl(String organization, String project) {
+        buildProjectUrlLogDeprecation()
+        "https://github.com/${organization}/${project}"
     }
 
     /**
-     * Builds a project url for a project under the given organisation.
+     * Identical to
+     * {@link net.minecraftforge.gitver.internal.GitUtils#buildProjectUrl(Git) GitUtils.buildProjectUrl(Git)}. The only
+     * difference is that this does not return {@code null} to preserve GradleUtils 2.x behavior.
      *
-     * @param organisation The name of the org. (As in the org slug on github).
-     * @param project The name of the project. (As in the project slug on github).
-     * @return The github url of the project.
+     * @deprecated Replaced by GitVersion, use {@link GitVersion.Info#getUrl()} via {@link net.minecraftforge.gradleutils.gitversion.GitVersionExtension#getVersion() GitVersionExtension.getVersion()}
      */
-    static String buildProjectUrl(String organisation, String project) {
-        return "https://github.com/$organisation/$project"
-    }
-
-    /**
-     * Builds the github url from the origin remotes push uri.
-     * Processes the URI from three different variants into the URL:
-     * 1) If the protocol is http(s) based then ".git" is stripped and returned as url.
-     * 2) If the protocol is ssh and does contain authentication information then the
-     *    username and password are stripped and the url is returned without the ".git"
-     *    ending.
-     * 3) If the protocol is ssh and does not contain authentication information then
-     *    the protocol is switched to https and the ".git" ending is stripped.
-     *
-     * @param projectDir THe project directory.
-     * @return
-     */
+    @Deprecated(forRemoval = true, since = '2.4')
     static String buildProjectUrl(Git git) {
-        List<RemoteConfig> remotes = git.remoteList().call() //Get all remotes.
-        if (remotes.isEmpty())
-            throw new IllegalStateException("No remotes found in " + git.repository.directory)
+        buildProjectUrlLogDeprecation()
+
+        List<RemoteConfig> remotes
+        try {
+            remotes = git.remoteList().call()
+            if (remotes.isEmpty()) return ''
+        } catch (GitAPIException ignored) {
+            return ''
+        }
 
         //Get the origin remote.
-        final originRemote = remotes.find { remote -> remote.name == 'origin' }
+        var originRemote = remotes.find { remote -> remote.name == 'origin' }
 
         //We do not have an origin named remote
-        if (originRemote === null)
-            return ''
+        if (originRemote == null) return ''
 
         //Get the origin push url.
-        final originUrl = originRemote.URIs.first()
+        var originUrl = originRemote.getURIs().first()
 
         //We do not have a origin url
-        if (originUrl === null)
-            return ''
+        if (originUrl == null) return ''
 
         //Grab its string representation and process.
-        final originUrlString = originUrl.toString()
+        var originUrlString = originUrl.toString()
         //Determine the protocol
-        if (originUrlString.startsWith("ssh")) {
+        if (originUrlString.lastIndexOf(':') > 'https://'.length()) {
             //If ssh then check for authentication data.
-            if (originUrlString.contains("@")) {
+            if (originUrlString.contains('@')) {
                 //We have authentication data: Strip it.
-                return "https://" + originUrlString.substring(originUrlString.indexOf("@") + 1).replace(".git", "")
+                return 'https://' + originUrlString.substring(originUrlString.indexOf('@') + 1).replace('.git', '').replace(':', '/')
             } else {
                 //No authentication data: Switch to https.
-                return "https://" + originUrlString.substring(6).replace(".git", "")
+                return 'https://' + originUrlString.replace('ssh://', '').replace('.git', '').replace(':', '/')
             }
-        } else if (originUrlString.startsWith("http")) {
-            //Standard http protocol: Strip the ".git" ending only.
-            return originUrlString.replace(".git", "")
+        } else if (originUrlString.startsWith('http')) {
+            //Standard http protocol: Strip the '.git' ending only.
+            return originUrlString.replace('.git', '')
         }
 
         //What other case exists? Just to be sure lets return this.
         return originUrlString
     }
 
+    private static boolean buildProjectUrlDeprecationLogged
+    @Deprecated(forRemoval = true, since = '2.4')
+    private static void buildProjectUrlLogDeprecation() {
+        if (!buildProjectUrlDeprecationLogged) {
+            println 'WARNING: Usage of GradleUtils.buildProjectUrl is DEPRECATED and will be removed in GradleUtils 3.0! Use gitversion.version.info.url instead.'
+            buildProjectUrlDeprecationLogged = true
+        }
+    }
+
     /**
-     * Configures CI related tasks for all known platforms.
+     * Configures CI related tasks for TeamCity.
      *
-     * @param project The project to configure them on.
+     * @param project The project to configure TeamCity tasks for
+     * @deprecated Once Forge has completely moved off of TeamCity, this will be deleted. New tasks added to GradleUtils should handle registration themselves.
      */
+    @Deprecated(forRemoval = true)
     static void setupCITasks(Project project) {
-        setupTeamCityTasks(project)
-        GitHubActions.setupTasks(project)
-    }
-
-    /**
-     * Sets up the TeamCity CI tasks.
-     *
-     * @param project The project to configure it on.
-     */
-    @CompileDynamic
-    private static void setupTeamCityTasks(Project project) {
-        if (System.getenv('TEAMCITY_VERSION')) {
-            //Only setup the CI environment if and only if the environment variables are set.
-            def teamCityCITask = project.tasks.register("configureTeamCity") {
-                //Print the marker lines into the log which configure the pipeline.
-                doLast {
-                    project.logger.lifecycle("Setting project variables and parameters.")
-                    println "##teamcity[buildNumber '${project.version}']"
-                    println "##teamcity[setParameter name='env.PUBLISHED_JAVA_ARTIFACT_VERSION' value='${project.version}']"
-                }
-            }
-        }
-    }
-
-    private static class GitHubActions {
-        private static void setupTasks(final Project project) {
-            // Setup the GitHub Actions project info task
-            project.tasks.register('ghActionsProjectInfoJson') { Task task ->
-                task.onlyIf { System.getenv('GITHUB_ENV') !== null }
-                task.doLast {
-                    project.file(System.getenv('GITHUB_ENV')) << "\nPROJ_INFO_JSON=" + JsonOutput.toJson(getProjectInfo(project))
-                }
-            }
-
-            project.tasks.register('ghActionsProjectVersion') { Task task ->
-                task.onlyIf { System.getenv('GITHUB_ENV') !== null }
-                task.doLast {
-                    project.file(System.getenv('GITHUB_ENV')) << "\nPROJ_VERSION=${project.version}"
-                }
-            }
-        }
-
-        @Immutable
-        private static final class ProjectInfo {
-            String group = ''
-            String name = ''
-            String version = ''
-        }
-
-        private static List<ProjectInfo> getProjectInfo(final Project project) {
-            return project.allprojects.collect { Project proj ->
-                new ProjectInfo(project.group.toString(), proj.name, proj.version.toString())
-            }
-        }
+        ConfigureTeamCity.register(project)
     }
 }
