@@ -1,6 +1,7 @@
 plugins {
     id 'java-gradle-plugin'
     id 'groovy'
+    id 'idea'
     id 'maven-publish'
     id 'net.minecraftforge.licenser' version '1.0.1'
     id 'com.gradle.plugin-publish' version '1.2.1'
@@ -96,4 +97,8 @@ publishing {
     repositories {
         maven gradleutils.publishingForgeMaven
     }
+}
+
+idea.module {
+    downloadSources = downloadJavadoc = true
 }
