@@ -44,7 +44,7 @@ class ChangelogUtils {
      * @param endCommitHash The commit hash of the commit to use as the end of the changelog.
      * @return A multiline changelog string.
      */
-    static String generateChangelogFromTo(final Git git, final String repositoryUrl, final boolean justText, final RevCommit start, final RevCommit end) {
+    static String generateChangelogFromTo(final Git git, final String repositoryUrl, final boolean justText, final RevCommit start, final RevCommit end, final String filter) {
         def endCommitHash = end.toObjectId().getName(); //Grab the commit hash of the end commit.
         def startCommitHash = start.toObjectId().getName(); //Grab the commit hash of the start commit.
 
@@ -53,7 +53,7 @@ class ChangelogUtils {
             changeLogName = changeLogName.replace("refs/heads/", ""); //Replace the heads prefix with nothing to only get the name of the current branch.
         }
 
-        def log = getCommitLogFromTo(git, start, end); //Get all commits between the start and the end.
+        def log = getCommitLogFromTo(git, start, end, filter); //Get all commits between the start and the end.
         def logList = log.toList(); //And generate a list from it.
 
         def tagMap = getCommitToTagMap(git); //Grab a map between commits and tag names.
@@ -250,7 +250,7 @@ class ChangelogUtils {
      * @param end The end commit (the youngest).
      * @return The commit log.
      */
-    private static Iterable<RevCommit> getCommitLogFromTo(final Git git, final RevCommit start, final RevCommit end) {
+    private static Iterable<RevCommit> getCommitLogFromTo(final Git git, final RevCommit start, final RevCommit end, final String filter) {
         def log = git.log().add(end)
 
         // If our starting commit contains at least one parent (it is not the 'root' commit), exclude all of those parents
@@ -259,37 +259,10 @@ class ChangelogUtils {
         }
         // We do not exclude the starting commit itself, so the commit is present in the returned iterable
 
-        def commits = log.call()
+        if (filter !== null && !filter.isEmpty())
+            log.addPath(filter)
 
-        for (final def c in commits) {
-            System.out.println("FOR COMMIT: " + c)
-            // prepare the two iterators to compute the diff between
-            try (def reader = git.repository.newObjectReader()) {
-                if (c.getParentCount() == 0) {
-                    System.out.println()
-                    continue
-                }
-
-                CanonicalTreeParser oldTreeIter = new CanonicalTreeParser();
-                oldTreeIter.reset(reader, c.getParent(0).getTree());
-                CanonicalTreeParser newTreeIter = new CanonicalTreeParser();
-                newTreeIter.reset(reader, c.getTree());
-
-                // finally get the list of changed files
-                List<DiffEntry> diffs = git.diff()
-                        .setNewTree(newTreeIter)
-                        .setOldTree(oldTreeIter)
-                        .call();
-                for (DiffEntry entry : diffs) {
-                    System.out.println("old: " + entry.getOldPath() +
-                            ", new: " + entry.getNewPath() +
-                            ", entry: " + entry);
-                }
-            }
-            System.out.println()
-        }
-
-        return commits
+        return log.call()
     }
 
     /**

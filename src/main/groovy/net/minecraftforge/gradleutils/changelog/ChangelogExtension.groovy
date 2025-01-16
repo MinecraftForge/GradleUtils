@@ -48,6 +48,13 @@ class ChangelogExtension {
         }
     }
 
+    void tagPrefix(String prefix) {
+        task = ChangelogUtils.setupChangelogTask(this.project)
+        task.configure {
+            tagPrefix = prefix
+        }
+    }
+
     void publish(MavenPublication publication) {
         ChangelogUtils.setupChangelogGenerationForPublishing(project, publication)
     }

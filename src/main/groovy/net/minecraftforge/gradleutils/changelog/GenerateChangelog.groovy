@@ -51,6 +51,8 @@ abstract class GenerateChangelog extends DefaultTask {
     @Input
     abstract Property<String> getFilter();
 
+    abstract Property<String> getTagPrefix();
+
     @Input
     abstract Property<Boolean> getBuildMarkdown();
 
@@ -68,6 +70,9 @@ abstract class GenerateChangelog extends DefaultTask {
         println "filter = $filter"
         println "filter null? = ${filter == null}"
         println "filter empty? = ${filter == null || filter.isEmpty()}"
+
+        def tagPrefix = getTagPrefix().getOrElse(filter)
+        if (!tagPrefix.endsWith("-")) tagPrefix += "-"
 
         String changelog = ""
         def parent = SystemReader.instance
@@ -95,7 +100,7 @@ abstract class GenerateChangelog extends DefaultTask {
             }
 
             def head = ChangelogUtils.getHead(git)
-            changelog = ChangelogUtils.generateChangelogFromTo(git, url, !buildMarkdown.get(), from, head)
+            changelog = ChangelogUtils.generateChangelogFromTo(git, url, !buildMarkdown.get(), from, head, filter)
         } finally {
             SystemReader.instance = parent
         }
