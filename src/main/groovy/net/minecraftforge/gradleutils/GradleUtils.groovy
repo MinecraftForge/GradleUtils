@@ -118,6 +118,11 @@ class GradleUtils {
         return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> getSubprojectCommitCount(git, tag, makeFilterFromSubproject(project)), globFilters)
     }
 
+    @Deprecated(forRemoval = true, since = "2.3")
+    static Map<String, String> gitInfo(File dir, String... globFilters) {
+        return gitInfo(dir, (git, tag) -> null, globFilters)
+    }
+
     static Map<String, String> gitInfo(File dir, BiFunction<Git, String, @Nullable Integer> commitCountProvider, String... globFilters) {
         def git
         def parent = SystemReader.instance

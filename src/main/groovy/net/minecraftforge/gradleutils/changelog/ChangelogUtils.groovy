@@ -44,6 +44,23 @@ class ChangelogUtils {
      * @param endCommitHash The commit hash of the commit to use as the end of the changelog.
      * @return A multiline changelog string.
      */
+    @Deprecated(forRemoval = true, since = "2.3")
+    static String generateChangelogFromTo(final Git git, final String repositoryUrl, final boolean justText, final RevCommit start, final RevCommit end) {
+        return generateChangelogFromTo(git, repositoryUrl, justText, start, end, null);
+    }
+
+    /**
+     * Generates a changelog string that can be written to a file from a given git directory and repository url.
+     * The changes will be generated from the given commit to the given commit.
+     *
+     * @param projectDirectory The directory from which to pull the git commit information.
+     * @param repositoryUrl The github url of the repository.
+     * @param justText Indicates if plain text ({@code true}) should be used, or changelog should be used ({@code false}).
+     * @param commitHash The commit hash of the commit to use as the beginning of the changelog.
+     * @param endCommitHash The commit hash of the commit to use as the end of the changelog.
+     * @param filter The filter to decide how to ignore certain commits.
+     * @return A multiline changelog string.
+     */
     static String generateChangelogFromTo(final Git git, final String repositoryUrl, final boolean justText, final RevCommit start, final RevCommit end, final String filter) {
         def endCommitHash = end.toObjectId().getName(); //Grab the commit hash of the end commit.
         def startCommitHash = start.toObjectId().getName(); //Grab the commit hash of the start commit.
@@ -248,6 +265,7 @@ class ChangelogUtils {
      * @param git The git workspace to get the commits from.
      * @param start The start commit (the oldest).
      * @param end The end commit (the youngest).
+     * @param filter The filter to decide how to ignore certain commits.
      * @return The commit log.
      */
     private static Iterable<RevCommit> getCommitLogFromTo(final Git git, final RevCommit start, final RevCommit end, final String filter) {
