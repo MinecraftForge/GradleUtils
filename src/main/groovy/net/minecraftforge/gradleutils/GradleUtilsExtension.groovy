@@ -24,7 +24,7 @@ class GradleUtilsExtension {
 
         this.gitRoot = project.objects.directoryProperty().convention(GradleUtils.findGitRoot(project))
         this.gitInfo = project.objects.mapProperty(String, String)
-                .convention(gitRoot.map((Directory dir) -> GradleUtils.gitInfo(dir.asFile)))
+                .convention(gitRoot.map((Directory dir) -> GradleUtils.gitInfo(project)))
     }
 
     /**
@@ -33,7 +33,14 @@ class GradleUtilsExtension {
      * @return a version in the form {@code $tag.$offset}, e.g. 1.0.5
      */
     String getTagOffsetVersion() {
-        return GradleUtils.getTagOffsetVersion(getGitInfo())
+        return this.getTagOffsetVersion(GradleUtils.makeFilterFromSubproject(project))
+    }
+
+    String getTagOffsetVersion(String tagPrefix) {
+        if (!tagPrefix.endsWith("-"))
+            tagPrefix += "-"
+
+        return this.getFilteredTagOffsetVersion(true, tagPrefix)
     }
 
     /**

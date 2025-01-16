@@ -11,9 +11,12 @@ import groovy.transform.Immutable
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.errors.RepositoryNotFoundException
 import org.eclipse.jgit.lib.Config
+import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.revwalk.RevCommit
+import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.storage.file.FileBasedConfig
 import org.eclipse.jgit.transport.RemoteConfig
 import org.eclipse.jgit.util.FS
@@ -24,8 +27,10 @@ import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.file.Directory
 import org.gradle.api.provider.Provider
 import org.gradle.authentication.http.BasicAuthentication
+import org.jetbrains.annotations.Nullable
 
-import javax.annotation.Nullable
+import java.util.function.BiFunction
+import java.util.function.ToIntBiFunction
 
 @CompileStatic
 class GradleUtils {
@@ -67,38 +72,55 @@ class GradleUtils {
     }
 
     /**
-     * Gets the root folder of the Git repository the given project might be in. If we are not in a Git repository, this
-     * provider will resolve to the root project's directory.
+     * Gets the root folder of the Git repository the given project might be in. If we are not in a Git repository, we
+     * will try to recursively search up the directory tree until we find a Git repository. If there is still no Git
+     * repository, we will return the root project directory.
      *
      * @param project The project to find the Git root for
      * @return A provider that resolves to the Git root directory
      */
     static Provider<Directory> findGitRoot(Project project) {
         return project.provider {
-            // first, try the current project dir. we might be a submodule
-            def dir = project.layout.projectDirectory
-            if (dir.dir(".git").getAsFile().exists())
-                return dir
+            def current = project
+            for (current; current.parent != null; current = current.parent) {
+                def dir = current.layout.projectDirectory
+                if (dir.dir(".git").getAsFile().exists())
+                    return dir
+            }
 
-            // ok, we're not a submodule, try the root project
-            return project.rootProject.layout.projectDirectory
+            return current.layout.projectDirectory
         }
     }
 
     /**
-     * Find the {@code .git} directory of the Git repository the given project might be in. If we are not in a Git
-     * repository, this provider will still try to point to the Git directory of the root project.
+     * Find the {@code .git} directory of the Git repository the given project might be in.
      *
      * @param project The project to find the Git directory for
      * @return A provider that resolves to the Git directory
+     *
+     * @see #findGitRoot(Project)
      */
     static Provider<Directory> findGitDirectory(Project project) {
         return findGitRoot(project).map { it.dir(".git") }
     }
 
-    static Map<String, String> gitInfo(File dir, String... globFilters) {
-        var git
-        var parent = SystemReader.instance
+    static String makeFilterFromSubproject(Project project) {
+        def root = project.rootProject.projectDir
+        def local = project.projectDir
+
+        def result = local.absolutePath.substring(root.absolutePath.length())
+        if (result.startsWith(File.separator))
+            result = result.substring(1)
+        return result
+    }
+
+    static Map<String, String> gitInfo(Project project, String... globFilters) {
+        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> getSubprojectCommitCount(git, tag, makeFilterFromSubproject(project)), globFilters)
+    }
+
+    static Map<String, String> gitInfo(File dir, BiFunction<Git, String, @Nullable Integer> commitCountProvider, String... globFilters) {
+        def git
+        def parent = SystemReader.instance
         SystemReader.instance = new DisableSystemConfig(parent)
 
         try {
@@ -113,17 +135,19 @@ class GradleUtils {
                 abbreviatedId: '00000000'
             ]
         }
-        String tag = git.describe().setLong(true).setTags(true).setMatch(globFilters ?: new String[0]).call()
-        List<String> desc = rsplit(tag, '-', 2) ?: ['0.0', '0', '00000000']
-        Ref head = git.repository.exactRef('HEAD')
-        String longBranch = head.symbolic ? head?.target?.name : null // matches Repository.getFullBranch() but returning null when on a detached HEAD
+        def tag = git.describe().setLong(true).setTags(true).setMatch(globFilters ?: new String[0]).call()
+        def desc = rsplit(tag, '-', 2) ?: ['0.0', '0', '00000000']
+        def head = git.repository.exactRef('HEAD')
+        def longBranch = head.symbolic ? head?.target?.name : null // matches Repository.getFullBranch() but returning null when on a detached HEAD
 
         Map<String, String> ret = [:]
         ret.dir = dir.absolutePath
         ret.tag = desc[0]
         if (ret.tag.startsWith("v") && ret.tag.length() > 1 && ret.tag.charAt(1).digit)
             ret.tag = ret.tag.substring(1)
-        ret.offset = desc[1]
+
+        Integer offset = commitCountProvider.apply(git, ret.tag)
+        ret.offset = offset !== null ? (offset - 1).toString() : desc[1]
         ret.hash = desc[2]
         ret.branch = longBranch !== null ? Repository.shortenRefName(longBranch) : null
         ret.commit = ObjectId.toString(head.objectId)
@@ -134,6 +158,61 @@ class GradleUtils {
 
         SystemReader.instance = parent
         return ret
+    }
+
+    static @Nullable Integer getSubprojectCommitCount(Git git, String tag, String filter) {
+        if (filter === null || filter.isEmpty()) return null
+
+        def tags = getTagToCommitMap(git)
+        def commitHash = tags.get(tag)
+        def commit = commitHash != null ? ObjectId.fromString(commitHash) : getFirstCommitInRepository(git).toObjectId()
+
+        def start = getCommitFromId(git, commit)
+        def end = getHead(git)
+
+        def log = git.log().add(end)
+
+        // If our starting commit contains at least one parent (it is not the 'root' commit), exclude all of those parents
+        for (RevCommit parent : start.getParents()) {
+            log.not(parent)
+        }
+        // We do not exclude the starting commit itself, so the commit is present in the returned iterable
+
+        if (filter !== null && !filter.isEmpty())
+            log.addPath(filter)
+
+        return log.call().size()
+    }
+
+    private static RevCommit getCommitFromId(final Git git, final ObjectId other) {
+        try (RevWalk revWalk = new RevWalk(git.repository)) {
+            return revWalk.parseCommit(other);
+        }
+    }
+
+    private static RevCommit getFirstCommitInRepository(final Git git) {
+        final Iterable<RevCommit> commits = git.log().call();
+        final List<RevCommit> commitList = commits.toList();
+
+        if (commitList.isEmpty())
+            return null;
+
+        return commitList.get(commitList.size() - 1);
+    }
+
+    private static Map<String, String> getTagToCommitMap(final Git git) {
+        final Map<String, String> versionMap = new HashMap<>();
+        for(Ref tag : git.tagList().call()) {
+            ObjectId tagId = git.getRepository().getRefDatabase().peel(tag).peeledObjectId ?: tag.objectId;
+            versionMap.put(tag.getName().replace(Constants.R_TAGS, ""), tagId.name());
+        }
+
+        return versionMap;
+    }
+
+    private static RevCommit getHead(final Git git) {
+        def headId = git.repository.resolve(Constants.HEAD);
+        return getCommitFromId(git, headId);
     }
 
     /**
@@ -254,7 +333,7 @@ class GradleUtils {
     private static Map<String, String> getFilteredInfo(Map<String, String> info, boolean prefix, String filter) {
         if (prefix)
             filter += '**'
-        return gitInfo(new File(info.dir), filter)
+        return gitInfo(new File(info.dir), (g, t) -> null, filter)
     }
 
     /**
