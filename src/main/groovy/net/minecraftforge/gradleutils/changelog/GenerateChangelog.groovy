@@ -67,9 +67,6 @@ abstract class GenerateChangelog extends DefaultTask {
     @TaskAction
     void exec() throws IOException {
         def filter = getFilter().getOrNull()
-        println "filter = $filter"
-        println "filter null? = ${filter == null}"
-        println "filter empty? = ${filter == null || filter.isEmpty()}"
 
         def tagPrefix = getTagPrefix().getOrElse(filter)
         if (!tagPrefix.endsWith("-")) tagPrefix += "-"
