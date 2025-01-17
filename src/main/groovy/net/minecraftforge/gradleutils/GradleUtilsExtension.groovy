@@ -37,9 +37,10 @@ class GradleUtilsExtension {
     }
 
     String getTagOffsetVersion(String tagPrefix) {
-        if (!tagPrefix.endsWith("-"))
-            tagPrefix += "-"
+        if (tagPrefix === null || tagPrefix.isEmpty())
+            return GradleUtils.getTagOffsetVersion(getGitInfo())
 
+        if (!tagPrefix.endsWith("-")) tagPrefix += "-"
         return this.getFilteredTagOffsetVersion(true, tagPrefix)
     }
 
