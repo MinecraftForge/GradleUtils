@@ -51,6 +51,7 @@ abstract class GenerateChangelog extends DefaultTask {
     @Input
     abstract Property<String> getFilter();
 
+    @Input
     abstract Property<String> getTagPrefix();
 
     @Input
