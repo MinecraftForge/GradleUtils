@@ -6,6 +6,7 @@ package net.minecraftforge.gradleutils
 
 import groovy.transform.CompileStatic
 import org.gradle.api.Project
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Provider
 
 import javax.inject.Inject
@@ -14,6 +15,7 @@ import javax.inject.Inject
 class GradleUtilsExtension {
     private final Project project
     private final String defaultFilter
+    final DirectoryProperty gitRoot
     private Provider<Map<String, String>> gitInfo
 
     @Inject
@@ -21,6 +23,7 @@ class GradleUtilsExtension {
         this.project = project
 
         this.defaultFilter = GradleUtils.makeFilterFromSubproject(project)
+        this.gitRoot = project.objects.directoryProperty().convention(GradleUtils.findGitRoot(project))
         this.gitInfo = project.objects.mapProperty(String, String).convention(project.provider { GradleUtils.gitInfoCheckSubproject(project, this.defaultFilter) })
     }
 
