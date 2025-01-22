@@ -151,7 +151,7 @@ class GradleUtils {
     }
 
     static Map<String, String> gitInfo(File dir, BiFunction<Git, String, @Nullable Integer> commitCountProvider, @Nullable String tagPrefix, String... globFilters) {
-        println "Getting git info! Dir: $dir, tagPrefix: $tagPrefix, globFilters: [${String.join(', ', globFilters)}]"
+//        println "Getting git info! Dir: $dir, tagPrefix: $tagPrefix, globFilters: [${String.join(', ', globFilters)}]"
 
         var git
         var parent = SystemReader.instance
@@ -184,7 +184,6 @@ class GradleUtils {
         Map<String, String> ret = [:]
         ret.dir = dir.absolutePath
         ret.tag = desc[0]
-        println "Tag: ${ret.tag}"
         if (ret.tag.startsWith("v") && ret.tag.length() > 1 && ret.tag.charAt(1).digit)
             ret.tag = ret.tag.substring(1)
 
@@ -206,7 +205,7 @@ class GradleUtils {
     static @Nullable Integer getSubprojectCommitCount(Git git, String tag, String filter) {
         if (filter === null || filter.isEmpty()) return null
 
-        println "Getting subproject commit count! Tag: $tag, filter: $filter"
+//        println "Getting subproject commit count! Tag: $tag, filter: $filter"
         var tags = getTagToCommitMap(git)
         var commitHash = tags.get(tag)
         var commit = commitHash != null ? ObjectId.fromString(commitHash) : getFirstCommitInRepository(git).toObjectId()
