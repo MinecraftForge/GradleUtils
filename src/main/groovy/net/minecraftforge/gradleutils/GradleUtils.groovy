@@ -34,6 +34,14 @@ import java.util.function.BiFunction
 
 @CompileStatic
 class GradleUtils {
+    private static final Map<String, String> DEFAULT_GIT_INFO = [
+            tag: '0.0',
+            offset: '0',
+            hash: '00000000',
+            branch: 'master',
+            commit: '0000000000000000000000',
+            abbreviatedId: '00000000'
+    ]
 
     @CompileDynamic
     private static void initDynamic() {
@@ -105,27 +113,28 @@ class GradleUtils {
     }
 
     static String makeFilterFromSubproject(Project project) {
-        def root = project.rootProject.projectDir
-        def local = project.projectDir
+        var root = project.rootProject.projectDir
+        var local = project.projectDir
 
-        def result = local.absolutePath.substring(root.absolutePath.length())
+        var result = local.absolutePath.substring(root.absolutePath.length())
         if (result.startsWith(File.separator))
             result = result.substring(1)
         return result
     }
 
     // I LOVE NOT BREAKING BINARY COMPAT!!!!!! :) :) :)
-    static Map<String, String> gitInfoCheckSubproject(Project project) {
-        var filterFromSubproject = makeFilterFromSubproject(project)
-
+    static Map<String, String> gitInfoCheckSubproject(Project project, String filterFromSubproject) {
         return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(git, tag, filterFromSubproject) : null, filterFromSubproject, new String[0])
     }
 
     // I LOVE NOT BREAKING BINARY COMPAT!!!!!! :) :) :)
-    static Map<String, String> gitInfoCheckSubproject(Project project, String tagPrefixOverride) {
-        var filterFromSubproject = makeFilterFromSubproject(project)
-
+    static Map<String, String> gitInfoCheckSubproject(Project project, String filterFromSubproject, String tagPrefixOverride) {
         return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(git, tag, filterFromSubproject) : null, tagPrefixOverride, new String[0])
+    }
+
+    // I LOVE NOT BREAKING BINARY COMPAT!!!!!! :) :) :)
+    static Map<String, String> gitInfoCheckSubproject(Project project, String filterFromSubproject, String tagPrefixOverride, String globFilter) {
+        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(git, tag, filterFromSubproject) : null, tagPrefixOverride, new String[] { globFilter })
     }
 
     static Map<String, String> gitInfo(Project project, String... globFilters) {
@@ -141,23 +150,18 @@ class GradleUtils {
         return gitInfo(dir, commitCountProvider, null, globFilters)
     }
 
-    static Map<String, String> gitInfo(File dir, BiFunction<Git, String, @Nullable Integer> commitCountProvider, String tagPrefix, String... globFilters) {
+    static Map<String, String> gitInfo(File dir, BiFunction<Git, String, @Nullable Integer> commitCountProvider, @Nullable String tagPrefix, String... globFilters) {
+        println "Getting git info! Dir: $dir, tagPrefix: $tagPrefix, globFilters: [${String.join(', ', globFilters)}]"
+
         def git
         def parent = SystemReader.instance
         SystemReader.instance = new DisableSystemConfig(parent)
 
         try {
             git = Git.open(dir)
-        } catch (RepositoryNotFoundException e) {
-            e.printStackTrace()
-            return [
-                tag: '0.0',
-                offset: '0',
-                hash: '00000000',
-                branch: 'master',
-                commit: '0000000000000000000000',
-                abbreviatedId: '00000000'
-            ]
+        } catch (RepositoryNotFoundException ignored) {
+            println 'ERROR: Failed to describe git info! Not in a git repository?'
+            return DEFAULT_GIT_INFO
         }
         def tag = git.describe().tap {
             tags = true
@@ -167,24 +171,26 @@ class GradleUtils {
             match = tagPrefix ? new String[] { tagPrefix + "**" } : new String[0]
             match = globFilters ?: new String[0]
         }.call()
-        def desc = rsplit(tag, '-', 2) ?: ['0.0', '0', '00000000']
-        println "git describes: " + desc
-        def head = git.repository.exactRef('HEAD')
-        def longBranch = head.symbolic ? head?.target?.name : null // matches Repository.getFullBranch() but returning null when on a detached HEAD
+
+        def desc = rsplit(tag, '-', 2)
+        if (desc === null) {
+            println "ERROR: Failed to describe git info! Incorrect filters? Tag prefix: ${tagPrefix}, glob filters: [${String.join(', ', globFilters)}]"
+            return DEFAULT_GIT_INFO
+        }
+
+        Ref head = git.repository.exactRef('HEAD')
+        var longBranch = head.symbolic ? head?.target?.name : null // matches Repository.getFullBranch() but returning null when on a detached HEAD
 
         Map<String, String> ret = [:]
         ret.dir = dir.absolutePath
         ret.tag = desc[0]
+        println "Tag: ${ret.tag}"
         if (ret.tag.startsWith("v") && ret.tag.length() > 1 && ret.tag.charAt(1).digit)
             ret.tag = ret.tag.substring(1)
 
-        Integer offset = commitCountProvider.apply(git, ret.tag)
-        ret.offset = offset !== null ? (offset - 1).toString() : desc[1]
+        @Nullable Integer offset = commitCountProvider.apply(git, ret.tag)
+        ret.offset = offset !== null ? (offset == 0 ? 0 : offset - 1).toString() : desc[1]
 
-        if (offset === null)
-            println 'NO FILTER!!!'
-        else
-            println 'FILTERED OFFSET: ' + ret.offset
         ret.hash = desc[2]
         ret.branch = longBranch !== null ? Repository.shortenRefName(longBranch) : null
         ret.commit = ObjectId.toString(head.objectId)
@@ -200,6 +206,7 @@ class GradleUtils {
     static @Nullable Integer getSubprojectCommitCount(Git git, String tag, String filter) {
         if (filter === null || filter.isEmpty()) return null
 
+        println "Getting subproject commit count! Tag: $tag, filter: $filter"
         def tags = getTagToCommitMap(git)
         def commitHash = tags.get(tag)
         def commit = commitHash != null ? ObjectId.fromString(commitHash) : getFirstCommitInRepository(git).toObjectId()
