@@ -170,6 +170,8 @@ class GradleUtils {
             // match isn't an attribute, we can call setMatch() twice since it just adds matches
             if (tagPrefix) match = new String[] { tagPrefix + "**" }
             if (globFilters) match = globFilters
+
+            return it
         }.call()
 
         var desc = rsplit(tag, '-', 2)
