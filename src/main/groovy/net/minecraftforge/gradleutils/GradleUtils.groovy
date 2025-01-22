@@ -153,8 +153,8 @@ class GradleUtils {
     static Map<String, String> gitInfo(File dir, BiFunction<Git, String, @Nullable Integer> commitCountProvider, @Nullable String tagPrefix, String... globFilters) {
         println "Getting git info! Dir: $dir, tagPrefix: $tagPrefix, globFilters: [${String.join(', ', globFilters)}]"
 
-        def git
-        def parent = SystemReader.instance
+        var git
+        var parent = SystemReader.instance
         SystemReader.instance = new DisableSystemConfig(parent)
 
         try {
@@ -163,7 +163,7 @@ class GradleUtils {
             println 'ERROR: Failed to describe git info! Not in a git repository?'
             return DEFAULT_GIT_INFO
         }
-        def tag = git.describe().tap {
+        var tag = git.describe().tap {
             tags = true
             it.long = true
 
@@ -172,7 +172,7 @@ class GradleUtils {
             match = globFilters ?: new String[0]
         }.call()
 
-        def desc = rsplit(tag, '-', 2)
+        var desc = rsplit(tag, '-', 2)
         if (desc === null) {
             println "ERROR: Failed to describe git info! Incorrect filters? Tag prefix: ${tagPrefix}, glob filters: [${String.join(', ', globFilters)}]"
             return DEFAULT_GIT_INFO
@@ -207,17 +207,17 @@ class GradleUtils {
         if (filter === null || filter.isEmpty()) return null
 
         println "Getting subproject commit count! Tag: $tag, filter: $filter"
-        def tags = getTagToCommitMap(git)
-        def commitHash = tags.get(tag)
-        def commit = commitHash != null ? ObjectId.fromString(commitHash) : getFirstCommitInRepository(git).toObjectId()
+        var tags = getTagToCommitMap(git)
+        var commitHash = tags.get(tag)
+        var commit = commitHash != null ? ObjectId.fromString(commitHash) : getFirstCommitInRepository(git).toObjectId()
 
-        def start = getCommitFromId(git, commit)
-        def end = getHead(git)
+        var start = getCommitFromId(git, commit)
+        var end = getHead(git)
 
-        def log = git.log().add(end)
+        var log = git.log().add(end)
 
         // If our starting commit contains at least one parent (it is not the 'root' commit), exclude all of those parents
-        for (RevCommit parent : start.getParents()) {
+        for (var parent : start.getParents()) {
             log.not(parent)
         }
         // We do not exclude the starting commit itself, so the commit is present in the returned iterable

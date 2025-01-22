@@ -7,16 +7,13 @@ package net.minecraftforge.gradleutils.changelog
 import groovy.transform.PackageScope
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.ListBranchCommand
-import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.errors.MissingObjectException
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.lib.ObjectReader
 import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.revwalk.filter.RevFilter
-import org.eclipse.jgit.treewalk.CanonicalTreeParser
 import org.gradle.api.InvalidUserCodeException
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -269,10 +266,10 @@ class ChangelogUtils {
      * @return The commit log.
      */
     private static Iterable<RevCommit> getCommitLogFromTo(final Git git, final RevCommit start, final RevCommit end, final String filter) {
-        def log = git.log().add(end)
+        var log = git.log().add(end)
 
         // If our starting commit contains at least one parent (it is not the 'root' commit), exclude all of those parents
-        for (RevCommit parent : start.getParents()) {
+        for (var parent : start.getParents()) {
             log.not(parent)
         }
         // We do not exclude the starting commit itself, so the commit is present in the returned iterable

@@ -5,9 +5,6 @@
 package net.minecraftforge.gradleutils.changelog
 
 import groovy.transform.CompileStatic
-import net.minecraftforge.gradleutils.GradleUtils
-import net.minecraftforge.gradleutils.GradleUtilsExtension
-import net.minecraftforge.gradleutils.changelog.ChangelogExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
