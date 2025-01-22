@@ -27,10 +27,10 @@ import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.file.Directory
 import org.gradle.api.provider.Provider
 import org.gradle.authentication.http.BasicAuthentication
+import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nullable
 
 import java.util.function.BiFunction
-import java.util.function.ToIntBiFunction
 
 @CompileStatic
 class GradleUtils {
@@ -81,9 +81,9 @@ class GradleUtils {
      */
     static Provider<Directory> findGitRoot(Project project) {
         return project.provider {
-            def current = project
+            var current = project
             for (current; current.parent != null; current = current.parent) {
-                def dir = current.layout.projectDirectory
+                var dir = current.layout.projectDirectory
                 if (dir.dir(".git").getAsFile().exists())
                     return dir
             }
@@ -114,16 +114,34 @@ class GradleUtils {
         return result
     }
 
+    // I LOVE NOT BREAKING BINARY COMPAT!!!!!! :) :) :)
+    static Map<String, String> gitInfoCheckSubproject(Project project) {
+        var filterFromSubproject = makeFilterFromSubproject(project)
+
+        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(git, tag, filterFromSubproject) : null, filterFromSubproject, new String[0])
+    }
+
+    // I LOVE NOT BREAKING BINARY COMPAT!!!!!! :) :) :)
+    static Map<String, String> gitInfoCheckSubproject(Project project, String tagPrefixOverride) {
+        var filterFromSubproject = makeFilterFromSubproject(project)
+
+        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(git, tag, filterFromSubproject) : null, tagPrefixOverride, new String[0])
+    }
+
     static Map<String, String> gitInfo(Project project, String... globFilters) {
         return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> getSubprojectCommitCount(git, tag, makeFilterFromSubproject(project)), globFilters)
     }
 
     @Deprecated(forRemoval = true, since = "2.3")
     static Map<String, String> gitInfo(File dir, String... globFilters) {
-        return gitInfo(dir, (git, tag) -> null, globFilters)
+        return gitInfo(dir, (git, tag) -> null, null, globFilters)
     }
 
     static Map<String, String> gitInfo(File dir, BiFunction<Git, String, @Nullable Integer> commitCountProvider, String... globFilters) {
+        return gitInfo(dir, commitCountProvider, null, globFilters)
+    }
+
+    static Map<String, String> gitInfo(File dir, BiFunction<Git, String, @Nullable Integer> commitCountProvider, String tagPrefix, String... globFilters) {
         def git
         def parent = SystemReader.instance
         SystemReader.instance = new DisableSystemConfig(parent)
@@ -131,6 +149,7 @@ class GradleUtils {
         try {
             git = Git.open(dir)
         } catch (RepositoryNotFoundException e) {
+            e.printStackTrace()
             return [
                 tag: '0.0',
                 offset: '0',
@@ -140,8 +159,16 @@ class GradleUtils {
                 abbreviatedId: '00000000'
             ]
         }
-        def tag = git.describe().setLong(true).setTags(true).setMatch(globFilters ?: new String[0]).call()
+        def tag = git.describe().tap {
+            tags = true
+            it.long = true
+
+            // match isn't an attribute, we can call setMatch() twice since it just adds matches
+            match = tagPrefix ? new String[] { tagPrefix + "**" } : new String[0]
+            match = globFilters ?: new String[0]
+        }.call()
         def desc = rsplit(tag, '-', 2) ?: ['0.0', '0', '00000000']
+        println "git describes: " + desc
         def head = git.repository.exactRef('HEAD')
         def longBranch = head.symbolic ? head?.target?.name : null // matches Repository.getFullBranch() but returning null when on a detached HEAD
 
@@ -153,6 +180,11 @@ class GradleUtils {
 
         Integer offset = commitCountProvider.apply(git, ret.tag)
         ret.offset = offset !== null ? (offset - 1).toString() : desc[1]
+
+        if (offset === null)
+            println 'NO FILTER!!!'
+        else
+            println 'FILTERED OFFSET: ' + ret.offset
         ret.hash = desc[2]
         ret.branch = longBranch !== null ? Repository.shortenRefName(longBranch) : null
         ret.commit = ObjectId.toString(head.objectId)
@@ -335,7 +367,8 @@ class GradleUtils {
         }
     }
 
-    private static Map<String, String> getFilteredInfo(Map<String, String> info, boolean prefix, String filter) {
+    @ApiStatus.Internal
+    static Map<String, String> getFilteredInfo(Map<String, String> info, boolean prefix, String filter) {
         if (prefix)
             filter += '**'
         return gitInfo(new File(info.dir), (g, t) -> null, filter)

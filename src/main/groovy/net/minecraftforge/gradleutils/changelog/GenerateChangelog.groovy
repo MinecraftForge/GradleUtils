@@ -11,7 +11,6 @@ import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.util.SystemReader;
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
-import org.gradle.api.file.Directory;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.Property
@@ -19,8 +18,6 @@ import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.*
 
 abstract class GenerateChangelog extends DefaultTask {
-    private final Directory projectDir
-
     GenerateChangelog() {
         //Setup defaults: Using merge-base based text changelog generation of the local project into build/changelog.txt
         gitDirectory.convention GradleUtils.findGitDirectory(this.project)
@@ -52,6 +49,7 @@ abstract class GenerateChangelog extends DefaultTask {
     abstract Property<String> getFilter();
 
     @Input
+    @Optional
     abstract Property<String> getTagPrefix();
 
     @Input

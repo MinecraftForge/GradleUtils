@@ -16,7 +16,7 @@ import javax.inject.Inject
 class GradleUtilsExtension {
     private final Project project
     final DirectoryProperty gitRoot
-    private final Provider<Map<String, String>> gitInfo
+    private Provider<Map<String, String>> gitInfo
 
     @Inject
     GradleUtilsExtension(Project project) {
@@ -24,7 +24,7 @@ class GradleUtilsExtension {
 
         this.gitRoot = project.objects.directoryProperty().convention(GradleUtils.findGitRoot(project))
         this.gitInfo = project.objects.mapProperty(String, String)
-                .convention(gitRoot.map((Directory dir) -> GradleUtils.gitInfo(project)))
+                .convention(gitRoot.map((Directory dir) -> GradleUtils.gitInfoCheckSubproject(project)))
     }
 
     /**
@@ -37,6 +37,7 @@ class GradleUtilsExtension {
     }
 
     String getTagOffsetVersion(String tagPrefix) {
+        println "Tag prefix: " + tagPrefix
         if (tagPrefix === null || tagPrefix.isEmpty())
             return GradleUtils.getTagOffsetVersion(getGitInfo())
 
@@ -54,7 +55,15 @@ class GradleUtilsExtension {
      * @return a version in the form {@code $tag.$offset}, e.g. 1.0.5
      */
     String getFilteredTagOffsetVersion(boolean prefix = false, String filter) {
-        return GradleUtils.getFilteredTagOffsetBranchVersion(getGitInfo(), prefix, filter)
+        // I'm really sorry
+        // We need to set the gitInfo again because if we call this with a custom tag prefix, it will not update the
+        // originally set gitInfo. so this way, we can use the newly-set gitInfo after this method wherever else we
+        // might need it
+        // version = gradleutils.getTagOffsetVersion('different-tag-prefix')
+        var newGitInfo = prefix ? GradleUtils.gitInfoCheckSubproject(project, filter) : GradleUtils.gitInfo(project, filter);
+        gitInfo = this.project.provider { newGitInfo }
+
+        return GradleUtils.getTagOffsetVersion(newGitInfo)
     }
 
     /**
