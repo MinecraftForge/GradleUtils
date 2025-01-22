@@ -168,7 +168,7 @@ class GradleUtils {
             it.long = true
 
             // match isn't an attribute, we can call setMatch() twice since it just adds matches
-            match = tagPrefix ? new String[] { tagPrefix + "**" } : new String[0]
+            if (tagPrefix) match = new String[] { tagPrefix + "**" }
             match = globFilters ?: new String[0]
         }.call()
 
