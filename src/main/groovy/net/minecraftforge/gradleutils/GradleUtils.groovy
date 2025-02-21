@@ -8,8 +8,11 @@ import groovy.json.JsonOutput
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import groovy.transform.Immutable
+import org.apache.tools.ant.taskdefs.condition.Matches
+import org.eclipse.jgit.api.DescribeCommand
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.errors.RepositoryNotFoundException
+import org.eclipse.jgit.fnmatch.FileNameMatcher
 import org.eclipse.jgit.lib.Config
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.ObjectId
@@ -168,7 +171,18 @@ class GradleUtils {
             it.long = true
 
             // match isn't an attribute, we can call setMatch() twice since it just adds matches
-            if (tagPrefix) match = new String[] { tagPrefix + "**" }
+            if (tagPrefix) {
+                match = new String[] { tagPrefix + "**" }
+            } else {
+                var matches = DescribeCommand.class.getDeclaredField('matchers').tap { it.setAccessible(true) }.get(it) as List<FileNameMatcher>
+                matches.add(new FileNameMatcher("*-*", null) {
+                    @Override
+                    boolean isMatch() {
+                        return !super.isMatch()
+                    }
+                })
+            }
+
             if (globFilters) match = globFilters
 
             return it
