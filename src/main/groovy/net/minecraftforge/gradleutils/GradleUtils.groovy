@@ -127,21 +127,21 @@ class GradleUtils {
 
     // I LOVE NOT BREAKING BINARY COMPAT!!!!!! :) :) :)
     static Map<String, String> gitInfoCheckSubproject(Project project, String filterFromSubproject) {
-        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(git, tag, filterFromSubproject) : null, filterFromSubproject, new String[0])
+        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(project, git, tag, filterFromSubproject) : null, filterFromSubproject, new String[0])
     }
 
     // I LOVE NOT BREAKING BINARY COMPAT!!!!!! :) :) :)
     static Map<String, String> gitInfoCheckSubproject(Project project, String filterFromSubproject, String tagPrefixOverride) {
-        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(git, tag, filterFromSubproject) : null, tagPrefixOverride, new String[0])
+        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(project, git, tag, filterFromSubproject) : null, tagPrefixOverride, new String[0])
     }
 
     // I LOVE NOT BREAKING BINARY COMPAT!!!!!! :) :) :)
     static Map<String, String> gitInfoCheckSubproject(Project project, String filterFromSubproject, String tagPrefixOverride, String globFilter) {
-        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(git, tag, filterFromSubproject) : null, tagPrefixOverride, new String[] { globFilter })
+        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(project, git, tag, filterFromSubproject) : null, tagPrefixOverride, new String[] { globFilter })
     }
 
     static Map<String, String> gitInfo(Project project, String... globFilters) {
-        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> getSubprojectCommitCount(git, tag, makeFilterFromSubproject(project)), globFilters)
+        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> getSubprojectCommitCount(project, git, tag, makeFilterFromSubproject(project)), globFilters)
     }
 
     @Deprecated(forRemoval = true, since = "2.3")
@@ -218,9 +218,7 @@ class GradleUtils {
         return ret
     }
 
-    static @Nullable Integer getSubprojectCommitCount(Git git, String tag, String filter) {
-        if (filter === null || filter.isEmpty()) return null
-
+    static @Nullable Integer getSubprojectCommitCount(Project project, Git git, String tag, String filter) {
 //        println "Getting subproject commit count! Tag: $tag, filter: $filter"
         var tags = getTagToCommitMap(git)
         var commitHash = tags.get(tag)
@@ -232,13 +230,15 @@ class GradleUtils {
         var log = git.log().add(end)
 
         // If our starting commit contains at least one parent (it is not the 'root' commit), exclude all of those parents
-        for (var parent : start.getParents()) {
+        for (var parent : start.getParents())
             log.not(parent)
-        }
         // We do not exclude the starting commit itself, so the commit is present in the returned iterable
 
         if (filter !== null && !filter.isEmpty())
             log.addPath(filter)
+
+        for (var subproject : project.subprojects)
+            log.excludePath(makeFilterFromSubproject(subproject))
 
         return log.call().size()
     }
