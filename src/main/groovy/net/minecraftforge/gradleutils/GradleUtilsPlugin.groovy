@@ -15,6 +15,7 @@ class GradleUtilsPlugin implements Plugin<Project> {
     void apply(Project project) {
         project.plugins.apply(ChangelogPlugin)
         project.extensions.create("gradleutils", GradleUtilsExtension, project)
+        GenerateActionsWorkflow.register(project)
         //Setup the teamcity project task.
         GradleUtils.setupCITasks(project)
     }

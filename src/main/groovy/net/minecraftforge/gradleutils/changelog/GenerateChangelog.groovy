@@ -10,11 +10,9 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.util.SystemReader;
 import org.gradle.api.DefaultTask
-import org.gradle.api.Project
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.*
 
 abstract class GenerateChangelog extends DefaultTask {

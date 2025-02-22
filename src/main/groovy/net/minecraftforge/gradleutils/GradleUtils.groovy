@@ -127,17 +127,17 @@ class GradleUtils {
 
     // I LOVE NOT BREAKING BINARY COMPAT!!!!!! :) :) :)
     static Map<String, String> gitInfoCheckSubproject(Project project, String filterFromSubproject) {
-        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(project, git, tag, filterFromSubproject) : null, filterFromSubproject, new String[0])
+        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> getSubprojectCommitCount(project, git, tag, filterFromSubproject), filterFromSubproject, new String[0])
     }
 
     // I LOVE NOT BREAKING BINARY COMPAT!!!!!! :) :) :)
     static Map<String, String> gitInfoCheckSubproject(Project project, String filterFromSubproject, String tagPrefixOverride) {
-        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(project, git, tag, filterFromSubproject) : null, tagPrefixOverride, new String[0])
+        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> getSubprojectCommitCount(project, git, tag, filterFromSubproject), tagPrefixOverride, new String[0])
     }
 
     // I LOVE NOT BREAKING BINARY COMPAT!!!!!! :) :) :)
     static Map<String, String> gitInfoCheckSubproject(Project project, String filterFromSubproject, String tagPrefixOverride, String globFilter) {
-        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> filterFromSubproject ? getSubprojectCommitCount(project, git, tag, filterFromSubproject) : null, tagPrefixOverride, new String[] { globFilter })
+        return gitInfo(findGitRoot(project).get().asFile, (git, tag) -> getSubprojectCommitCount(project, git, tag, filterFromSubproject), tagPrefixOverride, new String[] { globFilter })
     }
 
     static Map<String, String> gitInfo(Project project, String... globFilters) {
@@ -211,6 +211,9 @@ class GradleUtils {
         ret.commit = ObjectId.toString(head.objectId)
         ret.abbreviatedId = head.objectId.abbreviate(8).name()
 
+        // additional garbage
+        ret.tagPrefix = tagPrefix
+
         // Remove any lingering null values
         ret.removeAll {it.value === null }
 
@@ -219,6 +222,8 @@ class GradleUtils {
     }
 
     static @Nullable Integer getSubprojectCommitCount(Project project, Git git, String tag, String filter) {
+        if ((filter === null || filter.isEmpty()) && project.subprojects.isEmpty()) return null
+
 //        println "Getting subproject commit count! Tag: $tag, filter: $filter"
         var tags = getTagToCommitMap(git)
         var commitHash = tags.get(tag)
