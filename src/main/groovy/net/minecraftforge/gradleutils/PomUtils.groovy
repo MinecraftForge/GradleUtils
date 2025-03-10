@@ -90,6 +90,12 @@ final class PomUtils {
      * @param repo The name of the repository on GitHub
      */
     void setGitHubDetails(MavenPom pom, String organization = 'MinecraftForge', String repo = '') {
+        // always add this
+        pom.organization { org ->
+            org.name.set 'Forge Development LLC'
+            org.url.set 'https://minecraftforge.net'
+        }
+
         var remoteUrl = stripProtocol(this.gitversion.version.info.url)
         var url = remoteUrl
         if (organization && repo) {
@@ -108,17 +114,16 @@ final class PomUtils {
         }
 
         if (!url) {
-            var e = new IllegalStateException('Cannot set GitHub details without a URL')
-            throw this.problems.reporter.throwing(e, ProblemId.create('github-details-failed', 'Failed to get GitHub URL', GradleUtils.PROBLEM_GROUP)) { spec ->
+            this.problems.reporter.report(ProblemId.create('github-details-failed', 'Failed to get GitHub URL', GradleUtils.PROBLEM_GROUP)) { spec ->
                 spec.details("""
                         The GitHub URL for this repo could not be automatically determined by GitVersion.
                         This is likely due to the repository not having any remotes, or not having one set.""")
                     .severity(Severity.ERROR)
                     .stackLocation()
-                    .withException(e)
                     .solution('Ensure that you have a remote set for your repository')
                     .solution("Alternatively, define the URL using gradleutils.pom.setGitHubDetails(pom, 'MyOrganization', 'MyRepo') (the organization can be omitted if you are using 'MinecraftForge')")
             }
+            return
         }
 
         if (!url.contains("github.com")) {
@@ -147,10 +152,6 @@ final class PomUtils {
 
         var fullURL = "https://${url}".toString()
         pom.url.set fullURL
-        pom.organization { org ->
-            org.name.set 'Forge Development LLC'
-            org.url.set 'https://minecraftforge.net'
-        }
         pom.scm { scm ->
             scm.url.set fullURL
             scm.connection.set "scm:git:git://${url}.git".toString()
