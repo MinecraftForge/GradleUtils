@@ -45,8 +45,9 @@ abstract class GenerateActionsWorkflow extends DefaultTask {
     GenerateActionsWorkflow() {
         this.description = 'Generates the GitHub Actions workflow file for the project, respecting declared subprojects in Git Version.'
 
-        this.outputFile.convention this.project.rootProject.layout.projectDirectory.file("build_${this.project.name}.yaml")
+        this.outputFile.convention this.project.rootProject.layout.projectDirectory.file(this.providers.provider { "build_${this.project.name}.yaml" })
 
+        this.projectName.convention this.providers.provider { this.project.name }
         this.branch.convention this.providers.provider { this.project.extensions.getByType(GitVersionExtension).version.info.branch }
         this.localPath.convention this.providers.provider { this.project.extensions.getByType(GitVersionExtension).version.projectPath }
         this.paths.convention this.providers.provider { this.project.extensions.getByType(GitVersionExtension).version.subprojectPaths.collect { "!${it}/**".toString() } }
@@ -56,6 +57,9 @@ abstract class GenerateActionsWorkflow extends DefaultTask {
 
     @OutputFile
     abstract RegularFileProperty getOutputFile()
+
+    @Input
+    abstract Property<String> getProjectName()
 
     @Input
     @Optional
@@ -98,7 +102,7 @@ abstract class GenerateActionsWorkflow extends DefaultTask {
         if (localPath) with.put('subproject', localPath)
 
         Map<String, ?> yaml = [
-            'name'       : 'Build',
+            'name'       : "Build ${this.projectName.get()}",
             'on'         : ['push': push],
             'permissions': ['contents': 'read'],
             'jobs'       : [

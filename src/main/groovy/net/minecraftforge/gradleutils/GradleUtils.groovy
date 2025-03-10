@@ -358,19 +358,18 @@ class GradleUtils {
         }
 
         //Get the origin remote.
-        var originRemote = remotes.find { remote -> remote.name == 'origin' }
+        var originRemote =
+            remotes.find { // First try finding the remote that has MinecraftForge
+                remote -> remote.URIs.find { it.toString().contains('MinecraftForge/') }
+            } ?: remotes.find { // Ok, just get the origin then
+                remote -> remote.name == 'origin'
+            } ?: remotes.first() // No origin? Get whatever we can get our hands on
 
-        //We do not have an origin named remote
-        if (originRemote == null) return ''
-
-        //Get the origin push url.
-        var originUrl = originRemote.getURIs().first()
-
-        //We do not have a origin url
-        if (originUrl == null) return ''
+        var originUrls = originRemote.getURIs()
+        if (originUrls.empty) return ''
 
         //Grab its string representation and process.
-        var originUrlString = originUrl.toString()
+        var originUrlString = originUrls.first().toString()
         //Determine the protocol
         if (originUrlString.lastIndexOf(':') > 'https://'.length()) {
             //If ssh then check for authentication data.
