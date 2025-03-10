@@ -12,6 +12,12 @@ repositories {
     mavenLocal()
 }
 
+configurations {
+    implementation {
+        exclude group: 'org.slf4j', module: 'slf4j-api'
+    }
+}
+
 dependencies {
     // GitHub Actions Workflows
     implementation libs.yaml
