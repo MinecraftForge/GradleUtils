@@ -89,7 +89,7 @@ abstract class GenerateChangelog extends DefaultTask {
 
         var gitDir = this.gitDirectory.asFile.orNull
         try (var version = GitVersion.builder().gitDir(gitDir).project(new File(gitDir.absoluteFile.parentFile, this.projectPath.get())).build()) {
-            var changelog = version.generateChangelog(this.start.orNull, this.projectUrl.orNull, this.buildMarkdown.get())
+            var changelog = version.generateChangelog(this.start.orNull, this.projectUrl.orNull, !this.buildMarkdown.get())
 
             var file = outputFile.asFile.get()
             if (!file.parentFile.exists())
