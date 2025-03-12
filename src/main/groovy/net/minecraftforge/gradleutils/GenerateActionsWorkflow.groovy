@@ -95,9 +95,10 @@ abstract class GenerateActionsWorkflow extends DefaultTask {
             }
         ] as Map<String, ?>
 
+        var taskPrefix = localPath ? ":${localPath}:" : ''
         var with = [
             'java'        : this.gradleJavaVersion.get(),
-            'gradle_tasks': "${localPath ? ":${localPath}:" : ''}build".toString()
+            'gradle_tasks': "${taskPrefix}check ${taskPrefix}publish".toString()
         ] as Map<String, ?>
         if (localPath) with.put('subproject', localPath)
 
