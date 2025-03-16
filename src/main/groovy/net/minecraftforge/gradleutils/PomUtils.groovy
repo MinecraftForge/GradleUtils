@@ -83,13 +83,24 @@ final class PomUtils {
     }
 
     /**
+     * Reduces boilerplate when setting up GitHub details in a {@link MavenPom}. The organization is assumed to be
+     * {@literal 'MinecraftForge'}.
+     *
+     * @param pom The pom to configure
+     * @param repo The name of the repository on GitHub
+     */
+    void setGitHubDetails(MavenPom pom, String repo = '') {
+        this.setGitHubDetails(pom, 'MinecraftForge', repo)
+    }
+
+    /**
      * Reduces boilerplate when setting up GitHub details in a {@link MavenPom}.
      *
      * @param pom The pom to configure
      * @param organization The organization or username the GitHub project is under
      * @param repo The name of the repository on GitHub
      */
-    void setGitHubDetails(MavenPom pom, String organization = 'MinecraftForge', String repo = '') {
+    void setGitHubDetails(MavenPom pom, String organization, String repo) {
         // always add this
         pom.organization { org ->
             org.name.set 'Forge Development LLC'
@@ -98,6 +109,10 @@ final class PomUtils {
 
         var remoteUrl = stripProtocol(this.gitversion.version.info.url)
         var url = remoteUrl
+        if (organization)
+            println 'org exists'
+        if (repo)
+            println 'repo exists'
         if (organization && repo) {
             url = "github.com/${organization}/${repo}".toString()
 
@@ -126,13 +141,14 @@ final class PomUtils {
             return
         }
 
-        if (!url.contains("github.com")) {
+        if (!url.contains('github.com')) {
             this.problems.reporter.report(ProblemId.create('github-details-not-github', 'GitHub.com not found in repository URL', GradleUtils.PROBLEM_GROUP)) { spec ->
                 spec.details("""
                             The repository URL found or created in 'setGitHubDetails' does not include 'github.com'
                             This is problematic since all Minecraft Forge projects are hosted on GitHub.""")
                     .severity(Severity.WARNING)
                     .stackLocation()
+                    .withException(new IllegalArgumentException("Repository URL: ${url}"))
                     .solution('Ensure that the repository remote URL is a GitHub repository')
                     .solution("Alternatively, define the URL using gradleutils.pom.setGitHubDetails(pom, 'MyOrganization', 'MyRepo') (the organization can be omitted if you are using 'MinecraftForge')")
             }
@@ -145,6 +161,7 @@ final class PomUtils {
                             This is problematic if you are attempting to publish this project, especially from GitHub Actions.""")
                     .severity(Severity.WARNING)
                     .stackLocation()
+                    .withException(new IllegalArgumentException("Repository URL: ${url}"))
                     .solution('Ensure that the repository remote URL is a MinecraftForge repository')
                     .solution("Alternatively, define the URL using gradleutils.pom.setGitHubDetails(pom, 'MyRepo')")
             }
@@ -162,7 +179,7 @@ final class PomUtils {
             issues.url.set "https://${url}/issues".toString()
         }
         pom.ciManagement { ci ->
-            ci.system.set 'GitHub Actions'
+            ci.system.set 'github'
             ci.url.set "https://${url}/actions".toString()
         }
     }
