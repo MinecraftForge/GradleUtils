@@ -40,13 +40,6 @@ gradlePlugin {
             description = 'Small collection of utilities for standardizing our gradle scripts'
             tags.set(['minecraftforge'])
         }
-        gitversion {
-            id = 'net.minecraftforge.gitversion'
-            implementationClass = 'net.minecraftforge.gradleutils.gitversion.GitVersionPlugin'
-            displayName = 'Git Version'
-            description = 'Provides versioning information based on git history and configurable subprojects'
-            tags.set(['git', 'version'])
-        }
         changelog {
             id = 'net.minecraftforge.changelog'
             implementationClass = 'net.minecraftforge.gradleutils.changelog.ChangelogPlugin'
