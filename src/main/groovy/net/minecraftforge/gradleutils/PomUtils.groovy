@@ -109,10 +109,6 @@ final class PomUtils {
 
         var remoteUrl = stripProtocol(this.gitversion.version.info.url)
         var url = remoteUrl
-        if (organization)
-            println 'org exists'
-        if (repo)
-            println 'repo exists'
         if (organization && repo) {
             url = "github.com/${organization}/${repo}".toString()
 
