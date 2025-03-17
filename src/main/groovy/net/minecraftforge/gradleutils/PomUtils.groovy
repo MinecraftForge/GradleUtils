@@ -117,6 +117,8 @@ final class PomUtils {
             org.url.set 'https://minecraftforge.net'
         }
 
+        var inCI = GradleUtils.hasEnvVar('GITHUB_ACTIONS', this.providers).get().booleanValue()
+
         var remoteUrl = stripProtocol(this.gitversion.version.info.url)
         var url = remoteUrl
         if (organization && repo) {
@@ -133,6 +135,9 @@ final class PomUtils {
             this.logger.warn """
                 WARNING: The GitHub URL for this repo could not be automatically determined by GitVersion.
                 This is likely due to the repository not having any remotes, or not having one set."""
+            if (inCI)
+                throw new IllegalStateException('GitHub URL could not be determined, which is required in CI')
+
             return
         }
 
