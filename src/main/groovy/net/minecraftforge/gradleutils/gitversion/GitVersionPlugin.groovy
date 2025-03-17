@@ -8,7 +8,6 @@ import groovy.transform.CompileStatic
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.ProjectLayout
-import org.gradle.api.problems.Problems
 
 import javax.inject.Inject
 
@@ -16,13 +15,10 @@ import javax.inject.Inject
 @CompileStatic
 abstract class GitVersionPlugin implements Plugin<Project> {
     @Inject
-    abstract Problems getProblems()
-
-    @Inject
     abstract ProjectLayout getLayout()
 
     @Override
     void apply(Project project) {
-        project.extensions.create(GitVersionExtension.NAME, GitVersionExtension, project, this.problems, this.layout)
+        project.extensions.create(GitVersionExtension.NAME, GitVersionExtension, project, this.layout)
     }
 }

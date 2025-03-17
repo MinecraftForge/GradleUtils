@@ -6,7 +6,6 @@ package net.minecraftforge.gradleutils
 
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
-import groovy.transform.PackageScope
 import net.minecraftforge.gitver.api.GitVersion
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.errors.GitAPIException
@@ -18,7 +17,8 @@ import org.eclipse.jgit.util.SystemReader
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
-import org.gradle.api.problems.ProblemGroup
+import org.gradle.api.provider.Provider
+import org.gradle.api.provider.ProviderFactory
 import org.gradle.authentication.http.BasicAuthentication
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nullable
@@ -33,13 +33,15 @@ import org.jetbrains.annotations.Nullable
 @CompileStatic
 @ApiStatus.Internal
 class GradleUtils {
-    @PackageScope static final ProblemGroup PROBLEM_GROUP = ProblemGroup.create(GradleUtilsExtension.NAME, 'MinecraftForge GradleUtils')
-
     static void ensureAfterEvaluate(Project project, Action<? super Project> action) {
         if (project.state.executed)
             action.execute(project)
         else
             project.afterEvaluate(action)
+    }
+
+    static Provider<Boolean> hasEnvVar(String name, ProviderFactory providers) {
+        providers.of(GradleUtilsSources.HasEnvVar) { it.parameters.variableName.set name }
     }
 
     //@formatter:off

@@ -6,11 +6,8 @@ package net.minecraftforge.gradleutils.changelog
 
 import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
-import net.minecraftforge.gradleutils.GradleUtils
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
-import org.gradle.api.problems.ProblemGroup
-import org.gradle.api.problems.Problems
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.TaskProvider
 import org.jetbrains.annotations.Nullable
@@ -21,10 +18,8 @@ import javax.inject.Inject
 @CompileStatic
 class ChangelogExtension {
     public static final String NAME = 'changelog'
-    @PackageScope static final ProblemGroup PROBLEM_GROUP = ProblemGroup.create("gradleutils-changelog", "Changelog Generation")
 
     @PackageScope final Project project
-    @PackageScope final Problems problems
     @PackageScope @Nullable TaskProvider<GenerateChangelog> task
 
     boolean publishAll = true
@@ -32,9 +27,8 @@ class ChangelogExtension {
     @Deprecated(forRemoval = true, since = '2.4') @Nullable Directory gitRoot
 
     @Inject
-    ChangelogExtension(Project project, Problems problems) {
+    ChangelogExtension(Project project) {
         this.project = project
-        this.problems = problems
     }
 
     private void setupTask() {

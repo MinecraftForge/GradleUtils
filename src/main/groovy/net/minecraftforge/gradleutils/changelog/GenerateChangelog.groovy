@@ -13,9 +13,6 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
-import org.gradle.api.problems.ProblemId
-import org.gradle.api.problems.Problems
-import org.gradle.api.problems.Severity
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.Input
@@ -35,9 +32,6 @@ abstract class GenerateChangelog extends DefaultTask {
 
     @Inject
     abstract ProjectLayout getLayout()
-
-    @Inject
-    abstract Problems getProblems()
 
     @Inject
     abstract ProviderFactory getProviders()
@@ -97,27 +91,16 @@ abstract class GenerateChangelog extends DefaultTask {
 
             file.setText(changelog, 'UTF8')
         } catch (GitVersionException e) {
-            var id = ProblemId.create('changelog-generation-failed', 'Changelog generation failed', ChangelogExtension.PROBLEM_GROUP)
-            throw this.problems.reporter.throwing(e, id, spec ->
-                spec.contextualLabel('The requested changelog failed to generate')
-                    .details("""
-                        Failed to generate the changelog for this project, likely due to a misconfiguration.
-                        GitVersion has caught the exception, the details of which are attached to this error.""")
-                    .withException(e)
-                    .solution('Make sure that your project is inside of a Git repository.')
-                    .solution('Check that the correct tags are being used, or updating the tag prefix accordingly.')
-                    .solution('Ensure that the Git repository is not corrupted.')
-                    .severity(Severity.ERROR)
-            )
+            this.logger.error """
+                ERROR: Failed to generate the changelog for this project, likely due to a misconfiguration.
+                GitVersion has caught the exception, the details of which are attached to this error.
+                Check that the correct tags are being used, or updating the tag prefix accordingly."""
+            throw e
         } catch (IOException e) {
-            var id = ProblemId.create('changelog-write-failed', 'Changelog failed to write to disk', ChangelogExtension.PROBLEM_GROUP)
-            throw this.problems.reporter.throwing(e, id, spec ->
-                spec.contextualLabel('The requested changelog failed to be written to disk')
-                    .details('Changelog was generated successfully, but could not be written to the disk.')
-                    .withException(e)
-                    .severity(Severity.ERROR)
-                    .solution('Ensure that you have write permissions to the output directory.')
-            )
+            this.logger.error """
+                ERROR: Changelog was generated successfully, but could not be written to the disk.
+                Ensure that you have write permissions to the output directory."""
+            throw new RuntimeException(e)
         }
     }
 }

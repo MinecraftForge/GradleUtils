@@ -11,9 +11,6 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.model.ObjectFactory
-import org.gradle.api.problems.ProblemId
-import org.gradle.api.problems.Problems
-import org.gradle.api.problems.Severity
 import org.gradle.api.provider.ProviderFactory
 
 import javax.inject.Inject
@@ -27,7 +24,6 @@ class GradleUtilsExtension {
     public static final String NAME = 'gradleutils'
 
     private final Project project
-    private final Problems problems
     private final ProviderFactory providers
     private final ObjectFactory objects
 
@@ -38,25 +34,19 @@ class GradleUtilsExtension {
 
     /** @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getRoot() GitVersion.getRoot()} via {@link GitVersionExtension#getVersion()} instead. */
     @Deprecated(forRemoval = true, since = '2.4') @Lazy DirectoryProperty gitRoot = {
-        this.problems.reporter.report(ProblemId.create('deprecated-git-root', 'Usage of deprecated gitRoot', GradleUtils.PROBLEM_GROUP)) { spec ->
-            spec.details("""
-                        This project is still using 'gradleutils.gitRoot'.
-                        It has been deprecated and will be removed in GradleUtils 3.0.""")
-                .severity(Severity.WARNING)
-                .solution("Consider using 'gitversion.version.root' instead.")
-        }
+        this.project.logger.warn """
+            WARNING: This project is still using 'gradleutils.gitRoot'.
+            It has been deprecated and will be removed in GradleUtils 3.0.
+            Consider using 'gitversion.version.root' instead."""
 
         objects.directoryProperty().fileProvider providers.provider { this.gitversion.version.root }
     }()
     /** @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getInfo() GitVersion.getInfo()} via {@link GitVersionExtension#getVersion()} instead. */
     @Deprecated(forRemoval = true, since = '2.4') @Lazy Map<String, String> gitInfo = {
-        this.problems.reporter.report(ProblemId.create('deprecated-git-info', 'Usage of deprecated Git Info', GradleUtils.PROBLEM_GROUP)) { spec ->
-            spec.details("""
-                        This project is still using 'gradleutils.gitInfo'.
-                        It has been deprecated and will be removed in GradleUtils 3.0.""")
-                .severity(Severity.WARNING)
-                .solution("Consider using 'gitversion.version.info' instead.")
-        }
+        this.project.logger.warn """
+            WARNING: This project is still using 'gradleutils.gitInfo'.
+            It has been deprecated and will be removed in GradleUtils 3.0.
+            Consider using 'gitversion.version.info' instead."""
 
         var version = this.project.extensions.getByType(GitVersionExtension).version
         [
@@ -72,9 +62,8 @@ class GradleUtilsExtension {
     }()
 
     @Inject
-    GradleUtilsExtension(Project project, Problems problems, ProviderFactory providers, ObjectFactory objects) {
+    GradleUtilsExtension(Project project, ProviderFactory providers, ObjectFactory objects) {
         this.project = project
-        this.problems = problems
         this.providers = providers
         this.objects = objects
 
@@ -82,7 +71,7 @@ class GradleUtilsExtension {
         this.gitversion = project.extensions.getByType(GitVersionExtension)
 
         // Pom Utils
-        this.pom = new PomUtils(problems, this.gitversion)
+        this.pom = new PomUtils(project.logger, providers, this.gitversion)
 
         // Tasks
         GenerateActionsWorkflow.register(this.project)
@@ -213,13 +202,10 @@ class GradleUtilsExtension {
     }
 
     private void logDeprecation(String name, String fullName) {
-        this.problems.reporter.report(ProblemId.create("deprecated-$name", "Usage of deprecated method $name", GradleUtils.PROBLEM_GROUP)) { spec ->
-            spec.details("""
-                        This project is still using 'gradleutils.$fullName'.
-                        It has been deprecated and will be removed in GradleUtils 3.0.""")
-                .severity(Severity.WARNING)
-                .solution("Consider using 'gitversion.version.$fullName' instead.")
-        }
+        this.project.logger.warn """
+            WARNING: This project is still using 'gradleutils.$name'.
+            It has been deprecated and will be removed in GradleUtils 3.0.
+            Consider using 'gitversion.version.$fullName' instead."""
     }
 
     /** @see GradleUtils#getPublishingForgeMaven(Project, File) */

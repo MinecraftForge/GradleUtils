@@ -7,9 +7,6 @@ package net.minecraftforge.gradleutils
 import groovy.transform.CompileStatic
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
-import org.gradle.api.problems.ProblemId
-import org.gradle.api.problems.Problems
-import org.gradle.api.problems.Severity
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.Input
@@ -37,14 +34,11 @@ abstract class ConfigureTeamCity extends DefaultTask {
     }
 
     @Inject
-    abstract Problems getProblems()
-
-    @Inject
     abstract ProviderFactory getProviders()
 
     ConfigureTeamCity() {
         this.description = 'Prints the marker lines into the log which configure the pipeline. [deprecated]'
-        this.onlyIf('Only runs on TeamCity, so the TEAMCITY_VERSION environment variable must be set.') { System.getenv('TEAMCITY_VERSION') }
+        this.onlyIf('Only runs on TeamCity, so the TEAMCITY_VERSION environment variable must be set.') { GradleUtils.hasEnvVar('TEAMCITY_VERSION', this.providers).get() }
 
         this.version.convention this.providers.provider { this.project.version?.toString() }
     }
@@ -55,14 +49,10 @@ abstract class ConfigureTeamCity extends DefaultTask {
 
     @TaskAction
     void exec() {
-        this.problems.reporter.report(ProblemId.create('teamcity-deprecated', 'Usage of TeamCity is deprecated within Minecraft Forge', GradleUtils.PROBLEM_GROUP)) { spec ->
-            spec.details("""
-                       Minecraft Forge has been gradually moving off of TeamCity and into GitHub Actions.
-                       When the migration is fully complete, this task along with its automatic setup will be removed.""")
-                .severity(Severity.WARNING)
-                .solution('Stop using TeamCity.')
-                .solution('If you still need to use TeamCity, consider using an alternative plugin or making a custom task.')
-        }
+        this.logger.warn """
+            WARNING: Usage of TeamCity is deprecated within Minecraft Forge
+            Minecraft Forge has been gradually moving off of TeamCity and into GitHub Actions.
+            When the migration is fully complete, this task along with its automatic setup will be removed."""
 
         this.logger.lifecycle 'Setting project variables and parameters.'
         println "##teamcity[buildNumber '${this.version.get()}']"

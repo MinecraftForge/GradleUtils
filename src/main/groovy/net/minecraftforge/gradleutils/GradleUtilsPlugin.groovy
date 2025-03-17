@@ -10,7 +10,6 @@ import net.minecraftforge.gradleutils.gitversion.GitVersionPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
-import org.gradle.api.problems.Problems
 import org.gradle.api.provider.ProviderFactory
 
 import javax.inject.Inject
@@ -18,9 +17,6 @@ import javax.inject.Inject
 /** The entry point for the Gradle Utils plugin. Exists to create the {@linkplain GradleUtilsExtension extension}. */
 @CompileStatic
 abstract class GradleUtilsPlugin implements Plugin<Project> {
-    @Inject
-    abstract Problems getProblems()
-
     @Inject
     abstract ProviderFactory getProviders()
 
@@ -31,6 +27,6 @@ abstract class GradleUtilsPlugin implements Plugin<Project> {
     void apply(Project project) {
         project.plugins.apply(GitVersionPlugin)
         project.plugins.apply(ChangelogPlugin)
-        project.extensions.create(GradleUtilsExtension.NAME, GradleUtilsExtension, project, this.problems, this.providers, this.objects)
+        project.extensions.create(GradleUtilsExtension.NAME, GradleUtilsExtension, project, this.providers, this.objects)
     }
 }
