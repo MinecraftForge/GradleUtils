@@ -56,6 +56,21 @@ class ChangelogExtension {
         this.task.configure { it.start.set marker }
     }
 
+    @Deprecated(forRemoval = true, since = '2.4')
+    void fromTag(String tag) {
+        this.from(tag)
+    }
+
+    @Deprecated(forRemoval = true, since = '2.4')
+    void fromCommit(String commit) {
+        this.from(commit)
+    }
+
+    @Deprecated(forRemoval = true, since = '2.4')
+    void disableAutomaticPublicationRegistration() {
+        this.publishAll = false
+    }
+
     void publish(MavenPublication publication) {
         ChangelogUtils.setupChangelogGenerationForPublishing(this.project, publication)
     }
