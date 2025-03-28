@@ -69,7 +69,7 @@ Consider using 'gitversion.version.info' instead.'''
         this.gitversion = project.extensions.getByType(GitVersionExtension)
 
         // Pom Utils
-        this.pom = new PomUtils(project.logger, providers, this.gitversion)
+        this.pom = new PomUtils(project, providers, this.gitversion)
 
         // Tasks
         GenerateActionsWorkflow.register(this.project)
