@@ -49,10 +49,9 @@ abstract class ConfigureTeamCity extends DefaultTask {
 
     @TaskAction
     void exec() {
-        this.logger.warn """
-            WARNING: Usage of TeamCity is deprecated within Minecraft Forge
-            Minecraft Forge has been gradually moving off of TeamCity and into GitHub Actions.
-            When the migration is fully complete, this task along with its automatic setup will be removed."""
+        this.logger.warn '''WARNING: Usage of TeamCity is deprecated within Minecraft Forge
+Minecraft Forge has been gradually moving off of TeamCity and into GitHub Actions.
+When the migration is fully complete, this task along with its automatic setup will be removed.'''
 
         this.logger.lifecycle 'Setting project variables and parameters.'
         println "##teamcity[buildNumber '${this.version.get()}']"

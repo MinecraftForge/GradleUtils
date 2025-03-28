@@ -91,15 +91,13 @@ abstract class GenerateChangelog extends DefaultTask {
 
             file.setText(changelog, 'UTF8')
         } catch (GitVersionException e) {
-            this.logger.error """
-                ERROR: Failed to generate the changelog for this project, likely due to a misconfiguration.
-                GitVersion has caught the exception, the details of which are attached to this error.
-                Check that the correct tags are being used, or updating the tag prefix accordingly."""
+            this.logger.error '''ERROR: Failed to generate the changelog for this project, likely due to a misconfiguration.
+GitVersion has caught the exception, the details of which are attached to this error.
+Check that the correct tags are being used, or updating the tag prefix accordingly.'''
             throw e
         } catch (IOException e) {
-            this.logger.error """
-                ERROR: Changelog was generated successfully, but could not be written to the disk.
-                Ensure that you have write permissions to the output directory."""
+            this.logger.error '''ERROR: Changelog was generated successfully, but could not be written to the disk.
+Ensure that you have write permissions to the output directory.'''
             throw new RuntimeException(e)
         }
     }

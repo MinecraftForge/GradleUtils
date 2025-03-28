@@ -37,16 +37,14 @@ class GitVersionExtension {
         try {
             return builder.build().tap { it.info }
         } catch (GitVersionException ignored) {
-            this.project.logger.warn """
-                WARNING: Git Version failed to get version numbers! Attempting to use default version 0.0.0.
-                Check your GitVersion config file and make sure the correct tag prefix and filters are in use.
-                Ensure that the tags you are attempting to use exist in the repository."""
+            this.project.logger.warn '''WARNING: Git Version failed to get version numbers! Attempting to use default version 0.0.0.
+Check your GitVersion config file and make sure the correct tag prefix and filters are in use.
+Ensure that the tags you are attempting to use exist in the repository.'''
             return builder.strict(false).build()
         } catch (IllegalArgumentException e) {
-            this.project.logger.error """
-                ERROR: Git Version is misconfigured and cannot be used, likely due to incorrect paths being set.
-                This is an unrecoverable problem and needs to be addressed in the config file.
-                Ensure that the correct subprojects and paths are declared in the config file"""
+            this.project.logger.error '''ERROR: Git Version is misconfigured and cannot be used, likely due to incorrect paths being set.
+This is an unrecoverable problem and needs to be addressed in the config file.
+Ensure that the correct subprojects and paths are declared in the config file'''
             throw e
         }
     }()
