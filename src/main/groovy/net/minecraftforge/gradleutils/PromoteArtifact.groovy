@@ -28,29 +28,26 @@ import java.time.Duration
 @ApiStatus.Experimental
 abstract class PromoteArtifact extends DefaultTask {
     static TaskProvider<PromoteArtifact> register(Project project, MavenPublication publication) {
-        project.tasks.register('promoteArtifact', PromoteArtifact) { task ->
-            final webhookURL = GradleUtils.getEnvVar('PROMOTE_ARTIFACT_WEBHOOK', project.providers)
-            final username = GradleUtils.getEnvVar('PROMOTE_ARTIFACT_WEBHOOK', project.providers)
-            final password = GradleUtils.getEnvVar('PROMOTE_ARTIFACT_WEBHOOK', project.providers)
-            task.onlyIf { webhookURL.present && username.present && password.present }
-
-            task.artifactGroup.set publication.groupId
-            task.artifactName.set publication.artifactId
-            task.artifactVersion.set publication.version
-            task.webhookURL.set webhookURL
-            task.username.set username
-            task.password.set password
-        }
+        project.tasks.register('promoteArtifact', PromoteArtifact, publication)
     }
 
     @Inject
     abstract ProviderFactory getProviders()
 
-    PromoteArtifact() {
-        this.artifactGroup.convention 'net.minecraftforge'
-        this.artifactName.convention this.providers.provider { this.project.name }
-        this.artifactVersion.convention this.providers.provider { String.valueOf this.project.version }
+    PromoteArtifact(MavenPublication publication) {
         this.promotionType.convention Type.LATEST
+
+        final webhookURL0 = GradleUtils.getEnvVar('PROMOTE_ARTIFACT_WEBHOOK', this.providers)
+        final username0 = GradleUtils.getEnvVar('PROMOTE_ARTIFACT_USERNAME', this.providers)
+        final password0 = GradleUtils.getEnvVar('PROMOTE_ARTIFACT_PASSWORD', this.providers)
+        this.onlyIf { webhookURL0.present && username0.present && password0.present }
+
+        this.artifactGroup.set this.providers.provider { publication.groupId }
+        this.artifactName.set this.providers.provider { publication.artifactId }
+        this.artifactVersion.set this.providers.provider { publication.version }
+        this.webhookURL.set webhookURL0
+        this.username.set username0
+        this.password.set password0
     }
 
     @Input

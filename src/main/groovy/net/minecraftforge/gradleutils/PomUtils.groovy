@@ -91,6 +91,19 @@ final class PomUtils {
         PromoteArtifact.register(this.project, publication)
     }
 
+    void promote(MavenPublication publication, String promotionType) {
+        PromoteArtifact.Type type
+        try {
+            type = PromoteArtifact.Type.valueOf(promotionType.toUpperCase())
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid promotion type: $promotionType. Known types: ${PromoteArtifact.Type.values()*.toString()}", e)
+        }
+
+        PromoteArtifact.register(this.project, publication).configure { task ->
+            task.promotionType.set type
+        }
+    }
+
     /**
      * Reduces boilerplate when setting up GitHub details in a {@link MavenPom}.
      *
