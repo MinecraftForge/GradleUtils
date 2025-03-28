@@ -8,23 +8,27 @@ import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
 import net.minecraftforge.gradleutils.gitversion.GitVersionExtension
 import org.gradle.api.Action
+import org.gradle.api.Project
 import org.gradle.api.logging.Logger
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.publish.maven.MavenPom
 import org.gradle.api.publish.maven.MavenPomDeveloper
 import org.gradle.api.publish.maven.MavenPomLicense
+import org.gradle.api.publish.maven.MavenPublication
 
 /** Utilities for making configuring a {@link MavenPom} more ergonomic. */
 @CompileStatic
 @SuppressWarnings('unused')
 final class PomUtils {
+    private final Project project
     private final Logger logger
     private final ProviderFactory providers
 
     private final GitVersionExtension gitversion
 
-    @PackageScope PomUtils(Logger logger, ProviderFactory providers, GitVersionExtension gitversion) {
-        this.logger = logger
+    @PackageScope PomUtils(Project project, ProviderFactory providers, GitVersionExtension gitversion) {
+        this.project = project
+        this.logger = project.logger
         this.providers = providers
         this.gitversion = gitversion
     }
@@ -81,6 +85,10 @@ final class PomUtils {
             developer.url.set(url)
             developer.timezone.set(timezone)
         }
+    }
+
+    void promote(MavenPublication publication) {
+        PromoteArtifact.register(this.project, publication)
     }
 
     /**

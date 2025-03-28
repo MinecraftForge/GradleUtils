@@ -40,6 +40,10 @@ class GradleUtils {
             project.afterEvaluate(action)
     }
 
+    static Provider<String> getEnvVar(String name, ProviderFactory providers) {
+        providers.of(GradleUtilsSources.EnvVar) { it.parameters.variableName.set name }
+    }
+
     static Provider<Boolean> hasEnvVar(String name, ProviderFactory providers) {
         providers.of(GradleUtilsSources.HasEnvVar) { it.parameters.variableName.set name }
     }
