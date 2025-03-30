@@ -146,14 +146,12 @@ final class PomUtils {
             url = "github.com/${organization}/${repo}".toString()
 
             if (url && url == remoteUrl) {
-                this.logger.warn '''WARNING: The repository name was specified in the 'setGitHubDetails' method, but it was already present in the Git remote URL.
-This is redundant and may cause issues if the remote repository URL changes in the future.'''
+                this.logger.warn "WARNING: The repository name was specified in the 'setGitHubDetails' method, but it was already present in the Git remote URL. This is redundant and may cause issues if the remote repository URL changes in the future."
             }
         }
 
         if (!url) {
-            this.logger.warn '''WARNING: The GitHub URL for this repo could not be automatically determined by Git Version.
-This is likely due to the repository not having any remotes, not having one set, or some other issue with Git Version.'''
+            this.logger.warn 'WARNING: The GitHub URL for this repo could not be automatically determined by Git Version. This is likely due to the repository not having any remotes, not having one set, or some other issue with Git Version.'
             if (inCI)
                 throw new IllegalStateException('GitHub URL could not be determined, which is required in CI')
 
@@ -161,15 +159,11 @@ This is likely due to the repository not having any remotes, not having one set,
         }
 
         if (!url.contains('github.com')) {
-            this.logger.warn """WARNING: The repository URL found or created in 'setGitHubDetails' does not include 'github.com'
-This is problematic since all Minecraft Forge projects are hosted on GitHub.
-Found url: $url"""
+            this.logger.warn "WARNING: The repository URL found or created in 'setGitHubDetails' does not include 'github.com' This is problematic since all Minecraft Forge projects are hosted on GitHub. Found url: $url"
         }
 
         if (!url.contains('github.com/MinecraftForge')) {
-            this.logger.warn """WARNING: The repository URL found or created in 'setGitHubDetails' does not include 'github.com/MinecraftForge'
-This is problematic if you are attempting to publish this project, especially from GitHub Actions.
-Found url: $url"""
+            this.logger.warn "WARNING: The repository URL found or created in 'setGitHubDetails' does not include 'github.com/MinecraftForge' This is problematic if you are attempting to publish this project, especially from GitHub Actions. Found url: $url"
         }
 
         var fullURL = "https://${url}".toString()

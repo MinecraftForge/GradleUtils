@@ -34,17 +34,13 @@ class GradleUtilsExtension {
 
     /** @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getRoot() GitVersion.getRoot()} via {@link GitVersionExtension#getVersion()} instead. */
     @Deprecated(forRemoval = true, since = '2.4') @Lazy DirectoryProperty gitRoot = {
-        this.project.logger.warn '''WARNING: This project is still using 'gradleutils.gitRoot'.
-It has been deprecated and will be removed in GradleUtils 3.0.
-Consider using 'gitversion.version.root' instead.'''
+        this.project.logger.warn "WARNING: This project is still using 'gradleutils.gitRoot'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'gitversion.version.root' instead."
 
         objects.directoryProperty().fileProvider providers.provider { this.gitversion.version.root }
     }()
     /** @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getInfo() GitVersion.getInfo()} via {@link GitVersionExtension#getVersion()} instead. */
     @Deprecated(forRemoval = true, since = '2.4') @Lazy Map<String, String> gitInfo = {
-        this.project.logger.warn '''WARNING: This project is still using 'gradleutils.gitInfo'.
-It has been deprecated and will be removed in GradleUtils 3.0.
-Consider using 'gitversion.version.info' instead.'''
+        this.project.logger.warn "WARNING: This project is still using 'gradleutils.gitInfo'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'gitversion.version.info' instead."
 
         var version = this.project.extensions.getByType(GitVersionExtension).version
         [
@@ -200,9 +196,7 @@ Consider using 'gitversion.version.info' instead.'''
     }
 
     private void logDeprecation(String name, String fullName) {
-        this.project.logger.warn """WARNING: This project is still using 'gradleutils.$name'.
-It has been deprecated and will be removed in GradleUtils 3.0.
-Consider using 'gitversion.version.$fullName' instead."""
+        this.project.logger.warn "WARNING: This project is still using 'gradleutils.$name'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'gitversion.version.$fullName' instead."
     }
 
     /** @see GradleUtils#getPublishingForgeMaven(Project, File) */
