@@ -8,6 +8,7 @@ import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
 import groovy.transform.PackageScopeTarget
 import net.minecraftforge.gradleutils.GradleUtils
+import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.publish.PublishingExtension
@@ -31,11 +32,12 @@ class ChangelogUtils {
      * @param project Project to add the task to
      * @return The task responsible for generating the changelog
      */
-    static TaskProvider<GenerateChangelog> setupChangelogTask(Project project) {
+    static TaskProvider<GenerateChangelog> setupChangelogTask(Project project, Action<? super TaskProvider<GenerateChangelog>> action) {
         project.tasks.register(GenerateChangelog.NAME, GenerateChangelog).tap { task ->
             project.configurations.register(GenerateChangelog.NAME) { it.canBeResolved = false }
             project.artifacts.add(GenerateChangelog.NAME, task)
             project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME).configure { it.dependsOn(task) }
+            action.execute task
         }
     }
 
@@ -78,7 +80,7 @@ class ChangelogUtils {
 
     private static ChangelogExtension findParent(Project project) {
         var ext = project.extensions.findByType(ChangelogExtension)
-        if (ext?.task != null) return ext
+        if (ext?.isGenerating) return ext
 
         var parent = project.parent == project ? null : project.parent
         return parent == null ? null : findParent(parent)
@@ -102,9 +104,9 @@ class ChangelogUtils {
         var parent = findParent(project)
         if (parent == null) return null
 
-        project.tasks.register(CopyChangelog.NAME, CopyChangelog) {
+        project.tasks.register(CopyChangelog.NAME, CopyChangelog) { task ->
             var dependency = project.dependencies.project('path': parent.project.path, 'configuration': GenerateChangelog.NAME)
-            it.configuration.set project.configurations.detachedConfiguration(dependency).tap { it.canBeConsumed = false }
+            task.configuration.set project.configurations.detachedConfiguration(dependency).tap { it.canBeConsumed = false }
         }
     }
 

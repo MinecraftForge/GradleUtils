@@ -51,12 +51,14 @@ class GradleUtils {
     //@formatter:off
     @CompileDynamic
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     private static void initDynamic() { String.metaClass.rsplit = GradleUtils.&rsplit }
     static { initDynamic() }
     //@formatter:on
 
     private static boolean rsplitDeprecationLogged
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static @Nullable List<String> rsplit(@Nullable String input, String del, int limit = -1) {
         if (!rsplitDeprecationLogged) {
             println 'WARNING: Usage of GradleUtils.rsplit is DEPRECATED and will be removed in GradleUtils 3.0!'
@@ -67,6 +69,7 @@ class GradleUtils {
     }
 
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     private static @Nullable List<String> rsplitInternal(@Nullable String input, String del, int limit = -1) {
         if (input === null) return null
         List<String> lst = []
@@ -84,6 +87,7 @@ class GradleUtils {
     /** @deprecated Use {@link GitVersion#disableSystemConfig() */
     @Deprecated(forRemoval = true, since = '2.4')
     @CompileStatic
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static class DisableSystemConfig extends SystemReader.Delegate {
         final SystemReader parent
 
@@ -107,6 +111,7 @@ class GradleUtils {
     private static boolean gitInfoDeprecationLogged
     /** @deprecated Use {@link GitVersion#getInfo()} via {@link net.minecraftforge.gradleutils.gitversion.GitVersionExtension#getVersion() GitVersionExtension.getVersion()} */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static Map<String, String> gitInfo(File dir, String... globFilters) {
         if (!gitInfoDeprecationLogged) {
             println 'WARNING: Usage of GradleUtils.gitInfo(File, String...) is DEPRECATED and will be removed in GradleUtils 3.0! Consider using GitVersion.disableSystemConfig() instead.'
@@ -213,7 +218,7 @@ class GradleUtils {
      *
      * @return The action
      */
-    static Action<? super MavenArtifactRepository> getForgeMaven() {
+    static Closure getForgeMaven() {
         { MavenArtifactRepository repo ->
             repo.name = 'MinecraftForge'
             repo.url = 'https://maven.minecraftforge.net/'
@@ -227,7 +232,7 @@ class GradleUtils {
      *
      * @return The action
      */
-    static Action<? super MavenArtifactRepository> getForgeReleaseMaven() {
+    static Closure getForgeReleaseMaven() {
         { MavenArtifactRepository repo ->
             repo.name = 'MinecraftForge releases'
             repo.url = 'https://maven.minecraftforge.net/releases'
@@ -241,7 +246,7 @@ class GradleUtils {
      *
      * @return The action
      */
-    static Action<? super MavenArtifactRepository> getForgeSnapshotMaven() {
+    static Closure getForgeSnapshotMaven() {
         { MavenArtifactRepository repo ->
             repo.name = 'MinecraftForge snapshots'
             repo.url = 'https://maven.minecraftforge.net/snapshots'
@@ -255,7 +260,7 @@ class GradleUtils {
      *
      * @return The action
      */
-    static Action<? super MavenArtifactRepository> getMinecraftLibsMaven() {
+    static Closure getMinecraftLibsMaven() {
         { MavenArtifactRepository repo ->
             repo.name = 'Minecraft libraries'
             repo.url = 'https://libraries.minecraft.net/'
@@ -270,12 +275,14 @@ class GradleUtils {
      * @deprecated Use {@link GitVersion#getTagOffset()} instead
      */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static String getTagOffsetVersion(Map<String, String> info) {
         "${info.tag}.${info.offset}"
     }
 
     /** @deprecated Filters can no longer be defined at configuration. Use the Git Version config. */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static String getFilteredTagOffsetVersion(Map<String, String> info, boolean prefix = false, String filter) {
         getTagOffsetVersion(info)
     }
@@ -290,6 +297,7 @@ class GradleUtils {
      * @deprecated Use {@link GitVersion#getTagOffsetBranch(String ...)} via {@link net.minecraftforge.gradleutils.gitversion.GitVersionExtension#getVersion() GitVersionExtension.getVersion()}
      */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static String getTagOffsetBranchVersion(Map<String, String> info, String... allowedBranches) {
         if (!allowedBranches || allowedBranches.length === 0)
             allowedBranches = [null, 'master', 'main', 'HEAD']
@@ -303,6 +311,7 @@ class GradleUtils {
 
     /** @deprecated Filters can no longer be defined at configuration. Use the Git Version config. */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static String getFilteredTagOffsetBranchVersion(Map<String, String> info, boolean prefix = false, String filter, String... allowedBranches) {
         getTagOffsetBranchVersion(info, allowedBranches)
     }
@@ -318,6 +327,7 @@ class GradleUtils {
      * @deprecated Use {@link GitVersion#getMCTagOffsetBranch(String, String ...)} instead
      */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static String getMCTagOffsetBranchVersion(Map<String, String> info, String mcVersion, String... allowedBranches) {
         if (!allowedBranches || allowedBranches.length === 0)
             allowedBranches = [null, 'master', 'main', 'HEAD', mcVersion, mcVersion + '.0', mcVersion + '.x', rsplitInternal(mcVersion, '.', 1)[0] + '.x']
@@ -327,18 +337,21 @@ class GradleUtils {
 
     /** @deprecated Filters for GitVersion should be set early, using one of the methods in {@link GradleUtilsExtension} */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static String getFilteredMCTagOffsetBranchVersion(Map<String, String> info, boolean prefix = false, String filter, String mcVersion, String... allowedBranches) {
         getMCTagOffsetBranchVersion(info, mcVersion, allowedBranches)
     }
 
     /** @see net.minecraftforge.gitver.internal.GitUtils#buildProjectUrl(String) GitUtils.buildProjectUrl(String) */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static String buildProjectUrl(String project) {
         buildProjectUrl("MinecraftForge", project);
     }
 
     /** @see net.minecraftforge.gitver.internal.GitUtils#buildProjectUrl(String, String) GitUtils.buildProjectUrl(String, String) */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static String buildProjectUrl(String organization, String project) {
         buildProjectUrlLogDeprecation()
         "https://github.com/${organization}/${project}"
@@ -352,6 +365,7 @@ class GradleUtils {
      * @deprecated Replaced by GitVersion, use {@link GitVersion.Info#getUrl()} via {@link net.minecraftforge.gradleutils.gitversion.GitVersionExtension#getVersion() GitVersionExtension.getVersion()}
      */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static String buildProjectUrl(Git git) {
         buildProjectUrlLogDeprecation()
 
@@ -397,9 +411,10 @@ class GradleUtils {
 
     private static boolean buildProjectUrlDeprecationLogged
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     private static void buildProjectUrlLogDeprecation() {
         if (!buildProjectUrlDeprecationLogged) {
-            println 'WARNING: Usage of GradleUtils.buildProjectUrl is DEPRECATED and will be removed in GradleUtils 3.0! Use gitversion.version.info.url instead.'
+            println 'WARNING: Usage of GradleUtils.buildProjectUrl is DEPRECATED and will be removed in GradleUtils 3.0! Use gitversion.url instead.'
             buildProjectUrlDeprecationLogged = true
         }
     }

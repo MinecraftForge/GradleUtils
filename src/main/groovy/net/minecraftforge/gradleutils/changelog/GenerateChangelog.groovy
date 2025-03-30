@@ -9,6 +9,7 @@ import groovy.transform.PackageScope
 import net.minecraftforge.gitver.api.GitVersion
 import net.minecraftforge.gitver.api.GitVersionException
 import org.gradle.api.DefaultTask
+import org.gradle.api.configuration.BuildFeatures
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFileProperty
@@ -30,14 +31,10 @@ import javax.inject.Inject
 abstract class GenerateChangelog extends DefaultTask {
     @PackageScope static final String NAME = 'createChangelog'
 
-    @Inject
-    abstract ProjectLayout getLayout()
-
-    @Inject
-    abstract ProviderFactory getProviders()
-
-    @Inject
-    abstract ObjectFactory getObjects()
+    @Inject abstract ObjectFactory getObjects()
+    @Inject abstract ProjectLayout getLayout()
+    @Inject abstract ProviderFactory getProviders()
+    @Inject abstract BuildFeatures getBuildFeatures()
 
     GenerateChangelog() {
         this.description = 'Generates a changelog for the project based on the Git history using Git Version.'
@@ -51,37 +48,25 @@ abstract class GenerateChangelog extends DefaultTask {
     }
 
     /** The output file for the changelog. */
-    @OutputFile
-    abstract RegularFileProperty getOutputFile()
-
+    abstract @OutputFile RegularFileProperty getOutputFile()
     /** The {@code .git} directory to base the Git Version off of. */
-    @InputDirectory
-    @PathSensitive(PathSensitivity.NONE)
-    abstract DirectoryProperty getGitDirectory()
-
+    abstract @InputDirectory @PathSensitive(PathSensitivity.NONE) DirectoryProperty getGitDirectory()
     /** The path string of the project from the root. Used to configure Git Version without needing to specify the directory itself. */
-    @Input
-    abstract Property<String> getProjectPath()
-
+    abstract @Input Property<String> getProjectPath()
     /** The tag (or object ID) to start the changelog from. */
-    @Input
-    @Optional
-    abstract Property<String> getStart()
-
-    /** The project URL to use in the changelog. Will attempt to use {@link GitVersion.Info#getUrl()} if unspecified. */
-    @Input
-    @Optional
-    abstract Property<String> getProjectUrl()
-
+    abstract @Input @Optional Property<String> getStart()
+    /** The project URL to use in the changelog. Will attempt to find a URL from Git Version if unspecified. */
+    abstract @Input @Optional Property<String> getProjectUrl()
     /** Whether to build the changelog in markdown format. */
-    @Input
-    abstract Property<Boolean> getBuildMarkdown()
+    abstract @Input Property<Boolean> getBuildMarkdown()
 
     @TaskAction
     void exec() throws IOException {
-        GitVersion.disableSystemConfig()
+        // If we are using the configuration cache, disable the system config since it calls the git command line tool
+        if (this.buildFeatures.configurationCache.active.getOrElse(false))
+            GitVersion.disableSystemConfig()
 
-        var gitDir = this.gitDirectory.asFile.orNull
+        var gitDir = this.gitDirectory.asFile.get()
         try (var version = GitVersion.builder().gitDir(gitDir).project(new File(gitDir.absoluteFile.parentFile, this.projectPath.get())).build()) {
             var changelog = version.generateChangelog(this.start.orNull, this.projectUrl.orNull, !this.buildMarkdown.get())
 

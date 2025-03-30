@@ -4,10 +4,13 @@ plugins {
 
 apply from: '../build_shared.gradle'
 
-sourceSets {
-    main {
-        groovy {
-            srcDirs = ['../src/main/groovy']
+sourceSets.main.groovy.srcDirs = ['../src/main/groovy']
+
+gradlePlugin {
+    plugins {
+        gradleutils {
+            id = 'net.minecraftforge.gradleutils'
+            implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
         }
     }
 }

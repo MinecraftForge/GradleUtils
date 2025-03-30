@@ -21,27 +21,18 @@ import javax.inject.Inject
 abstract class CopyChangelog extends DefaultTask {
     public static final String NAME = 'copyChangelog'
 
-    @Inject
-    abstract ProjectLayout getLayout()
+    @Inject abstract ProjectLayout getLayout()
 
     CopyChangelog() {
-        this.description = 'Copies a changelog file to this project\'s build directory.'
+        this.description = "Copies a changelog file to this project's build directory."
 
         this.outputFile.convention this.layout.buildDirectory.file('changelog.txt')
     }
 
     /** The output file for the copied changelog. */
-    @OutputFile
-    abstract RegularFileProperty getOutputFile()
-
-    /**
-     * The configuration (or file collection) containing the changelog to copy. It must be a
-     * {@link FileCollection#getSingleFile() single file}.
-     *
-     * @see ChangelogUtils#findChangelogTask(org.gradle.api.Project)
-     */
-    @InputFiles
-    abstract Property<FileCollection> getConfiguration()
+    abstract @OutputFile RegularFileProperty getOutputFile()
+    /** The configuration (or file collection) containing the changelog to copy. It must be a single file. */
+    abstract @InputFiles Property<FileCollection> getConfiguration()
 
     @TaskAction
     void exec() {

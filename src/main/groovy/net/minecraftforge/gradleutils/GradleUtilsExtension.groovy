@@ -12,6 +12,7 @@ import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ProviderFactory
+import org.jetbrains.annotations.ApiStatus
 
 import javax.inject.Inject
 
@@ -24,8 +25,8 @@ class GradleUtilsExtension {
     public static final String NAME = 'gradleutils'
 
     private final Project project
-    private final ProviderFactory providers
     private final ObjectFactory objects
+    private final ProviderFactory providers
 
     private final GitVersionExtension gitversion
 
@@ -34,32 +35,36 @@ class GradleUtilsExtension {
 
     /** @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getRoot() GitVersion.getRoot()} via {@link GitVersionExtension#getVersion()} instead. */
     @Deprecated(forRemoval = true, since = '2.4') @Lazy DirectoryProperty gitRoot = {
-        this.project.logger.warn "WARNING: This project is still using 'gradleutils.gitRoot'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'gitversion.version.root' instead."
+        this.project.logger.warn "WARNING: This project is still using 'gradleutils.gitRoot'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'gitversion.rootDir' instead."
 
-        objects.directoryProperty().fileProvider providers.provider { this.gitversion.version.root }
+        this.gitversion.rootDir
     }()
     /** @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getInfo() GitVersion.getInfo()} via {@link GitVersionExtension#getVersion()} instead. */
     @Deprecated(forRemoval = true, since = '2.4') @Lazy Map<String, String> gitInfo = {
-        this.project.logger.warn "WARNING: This project is still using 'gradleutils.gitInfo'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'gitversion.version.info' instead."
+        this.project.logger.warn "WARNING: This project is still using 'gradleutils.gitInfo'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'gitversion.info' instead."
 
-        var version = this.project.extensions.getByType(GitVersionExtension).version
+        var gitversion = this.project.extensions.getByType(GitVersionExtension)
+        var info = gitversion.info
         [
-            dir          : version.gitDir.absolutePath,
-            tag          : version.info.tag,
-            offset       : version.info.offset,
-            hash         : version.info.hash,
-            branch       : version.info.branch,
-            commit       : version.info.commit,
-            abbreviatedId: version.info.abbreviatedId,
-            url          : version.info.url
+            dir          : gitversion.gitDir.get().asFile.absolutePath,
+            tag          : info.tag,
+            offset       : info.offset,
+            hash         : info.hash,
+            branch       : info.branch,
+            commit       : info.commit,
+            abbreviatedId: info.abbreviatedId,
+            url          : gitversion.url
         ].tap { it.removeAll { it.value == null } }
     }()
 
+    /** @deprecated This constructor will be made package-private in GradleUtils 3.0 */
     @Inject
-    GradleUtilsExtension(Project project, ProviderFactory providers, ObjectFactory objects) {
+    @Deprecated(forRemoval = true)
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
+    GradleUtilsExtension(Project project, ObjectFactory objects, ProviderFactory providers) {
         this.project = project
-        this.providers = providers
         this.objects = objects
+        this.providers = providers
 
         // Git Version
         this.gitversion = project.extensions.getByType(GitVersionExtension)
@@ -79,15 +84,16 @@ class GradleUtilsExtension {
      *     version = gradleutils.tagOffsetVersion
      *
      *     // After:
-     *     version = gitversion.version.tagOffset
+     *     version = gitversion.tagOffset
      * </code></pre>
      *
      * @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getTagOffset() GitVersion.tagOffset} instead.
      */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     String getTagOffsetVersion() {
         this.logDeprecation('tagOffsetVersion', 'tagOffsetVersion')
-        this.project.extensions.getByType(GitVersionExtension).version.tagOffset
+        this.project.extensions.getByType(GitVersionExtension).tagOffset
     }
 
     /**
@@ -97,13 +103,14 @@ class GradleUtilsExtension {
      *     version = gradleutils.tagOffsetVersion
      *
      *     // After:
-     *     version = gitversion.version.tagOffset
+     *     version = gitversion.tagOffset
      * </code></pre>
      * <strong>You must declare your filters in the Git Version config file!</strong>.
      *
      * @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getTagOffset() GitVersion.tagOffset} instead.
      */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     String getFilteredTagOffsetVersion(boolean prefix = false, String filter) {
         this.updateInfo(prefix, filter)
         this.tagOffsetVersion
@@ -116,16 +123,17 @@ class GradleUtilsExtension {
      *     version = gradleutils.getTagOffsetBranchVersion()
      *
      *     // After:
-     *     version = gitversion.version.tagOffsetBranch
+     *     version = gitversion.tagOffsetBranch
      * </code></pre>
      *
      * @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getTagOffsetBranch(String ...) GitVersion.getTagOffsetBranch(String...)} instead.
      */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     String getTagOffsetBranchVersion(String... allowedBranches) {
         this.logDeprecation('tagOffsetBranchVersion', 'getTagOffsetBranchVersion(String...)')
-        var version = this.project.extensions.getByType(GitVersionExtension).version
-        allowedBranches ? version.getTagOffsetBranch(allowedBranches) : version.tagOffsetBranch
+        var gitversion = this.project.extensions.getByType(GitVersionExtension)
+        allowedBranches ? gitversion.getTagOffsetBranch(allowedBranches) : gitversion.tagOffsetBranch
     }
 
     /**
@@ -135,7 +143,7 @@ class GradleUtilsExtension {
      *     version = gradleutils.tagOffsetBranchVersion
      *
      *     // After:
-     *     version = gitversion.version.tagOffsetBranch
+     *     version = gitversion.tagOffsetBranch
      * </code></pre>
      * <p>
      * <strong>You must declare your filters in the Git Version config file!</strong>.
@@ -143,6 +151,7 @@ class GradleUtilsExtension {
      * @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getTagOffset() GitVersion.tagOffset} instead.
      */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     String getFilteredTagOffsetBranchVersion(boolean prefix = false, String filter, String... allowedBranches) {
         this.updateInfo(prefix, filter)
         this.getTagOffsetBranchVersion(allowedBranches)
@@ -155,16 +164,17 @@ class GradleUtilsExtension {
      *     version = gradleutils.getMCTagOffsetBranchVersion('1.21.4')
      *
      *     // After:
-     *     version = gitversion.version.getMCTagOffsetBranch('1.21.4')
+     *     version = gitversion.getMCTagOffsetBranch('1.21.4')
      * </code></pre>
      *
      * @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getMCTagOffsetBranch(String, String ...) GitVersion.getMCTagOffsetBranch(String, String...)} instead.
      */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     String getMCTagOffsetBranchVersion(String mcVersion, String... allowedBranches) {
         this.logDeprecation('MCTagOffsetBranchVersion', 'getMCTagOffsetBranchVersion(String, String...)')
-        var version = this.project.extensions.getByType(GitVersionExtension).version
-        allowedBranches ? version.getMCTagOffsetBranch(mcVersion, allowedBranches) : version.getMCTagOffsetBranch(mcVersion)
+        var gitVersion = this.project.extensions.getByType(GitVersionExtension)
+        allowedBranches ? gitVersion.getMCTagOffsetBranch(mcVersion, allowedBranches) : gitVersion.getMCTagOffsetBranch(mcVersion)
     }
 
     /**
@@ -174,7 +184,7 @@ class GradleUtilsExtension {
      *     version = gradleutils.getMCTagOffsetBranchVersion('1.21.4')
      *
      *     // After:
-     *     version = gitversion.version.getMCTagOffsetBranch('1.21.4')
+     *     version = gitversion.getMCTagOffsetBranch('1.21.4')
      * </code></pre>
      * <p>
      * <strong>You must declare your filters in the Git Version config file!</strong>.
@@ -182,21 +192,23 @@ class GradleUtilsExtension {
      * @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getMCTagOffsetBranch(String, String ...) GitVersion.getMCTagOffsetBranch(String, String...)} instead.
      */
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     String getFilteredMCTagOffsetBranchVersion(boolean prefix = false, String filter, String mcVersion, String... allowedBranches) {
         this.updateInfo(prefix, filter)
         this.getMCTagOffsetBranchVersion(mcVersion, allowedBranches)
     }
 
-    @Deprecated(since = '2.4')
+    @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     private void updateInfo(boolean prefix, String filter) {
-        this.project.extensions.getByType(GitVersionExtension).version.tap {
+        this.gitversion.versionInternal.tap {
             if (prefix) it.tagPrefix = filter
             else it.filters = new String[] {filter}
         }
     }
 
     private void logDeprecation(String name, String fullName) {
-        this.project.logger.warn "WARNING: This project is still using 'gradleutils.$name'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'gitversion.version.$fullName' instead."
+        this.project.logger.warn "WARNING: This project is still using 'gradleutils.$name'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'gitversion.$fullName' instead."
     }
 
     /** @see GradleUtils#getPublishingForgeMaven(Project, File) */
@@ -205,22 +217,22 @@ class GradleUtilsExtension {
     }
 
     /** @see GradleUtils#getForgeMaven() */
-    static Action<? super MavenArtifactRepository> getForgeMaven() {
+    static Closure getForgeMaven() {
         GradleUtils.forgeMaven
     }
 
     /** @see GradleUtils#getForgeReleaseMaven() */
-    static Action<? super MavenArtifactRepository> getForgeReleaseMaven() {
+    static Closure getForgeReleaseMaven() {
         GradleUtils.forgeReleaseMaven
     }
 
     /** @see GradleUtils#getForgeSnapshotMaven() */
-    static Action<? super MavenArtifactRepository> getForgeSnapshotMaven() {
+    static Closure getForgeSnapshotMaven() {
         GradleUtils.forgeSnapshotMaven
     }
 
     /** @see GradleUtils#getMinecraftLibsMaven() */
-    static Action<? super MavenArtifactRepository> getMinecraftLibsMaven() {
+    static Closure getMinecraftLibsMaven() {
         GradleUtils.minecraftLibsMaven
     }
 }

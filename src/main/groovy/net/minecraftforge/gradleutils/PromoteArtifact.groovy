@@ -12,7 +12,6 @@ import org.gradle.api.provider.Property
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskProvider
 import org.jetbrains.annotations.ApiStatus
@@ -24,51 +23,45 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 
+/**
+ * This task promotes an artifact on the Forge maven.
+ *
+ * @deprecated Aside from the fact that this is internal to Forge only due to the way the Files site works, this is planned to be superseded at some point in the future by a solution within the Files/Maven site itself, rather than through this task. While not scheduled for removal quite yet, don't count on it sticking around.
+ */
 @CompileStatic
+@ApiStatus.Internal
 @ApiStatus.Experimental
+@Deprecated
+@SuppressWarnings('GrDeprecatedAPIUsage')
 abstract class PromoteArtifact extends DefaultTask {
-    static TaskProvider<PromoteArtifact> register(Project project, MavenPublication publication) {
-        project.tasks.register('promoteArtifact', PromoteArtifact, publication)
+    /** Registers a maven publication to be promoted to the Forge maven. */
+    static TaskProvider<PromoteArtifact> register(Project project, MavenPublication publication, Type type) {
+        project.tasks.register('promoteArtifact', PromoteArtifact) { task ->
+            task.artifactGroup.set publication.groupId
+            task.artifactName.set publication.artifactId
+            task.artifactVersion.set publication.version
+        }
     }
 
-    @Inject
-    abstract ProviderFactory getProviders()
+    @Inject abstract ProviderFactory getProviders();
 
-    @Inject
-    PromoteArtifact(MavenPublication publication) {
+    PromoteArtifact() {
         this.promotionType.convention Type.LATEST
 
-        this.artifactGroup.set this.providers.provider { publication.groupId }
-        this.artifactName.set this.providers.provider { publication.artifactId }
-        this.artifactVersion.set this.providers.provider { publication.version }
-        this.webhookURL.set GradleUtils.getEnvVar('PROMOTE_ARTIFACT_WEBHOOK', this.providers)
-        this.username.set GradleUtils.getEnvVar('PROMOTE_ARTIFACT_USERNAME', this.providers)
-        this.password.set GradleUtils.getEnvVar('PROMOTE_ARTIFACT_PASSWORD', this.providers)
+        this.webhookURL.convention GradleUtils.getEnvVar('PROMOTE_ARTIFACT_WEBHOOK', this.providers)
+        this.username.convention GradleUtils.getEnvVar('PROMOTE_ARTIFACT_USERNAME', this.providers)
+        this.password.convention GradleUtils.getEnvVar('PROMOTE_ARTIFACT_PASSWORD', this.providers)
 
         this.onlyIf { this.webhookURL.present && this.username.present && this.password.present }
     }
 
-    @Input
-    abstract Property<String> getArtifactGroup()
-
-    @Input
-    abstract Property<String> getArtifactName()
-
-    @Input
-    abstract Property<String> getArtifactVersion()
-
-    @Input
-    @Optional
-    abstract Property<Type> getPromotionType()
-
-    @Input
-    abstract Property<String> getWebhookURL()
-
-    @Input
-    abstract Property<String> getUsername()
-
-    @Input
-    abstract Property<String> getPassword()
+    abstract @Input Property<String> getArtifactGroup()
+    abstract @Input Property<String> getArtifactName()
+    abstract @Input Property<String> getArtifactVersion()
+    abstract @Input Property<Type> getPromotionType()
+    abstract @Input Property<String> getWebhookURL()
+    abstract @Input Property<String> getUsername()
+    abstract @Input Property<String> getPassword()
 
     static enum Type {
         LATEST, RECOMMENDED;

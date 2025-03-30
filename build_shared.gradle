@@ -1,8 +1,11 @@
-
 java {
     // GitVersion requires Java 17
     toolchain.languageVersion = JavaLanguageVersion.of(17)
     withSourcesJar()
+}
+
+tasks.withType(GroovyCompile).configureEach {
+    groovyOptions.optimizationOptions.indy = true
 }
 
 repositories {
@@ -27,25 +30,4 @@ dependencies {
 
     // TODO - Deprecated git utilities, remove in 3.0
     implementation libs.jgit
-}
-
-gradlePlugin {
-    website = 'https://github.com/MinecraftForge/GradleUtils'
-    vcsUrl = 'https://github.com/MinecraftForge/GradleUtils.git'
-    plugins {
-        gradleutils {
-            id = 'net.minecraftforge.gradleutils'
-            implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
-            displayName = 'Forge Gradle Utilities'
-            description = 'Small collection of utilities for standardizing our gradle scripts'
-            tags.set(['minecraftforge'])
-        }
-        changelog {
-            id = 'net.minecraftforge.changelog'
-            implementationClass = 'net.minecraftforge.gradleutils.changelog.ChangelogPlugin'
-            displayName = 'Git Changelog'
-            description = 'Creates a changelog text file based on git history using GitVersion'
-            tags.set(['git', 'changelog'])
-        }
-    }
 }

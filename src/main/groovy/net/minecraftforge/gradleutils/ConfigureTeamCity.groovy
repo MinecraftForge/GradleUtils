@@ -18,7 +18,7 @@ import javax.inject.Inject
 /**
  * This task prints the marker lines into the log which configure the pipeline.
  *
- * @deprecated Will be removed once Forge moves off of TeamCity
+ * @deprecated Will be removed once Forge moves off of TeamCity.
  */
 @CompileStatic
 @Deprecated(forRemoval = true)
@@ -33,26 +33,24 @@ abstract class ConfigureTeamCity extends DefaultTask {
         project.tasks.register(name, ConfigureTeamCity)
     }
 
-    @Inject
-    abstract ProviderFactory getProviders()
+    @Inject abstract ProviderFactory getProviders()
 
     ConfigureTeamCity() {
         this.description = 'Prints the marker lines into the log which configure the pipeline. [deprecated]'
         this.onlyIf('Only runs on TeamCity, so the TEAMCITY_VERSION environment variable must be set.') { GradleUtils.hasEnvVar('TEAMCITY_VERSION', this.providers).get() }
 
-        this.version.convention this.providers.provider { this.project.version?.toString() }
+        this.buildNumber.convention this.providers.provider { this.project.version?.toString() }
     }
 
-    /** The version string to print, usually the {@linkplain Project#getVersion() project version}. */
-    @Input
-    abstract Property<String> getVersion()
+    /** The build number to print, usually the project version. */
+    abstract @Input Property<String> getBuildNumber()
 
     @TaskAction
     void exec() {
         this.logger.warn 'WARNING: Usage of TeamCity is deprecated within Minecraft Forge Minecraft Forge has been gradually moving off of TeamCity and into GitHub Actions. When the migration is fully complete, this task along with its automatic setup will be removed.'
 
         this.logger.lifecycle 'Setting project variables and parameters.'
-        println "##teamcity[buildNumber '${this.version.get()}']"
-        println "##teamcity[setParameter name='env.PUBLISHED_JAVA_ARTIFACT_VERSION' value='${this.version.get()}']"
+        println "##teamcity[buildNumber '${this.buildNumber.get()}']"
+        println "##teamcity[setParameter name='env.PUBLISHED_JAVA_ARTIFACT_VERSION' value='${this.buildNumber.get()}']"
     }
 }

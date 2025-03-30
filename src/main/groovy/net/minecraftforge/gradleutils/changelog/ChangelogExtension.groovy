@@ -10,6 +10,7 @@ import org.gradle.api.Project
 import org.gradle.api.file.Directory
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.TaskProvider
+import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nullable
 
 import javax.inject.Inject
@@ -20,58 +21,81 @@ class ChangelogExtension {
     public static final String NAME = 'changelog'
 
     @PackageScope final Project project
-    @PackageScope @Nullable TaskProvider<GenerateChangelog> task
 
     boolean publishAll = true
-    /** @deprecated The Git root is automatically discovered by Git Version on Changelog generation. */
-    @Deprecated(forRemoval = true, since = '2.4') @Nullable Directory gitRoot
+    @PackageScope boolean isGenerating
+    private @Lazy TaskProvider<GenerateChangelog> task = {
+        ChangelogUtils.setupChangelogTask(this.project) { task ->
+            this.isGenerating = true
 
+            this.project.afterEvaluate {
+                if (this.gitRoot) {
+                    task.configure {
+                        it.gitDirectory.set gitRoot
+                    }
+                }
+
+                if (this.publishAll)
+                    ChangelogUtils.setupChangelogGenerationOnAllPublishTasks it
+            }
+        }
+    }()
+
+    /** @deprecated The Git root is automatically discovered by Git Version on Changelog generation. */
+    @Deprecated(forRemoval = true)
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
+    @Nullable Directory gitRoot
+
+    /** @deprecated This constructor will be made package-private in GradleUtils 3.0 */
     @Inject
+    @Deprecated(forRemoval = true)
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     ChangelogExtension(Project project) {
         this.project = project
     }
 
-    private void setupTask() {
-        if (this.task) return
-
-        this.task = ChangelogUtils.setupChangelogTask(this.project)
-        this.project.afterEvaluate {
-            if (this.gitRoot) {
-                this.task.configure {
-                    it.gitDirectory.set gitRoot
-                }
-            }
-
-            if (this.publishAll)
-                ChangelogUtils.setupChangelogGenerationOnAllPublishTasks(it)
-        }
-    }
-
     void fromBase() {
-        from(null)
+        from null
     }
 
     void from(String marker) {
-        this.setupTask()
         this.task.configure { it.start.set marker }
     }
 
+    private static boolean fromTagDeprecationWarning
     @Deprecated(forRemoval = true, since = '2.4')
     void fromTag(String tag) {
-        this.from(tag)
+        if (!fromTagDeprecationWarning) {
+            this.project.logger.warn "WARNING: This project is still using 'changelog.fromTag'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'changelog.from' instead."
+            fromTagDeprecationWarning = true
+        }
+
+        this.from tag
     }
 
+    private static boolean fromCommitDeprecationWarning
     @Deprecated(forRemoval = true, since = '2.4')
     void fromCommit(String commit) {
-        this.from(commit)
+        if (!fromCommitDeprecationWarning) {
+            this.project.logger.warn "WARNING: This project is still using 'changelog.fromCommit'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'changelog.from' instead."
+            fromCommitDeprecationWarning = true
+        }
+
+        this.from commit
     }
 
+    private static boolean disableAutomaticPublicationRegistrationDeprecationWarning
     @Deprecated(forRemoval = true, since = '2.4')
     void disableAutomaticPublicationRegistration() {
+        if (!disableAutomaticPublicationRegistrationDeprecationWarning) {
+            this.project.logger.warn "WARNING: This project is still using 'changelog.disableAutomaticPublicationRegistration'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'changelog.publishAll = false' instead."
+            disableAutomaticPublicationRegistrationDeprecationWarning = true
+        }
+
         this.publishAll = false
     }
 
     void publish(MavenPublication publication) {
-        ChangelogUtils.setupChangelogGenerationForPublishing(this.project, publication)
+        ChangelogUtils.setupChangelogGenerationForPublishing this.project, publication
     }
 }

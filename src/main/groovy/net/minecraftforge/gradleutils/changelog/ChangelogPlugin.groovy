@@ -13,6 +13,7 @@ import org.gradle.api.Project
 abstract class ChangelogPlugin implements Plugin<Project> {
     @Override
     void apply(Project project) {
-        project.extensions.create(ChangelogExtension.NAME, ChangelogExtension, project)
+        // TODO [GradleUtils][3.0][Changelog] Use direct constructor
+        project.extensions.create ChangelogExtension.NAME, ChangelogExtension, project
     }
 }
