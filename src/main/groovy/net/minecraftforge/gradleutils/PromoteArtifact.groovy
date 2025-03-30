@@ -34,20 +34,18 @@ abstract class PromoteArtifact extends DefaultTask {
     @Inject
     abstract ProviderFactory getProviders()
 
+    @Inject
     PromoteArtifact(MavenPublication publication) {
         this.promotionType.convention Type.LATEST
-
-        final webhookURL0 = GradleUtils.getEnvVar('PROMOTE_ARTIFACT_WEBHOOK', this.providers)
-        final username0 = GradleUtils.getEnvVar('PROMOTE_ARTIFACT_USERNAME', this.providers)
-        final password0 = GradleUtils.getEnvVar('PROMOTE_ARTIFACT_PASSWORD', this.providers)
-        this.onlyIf { webhookURL0.present && username0.present && password0.present }
 
         this.artifactGroup.set this.providers.provider { publication.groupId }
         this.artifactName.set this.providers.provider { publication.artifactId }
         this.artifactVersion.set this.providers.provider { publication.version }
-        this.webhookURL.set webhookURL0
-        this.username.set username0
-        this.password.set password0
+        this.webhookURL.set GradleUtils.getEnvVar('PROMOTE_ARTIFACT_WEBHOOK', this.providers)
+        this.username.set GradleUtils.getEnvVar('PROMOTE_ARTIFACT_USERNAME', this.providers)
+        this.password.set GradleUtils.getEnvVar('PROMOTE_ARTIFACT_PASSWORD', this.providers)
+
+        this.onlyIf { this.webhookURL.present && this.username.present && this.password.present }
     }
 
     @Input
