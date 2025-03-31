@@ -22,13 +22,18 @@ class ChangelogExtension {
 
     @PackageScope final Project project
 
+    /** @deprecated The Git root is automatically discovered by Git Version on Changelog generation. */
+    @Deprecated(forRemoval = true)
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
+    @Nullable Directory gitRoot
+
     boolean publishAll = true
     @PackageScope boolean isGenerating
     private @Lazy TaskProvider<GenerateChangelog> task = {
-        ChangelogUtils.setupChangelogTask(this.project) { task ->
-            this.isGenerating = true
+        this.isGenerating = true
 
-            this.project.afterEvaluate {
+        ChangelogUtils.setupChangelogTask(this.project) { task ->
+            this.project.afterEvaluate { project ->
                 if (this.gitRoot) {
                     task.configure {
                         it.gitDirectory.set gitRoot
@@ -36,15 +41,10 @@ class ChangelogExtension {
                 }
 
                 if (this.publishAll)
-                    ChangelogUtils.setupChangelogGenerationOnAllPublishTasks it
+                    ChangelogUtils.setupChangelogGenerationOnAllPublishTasks project
             }
         }
     }()
-
-    /** @deprecated The Git root is automatically discovered by Git Version on Changelog generation. */
-    @Deprecated(forRemoval = true)
-    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
-    @Nullable Directory gitRoot
 
     /** @deprecated This constructor will be made package-private in GradleUtils 3.0 */
     @Inject

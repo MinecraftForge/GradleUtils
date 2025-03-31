@@ -54,8 +54,8 @@ changelog {
 }
 
 gradlePlugin {
-    website = gitversion.url
-    vcsUrl = "${gitversion.url}.git"
+    website.set gitversion.url
+    vcsUrl.set gitversion.url + '.git'
     plugins {
         gradleutils {
             id = 'net.minecraftforge.gradleutils'
