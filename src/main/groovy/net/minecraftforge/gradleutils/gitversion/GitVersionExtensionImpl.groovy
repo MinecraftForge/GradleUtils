@@ -6,48 +6,35 @@ package net.minecraftforge.gradleutils.gitversion
 
 import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
+import groovy.transform.PackageScopeTarget
 import net.minecraftforge.gitver.api.GitVersion
 import net.minecraftforge.gitver.api.GitVersionException
-import org.gradle.api.Project
 import org.gradle.api.configuration.BuildFeatures
 import org.gradle.api.file.Directory
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemLocation
-import org.gradle.api.file.ProjectLayout
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
-import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nullable
 
-import javax.inject.Inject
-
-/**
- * The heart of the Git Version Gradle plugin. This extension is responsible for creating the GitVersion object and
- * allowing access to it from Gradle buildscripts.
- * <p>When using Gradle's Configuration Cache, the system Git config is disabled.</p>
- */
 @CompileStatic
-@SuppressWarnings('GrDeprecatedAPIUsage')
-class GitVersionExtension {
-    public static final String NAME = 'gitversion'
+@PackageScope([PackageScopeTarget.CLASS, PackageScopeTarget.CONSTRUCTORS])
+class GitVersionExtensionImpl implements GitVersionExtension {
+    private static final Logger LOGGER = Logging.getLogger GitVersionExtension
 
-    private final Project project
+    private final Directory projectDirectory
     private final ObjectFactory objects
-    private final ProjectLayout layout
     private final ProviderFactory providers
     private final BuildFeatures buildFeatures
 
-    /** @deprecated This constructor will be made package-private in GradleUtils 3.0 */
-    @Inject
-    @Deprecated(forRemoval = true)
-    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
-    GitVersionExtension(Project project, ObjectFactory objects, ProjectLayout layout, ProviderFactory providers, BuildFeatures buildFeatures) {
-        this.project = project
+    GitVersionExtensionImpl(Directory projectDirectory, ObjectFactory objects, ProviderFactory providers, BuildFeatures buildFeatures) {
+        this.projectDirectory = projectDirectory
         this.objects = objects
-        this.layout = layout
         this.providers = providers
         this.buildFeatures = buildFeatures
     }
@@ -55,77 +42,63 @@ class GitVersionExtension {
 
     /* GIT VERSION */
 
-    @Deprecated(forRemoval = true)
-    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
-    @PackageScope @Lazy GitVersion versionInternal = {
+    private @Lazy GitVersion version = {
         // If we are using the configuration cache, disable the system config since it calls the git command line tool
         if (this.buildFeatures.configurationCache.active.getOrElse(false))
             GitVersion.disableSystemConfig()
 
-        var builder = GitVersion.builder().project(this.layout.projectDirectory.asFile)
+        var builder = GitVersion.builder().project this.projectDirectory.asFile
         try {
             return builder.build().tap { it.info }
         } catch (GitVersionException ignored) {
-            this.project.logger.warn 'WARNING: Git Version failed to get version numbers! Attempting to use default version 0.0.0. Check your GitVersion config file and make sure the correct tag prefix and filters are in use. Ensure that the tags you are attempting to use exist in the repository.'
+            LOGGER.warn 'WARNING: Git Version failed to get version numbers! Attempting to use default version 0.0.0. Check your GitVersion config file and make sure the correct tag prefix and filters are in use. Ensure that the tags you are attempting to use exist in the repository.'
             return builder.strict(false).build()
         } catch (IllegalArgumentException e) {
-            this.project.logger.error 'ERROR: Git Version is misconfigured and cannot be used, likely due to incorrect paths being set. This is an unrecoverable problem and needs to be addressed in the config file. Ensure that the correct subprojects and paths are declared in the config file'
+            LOGGER.error 'ERROR: Git Version is misconfigured and cannot be used, likely due to incorrect paths being set. This is an unrecoverable problem and needs to be addressed in the config file. Ensure that the correct subprojects and paths are declared in the config file'
             throw e
         }
     }()
-
-    // TODO [GradleUtils][3.0] Make private
-    private static boolean deprecationWarning
-    @Deprecated(forRemoval = true)
-    GitVersion getVersion() {
-        if (!deprecationWarning) {
-            this.project.logger.warn "WARNING: The usage of 'gitversion.version' has been deprecated and will be removed in GradleUtils 3.0. Please remove the 'version' call (i.e. 'gitversion.version.tagOffset' -> 'gitversion.tagOffset')."
-            deprecationWarning = true
-        }
-
-        this.versionInternal
-    }
 
 
     /* VERSION NUMBER */
 
     String getTagOffset() {
-        this.versionInternal.tagOffset
+        this.version.tagOffset
     }
 
     String getTagOffsetBranch() {
-        this.versionInternal.tagOffsetBranch
+        this.version.tagOffsetBranch
     }
 
     String getTagOffsetBranch(String... allowedBranches) {
-        this.versionInternal.getTagOffsetBranch allowedBranches
+        this.version.getTagOffsetBranch allowedBranches
     }
 
     String getTagOffsetBranch(Collection<String> allowedBranches) {
-        this.versionInternal.getTagOffsetBranch allowedBranches
+        this.version.getTagOffsetBranch allowedBranches
     }
 
     String getMCTagOffsetBranch(String mcVersion) {
-        this.versionInternal.getMCTagOffsetBranch mcVersion
+        this.version.getMCTagOffsetBranch mcVersion
     }
 
     String getMCTagOffsetBranch(String mcVersion, String... allowedBranches) {
-        this.versionInternal.getMCTagOffsetBranch mcVersion, allowedBranches
+        this.version.getMCTagOffsetBranch mcVersion, allowedBranches
     }
 
     String getMCTagOffsetBranch(String mcVersion, Collection<String> allowedBranches) {
-        this.versionInternal.getMCTagOffsetBranch mcVersion, allowedBranches
+        this.version.getMCTagOffsetBranch mcVersion, allowedBranches
     }
 
 
     /* INFO */
 
     GitVersion.Info getInfo() {
-        this.versionInternal.info
+        this.version.info
     }
 
     @Nullable String getUrl() {
-        this.versionInternal.url
+        this.version.url
     }
 
 
@@ -133,25 +106,25 @@ class GitVersionExtension {
 
     @Lazy DirectoryProperty gitDir = {
         this.objects.directoryProperty().fileProvider(this.providers.provider {
-            this.versionInternal.gitDir
+            this.version.gitDir
         })
     }()
 
     @Lazy DirectoryProperty rootDir = {
         this.objects.directoryProperty().fileProvider(this.providers.provider {
-            this.versionInternal.root
+            this.version.root
         })
     }()
 
     @Lazy DirectoryProperty projectDir = {
         this.objects.directoryProperty().fileProvider(this.providers.provider {
-            this.versionInternal.project
+            this.version.project
         })
     }()
 
     @Lazy Property<String> projectPath = {
         this.objects.property(String).value(this.providers.provider {
-            this.versionInternal.projectPath
+            this.version.projectPath
         })
     }()
 
@@ -161,30 +134,28 @@ class GitVersionExtension {
 
     Provider<String> getRelativePath(Provider<? extends FileSystemLocation> file) {
         this.providers.provider {
-            this.versionInternal.getRelativePath file.get().asFile
+            this.version.getRelativePath file.get().asFile
         }
     }
 
 
     /* SUBPROJECTS */
 
-    @Lazy ListProperty<Directory> subprojects = {
-        this.objects.listProperty(Directory).value(this.providers.provider {
-            this.versionInternal.subprojects.collect {
-                dir -> this.layout.dir(this.providers.provider { dir }).get()
-            }
-        })
+    @Lazy List<DirectoryProperty> subprojects = {
+        this.version.subprojects.collect {
+            dir -> this.objects.directoryProperty().fileProvider(this.providers.provider { dir })
+        }
     }()
 
     private @Lazy ListProperty<String> subprojectPathsFromRoot = {
         this.objects.listProperty(String).value(this.providers.provider {
-            this.versionInternal.getSubprojectPaths true
+            this.version.getSubprojectPaths true
         })
     }()
 
     @Lazy ListProperty<String> subprojectPaths = {
         this.objects.listProperty(String).value(this.providers.provider {
-            this.versionInternal.subprojectPaths
+            this.version.subprojectPaths
         })
     }()
 
