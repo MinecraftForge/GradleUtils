@@ -5,6 +5,8 @@
 package net.minecraftforge.gradleutils
 
 import groovy.transform.CompileStatic
+import groovy.transform.PackageScope
+import groovy.transform.PackageScopeTarget
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
@@ -15,31 +17,18 @@ import org.gradle.api.tasks.TaskProvider
 
 import javax.inject.Inject
 
-/**
- * This task prints the marker lines into the log which configure the pipeline.
- *
- * @deprecated Will be removed once Forge moves off of TeamCity.
- */
+// TODO [GradleUtils][TeamCity] Delete this when off of TeamCity
 @CompileStatic
-@Deprecated(forRemoval = true)
+@PackageScope([PackageScopeTarget.CLASS, PackageScopeTarget.FIELDS])
 abstract class ConfigureTeamCity extends DefaultTask {
-    public static final String NAME = 'configureTeamCity'
+    static final String NAME = 'configureTeamCity'
 
-    static TaskProvider<ConfigureTeamCity> register(Project project) {
-        register(project, NAME)
-    }
-
-    static TaskProvider<ConfigureTeamCity> register(Project project, String name) {
-        project.tasks.register(name, ConfigureTeamCity)
-    }
-
-    @Inject abstract ProviderFactory getProviders()
-
-    ConfigureTeamCity() {
+    @Inject
+    ConfigureTeamCity(ProviderFactory providers) {
         this.description = 'Prints the marker lines into the log which configure the pipeline. [deprecated]'
-        this.onlyIf('Only runs on TeamCity, so the TEAMCITY_VERSION environment variable must be set.') { GradleUtils.hasEnvVar('TEAMCITY_VERSION', this.providers).get() }
+        this.onlyIf('Only runs on TeamCity, so the TEAMCITY_VERSION environment variable must be set.') { providers.environmentVariable('TEAMCITY_VERSION').present }
 
-        this.buildNumber.convention this.providers.provider { this.project.version?.toString() }
+        this.buildNumber.convention providers.provider { this.project.version?.toString() }
     }
 
     /** The build number to print, usually the project version. */

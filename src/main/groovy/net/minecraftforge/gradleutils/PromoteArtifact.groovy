@@ -6,6 +6,7 @@ package net.minecraftforge.gradleutils
 
 import groovy.json.JsonBuilder
 import groovy.transform.CompileStatic
+import groovy.transform.PackageScope
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.provider.Property
@@ -14,7 +15,6 @@ import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskProvider
-import org.jetbrains.annotations.ApiStatus
 
 import javax.inject.Inject
 import javax.net.ssl.SSLContext
@@ -23,34 +23,25 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 
-/**
- * This task promotes an artifact on the Forge maven.
- *
- * @deprecated Aside from the fact that this is internal to Forge only due to the way the Files site works, this is planned to be superseded at some point in the future by a solution within the Files/Maven site itself, rather than through this task. While not scheduled for removal quite yet, don't count on it sticking around.
- */
 @CompileStatic
-@ApiStatus.Internal
-@ApiStatus.Experimental
-@Deprecated
-@SuppressWarnings('GrDeprecatedAPIUsage')
-abstract class PromoteArtifact extends DefaultTask {
-    /** Registers a maven publication to be promoted to the Forge maven. */
-    static TaskProvider<PromoteArtifact> register(Project project, MavenPublication publication, Type type) {
-        project.tasks.register('promoteArtifact', PromoteArtifact) { task ->
-            task.artifactGroup.set publication.groupId
-            task.artifactName.set publication.artifactId
-            task.artifactVersion.set publication.version
-        }
+@PackageScope abstract class PromoteArtifact extends DefaultTask {
+    @PackageScope static TaskProvider<PromoteArtifact> register(Project project, MavenPublication publication, Type type) {
+        project.tasks.register("promote${publication.name.capitalize()}", PromoteArtifact, publication, type)
     }
 
-    @Inject abstract ProviderFactory getProviders();
+    protected abstract @Inject ProviderFactory getProviders();
 
-    PromoteArtifact() {
-        this.promotionType.convention Type.LATEST
+    @Inject
+    PromoteArtifact(MavenPublication publication, Type type) {
+        this.webhookURL.convention this.providers.environmentVariable('PROMOTE_ARTIFACT_WEBHOOK')
+        this.username.convention this.providers.environmentVariable('PROMOTE_ARTIFACT_USERNAME')
+        this.password.convention this.providers.environmentVariable('PROMOTE_ARTIFACT_PASSWORD')
 
-        this.webhookURL.convention GradleUtils.getEnvVar('PROMOTE_ARTIFACT_WEBHOOK', this.providers)
-        this.username.convention GradleUtils.getEnvVar('PROMOTE_ARTIFACT_USERNAME', this.providers)
-        this.password.convention GradleUtils.getEnvVar('PROMOTE_ARTIFACT_PASSWORD', this.providers)
+        this.artifactGroup.set publication.groupId
+        this.artifactName.set publication.artifactId
+        this.artifactVersion.set publication.version
+
+        this.promotionType.convention(Type.LATEST).set type
 
         this.onlyIf { this.webhookURL.present && this.username.present && this.password.present }
     }
@@ -63,12 +54,20 @@ abstract class PromoteArtifact extends DefaultTask {
     abstract @Input Property<String> getUsername()
     abstract @Input Property<String> getPassword()
 
-    static enum Type {
+    @PackageScope static enum Type {
         LATEST, RECOMMENDED;
 
         @Override
         String toString() {
             return super.toString().toLowerCase()
+        }
+
+        static Type of(String type) {
+            try {
+                return PromoteArtifact.Type.valueOf(type.toUpperCase())
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid promotion type: $type. Known types: ${PromoteArtifact.Type.values()*.toString()}", e)
+            }
         }
     }
 
@@ -76,14 +75,14 @@ abstract class PromoteArtifact extends DefaultTask {
     void exec() {
         var client = HttpClient
             .newBuilder()
-            .sslParameters(SSLContext.default.defaultSSLParameters.tap { protocols = ["TLSv1.3"] })
+            .sslParameters(SSLContext.default.defaultSSLParameters.tap { protocols = ['TLSv1.3'] })
             .build()
 
         var request = HttpRequest
             .newBuilder()
             .uri(URI.create(this.webhookURL.get()))
-            .setHeader("Content-Type", 'application/json')
-            .setHeader("Authorization", "Basic ${Base64.getEncoder().encodeToString("${this.username.get()}:${this.password.get()}".getBytes())}")
+            .setHeader('Content-Type', 'application/json')
+            .setHeader('Authorization', "Basic ${Base64.encoder.encodeToString "${this.username.get()}:${this.password.get()}".bytes}")
             .timeout(Duration.ofSeconds(10))
             .POST(HttpRequest.BodyPublishers.ofString(new JsonBuilder(
                 group: this.artifactGroup.get(),

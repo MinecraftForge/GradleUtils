@@ -4,4 +4,20 @@ plugins {
 
 rootProject.name = 'gradleutils'
 
-apply from: 'settings_shared.gradle'
+dependencyResolutionManagement {
+    versionCatalogs {
+        libs {
+            // Included with Gradle API, but manually declared to view sources and JavaDoc links
+            library 'groovy', 'org.codehaus.groovy', 'groovy-all' version '3.0.22'
+
+            // GitHub Actions Workflows
+            library('yaml', 'org.yaml', 'snakeyaml').version('2.4')
+
+            // Git Version
+            library('gitver', 'net.minecraftforge', 'git-version').version('0.4.2')
+
+            // TODO - Deprecated git utilities, remove in 3.0
+            library('jgit', 'org.eclipse.jgit', 'org.eclipse.jgit').version('7.2.0.202503040940-r')
+        }
+    }
+}

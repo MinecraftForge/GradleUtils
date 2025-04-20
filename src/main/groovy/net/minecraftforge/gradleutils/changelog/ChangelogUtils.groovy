@@ -7,8 +7,6 @@ package net.minecraftforge.gradleutils.changelog
 import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
 import groovy.transform.PackageScopeTarget
-import net.minecraftforge.gradleutils.GradleUtils
-import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.publish.PublishingExtension
@@ -19,7 +17,7 @@ import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 /** Utility methods for configuring and working with the changelog tasks. */
 @CompileStatic
-@PackageScope([PackageScopeTarget.CLASS, PackageScopeTarget.METHODS])
+@PackageScope([PackageScopeTarget.CLASS, PackageScopeTarget.CONSTRUCTORS, PackageScopeTarget.METHODS])
 class ChangelogUtils {
     /**
      * Adds the createChangelog task to the target project. Also exposes it as a artifact of the 'createChangelog'
@@ -32,12 +30,11 @@ class ChangelogUtils {
      * @param project Project to add the task to
      * @return The task responsible for generating the changelog
      */
-    static TaskProvider<GenerateChangelog> setupChangelogTask(Project project, Action<? super TaskProvider<GenerateChangelog>> action) {
+    static TaskProvider<GenerateChangelog> setupChangelogTask(Project project) {
         project.tasks.register(GenerateChangelog.NAME, GenerateChangelog).tap { task ->
             project.configurations.register(GenerateChangelog.NAME) { it.canBeResolved = false }
             project.artifacts.add(GenerateChangelog.NAME, task)
-            project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME).configure { it.dependsOn(task) }
-            action.execute task
+            project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME).configure { it.dependsOn task }
         }
     }
 
@@ -78,9 +75,9 @@ class ChangelogUtils {
         }
     }
 
-    private static ChangelogExtension findParent(Project project) {
+    private static ChangelogExtensionImpl findParent(Project project) {
         var ext = project.extensions.findByType(ChangelogExtension)
-        if (ext?.isGenerating) return ext
+        if (ext?.generating) return ext as ChangelogExtensionImpl
 
         var parent = project.parent == project ? null : project.parent
         return parent == null ? null : findParent(parent)
@@ -106,7 +103,8 @@ class ChangelogUtils {
 
         project.tasks.register(CopyChangelog.NAME, CopyChangelog) { task ->
             var dependency = project.dependencies.project('path': parent.project.path, 'configuration': GenerateChangelog.NAME)
-            task.configuration.set project.configurations.detachedConfiguration(dependency).tap { it.canBeConsumed = false }
+            var configuration = project.configurations.detachedConfiguration(dependency).tap { it.canBeConsumed = false }
+            task.inputFile.fileProvider project.providers.provider { configuration.singleFile }
         }
     }
 
@@ -117,25 +115,23 @@ class ChangelogUtils {
      * @param publication The publication in question
      */
     static void setupChangelogGenerationForPublishing(Project project, MavenPublication publication) {
-        GradleUtils.ensureAfterEvaluate(project) {
-            setupChangelogGenerationForPublishingAfterEvaluation(it, publication)
+        Util.ensureAfterEvaluate(project) { p ->
+            setupChangelogGenerationForPublishingAfterEvaluation p, publication
         }
     }
 
     private static void setupChangelogGenerationForPublishingAfterEvaluation(Project project, MavenPublication publication) {
-        boolean existing = !publication.artifacts.findAll { MavenArtifact it -> it.classifier == 'changelog' && it.extension == 'txt' }.isEmpty()
+        boolean existing = !publication.artifacts.findAll { MavenArtifact a -> a.classifier == 'changelog' && a.extension == 'txt' }.isEmpty()
         if (existing) return
 
         // Grab the task
-        var task = findChangelogTask(project)
+        var task = findChangelogTask project
 
         // Add a new changelog artifact and publish it
-        publication.artifact(task.get().outputs.files.singleFile) {
-            it.builtBy(task)
-            it.classifier = 'changelog'
-            it.extension = 'txt'
+        publication.artifact(task.get().outputs.files.singleFile) { artifact ->
+            artifact.builtBy task
+            artifact.classifier = 'changelog'
+            artifact.extension = 'txt'
         }
     }
-
-    private ChangelogUtils() {}
 }
