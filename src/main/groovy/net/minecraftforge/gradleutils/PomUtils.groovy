@@ -135,33 +135,22 @@ final class PomUtils {
             org.url.set 'https://minecraftforge.net'
         }
 
-        var inCI = GradleUtils.hasEnvVar('GITHUB_ACTIONS', this.providers).get().booleanValue()
-
         var remoteUrl = stripProtocol(this.gitversion.url)
         var url = remoteUrl
         if (organization && repo) {
             url = "github.com/${organization}/${repo}".toString()
 
+            // This is a new feature and we shouldn't be bugging legacy GU 2.x users about it
+            // Re-enabled in GU 3.0
+            /*
             if (url && url == remoteUrl) {
                 this.project.logger.warn "WARNING: The repository name was specified in the 'setGitHubDetails' method, but it was already present in the Git remote URL. This is redundant and may cause issues if the remote repository URL changes in the future."
             }
+             */
         }
 
-        if (!url) {
-            this.project.logger.warn 'WARNING: The GitHub URL for this repo could not be automatically determined by Git Version. This is likely due to the repository not having any remotes, not having one set, or some other issue with Git Version.'
-            if (inCI)
-                throw new IllegalStateException('GitHub URL could not be determined, which is required in CI')
-
-            return
-        }
-
-        if (!url.contains('github.com')) {
-            this.project.logger.warn "WARNING: The repository URL found or created in 'setGitHubDetails' does not include 'github.com' This is problematic since all Minecraft Forge projects are hosted on GitHub. Found url: $url"
-        }
-
-        if (!url.contains('github.com/MinecraftForge')) {
-            this.project.logger.warn "WARNING: The repository URL found or created in 'setGitHubDetails' does not include 'github.com/MinecraftForge' This is problematic if you are attempting to publish this project, especially from GitHub Actions. Found url: $url"
-        }
+        // Silently return. This is a new feature and we shouldn't be bugging legacy GU 2.x users about it
+        if (!url) return
 
         var fullURL = "https://${url}".toString()
         pom.url.set fullURL
@@ -170,13 +159,16 @@ final class PomUtils {
             scm.connection.set "scm:git:git://${url}.git".toString()
             scm.developerConnection.set "scm:git:git@${url}.git".toString()
         }
-        pom.issueManagement { issues ->
-            issues.system.set url.split('\\.', 2)[0]
-            issues.url.set "https://${url}/issues".toString()
-        }
-        pom.ciManagement { ci ->
-            ci.system.set 'github'
-            ci.url.set "https://${url}/actions".toString()
+
+        if (url.contains('github.com')) {
+            pom.issueManagement { issues ->
+                issues.system.set url.split('\\.', 2)[0]
+                issues.url.set "https://${url}/issues".toString()
+            }
+            pom.ciManagement { ci ->
+                ci.system.set 'github'
+                ci.url.set "https://${url}/actions".toString()
+            }
         }
     }
 
