@@ -32,8 +32,8 @@ class ChangelogExtension {
     private @Lazy TaskProvider<GenerateChangelog> task = {
         this.isGenerating = true
 
-        ChangelogUtils.setupChangelogTask(this.project) { task ->
-            this.project.afterEvaluate { project ->
+        ChangelogUtils.setupChangelogTask(this.project) { TaskProvider<GenerateChangelog> task ->
+            this.project.afterEvaluate { Project project ->
                 if (this.gitRoot) {
                     task.configure {
                         it.gitDirectory.set gitRoot
@@ -64,6 +64,7 @@ class ChangelogExtension {
 
     private static boolean fromTagDeprecationWarning
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     void fromTag(String tag) {
         if (!fromTagDeprecationWarning) {
             this.project.logger.warn "WARNING: This project is still using 'changelog.fromTag'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'changelog.from' instead."
@@ -75,6 +76,7 @@ class ChangelogExtension {
 
     private static boolean fromCommitDeprecationWarning
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     void fromCommit(String commit) {
         if (!fromCommitDeprecationWarning) {
             this.project.logger.warn "WARNING: This project is still using 'changelog.fromCommit'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'changelog.from' instead."
@@ -86,6 +88,7 @@ class ChangelogExtension {
 
     private static boolean disableAutomaticPublicationRegistrationDeprecationWarning
     @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     void disableAutomaticPublicationRegistration() {
         if (!disableAutomaticPublicationRegistrationDeprecationWarning) {
             this.project.logger.warn "WARNING: This project is still using 'changelog.disableAutomaticPublicationRegistration'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'changelog.publishAll = false' instead."

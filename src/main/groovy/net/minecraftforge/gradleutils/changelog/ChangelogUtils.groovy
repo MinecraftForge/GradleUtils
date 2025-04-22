@@ -11,6 +11,7 @@ import net.minecraftforge.gradleutils.GradleUtils
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenArtifact
 import org.gradle.api.publish.maven.MavenPublication
@@ -34,7 +35,7 @@ class ChangelogUtils {
      */
     static TaskProvider<GenerateChangelog> setupChangelogTask(Project project, Action<? super TaskProvider<GenerateChangelog>> action) {
         project.tasks.register(GenerateChangelog.NAME, GenerateChangelog).tap { task ->
-            project.configurations.register(GenerateChangelog.NAME) { it.canBeResolved = false }
+            project.configurations.register(GenerateChangelog.NAME) { Configuration c -> c.canBeResolved = false }
             project.artifacts.add(GenerateChangelog.NAME, task)
             project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME).configure { it.dependsOn(task) }
             action.execute task
@@ -73,8 +74,8 @@ class ChangelogUtils {
         if (ext == null) return
 
         // Get each extension and add the publishing task as a publishing artifact
-        ext.publications.withType(MavenPublication).configureEach {
-            setupChangelogGenerationForPublishing(project, it)
+        ext.publications.withType(MavenPublication).configureEach { MavenPublication publication ->
+            setupChangelogGenerationForPublishing project, publication
         }
     }
 
@@ -82,7 +83,7 @@ class ChangelogUtils {
         var ext = project.extensions.findByType(ChangelogExtension)
         if (ext?.isGenerating) return ext
 
-        var parent = project.parent == project ? null : project.parent
+        Project parent = project.parent == project ? null : project.parent
         return parent == null ? null : findParent(parent)
     }
 

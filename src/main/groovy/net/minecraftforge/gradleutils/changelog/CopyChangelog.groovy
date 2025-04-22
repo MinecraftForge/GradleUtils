@@ -21,12 +21,11 @@ import javax.inject.Inject
 abstract class CopyChangelog extends DefaultTask {
     public static final String NAME = 'copyChangelog'
 
-    @Inject abstract ProjectLayout getLayout()
-
-    CopyChangelog() {
+    @Inject
+    CopyChangelog(ProjectLayout layout) {
         this.description = "Copies a changelog file to this project's build directory."
 
-        this.outputFile.convention this.layout.buildDirectory.file('changelog.txt')
+        this.outputFile.convention layout.buildDirectory.file('changelog.txt')
     }
 
     /** The output file for the copied changelog. */

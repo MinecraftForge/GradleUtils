@@ -34,13 +34,17 @@ class GradleUtilsExtension {
     public final PomUtils pom
 
     /** @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getRoot() GitVersion.getRoot()} via {@link GitVersionExtension#getVersion()} instead. */
-    @Deprecated(forRemoval = true, since = '2.4') @Lazy DirectoryProperty gitRoot = {
+    @Deprecated
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
+    @Lazy DirectoryProperty gitRoot = {
         this.project.logger.warn "WARNING: This project is still using 'gradleutils.gitRoot'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'gitversion.rootDir' instead."
 
         this.gitversion.rootDir
     }()
     /** @deprecated Use {@link net.minecraftforge.gitver.api.GitVersion#getInfo() GitVersion.getInfo()} via {@link GitVersionExtension#getVersion()} instead. */
-    @Deprecated(forRemoval = true, since = '2.4') @Lazy Map<String, String> gitInfo = {
+    @Deprecated(forRemoval = true, since = '2.4')
+    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
+    @Lazy Map<String, String> gitInfo = {
         this.project.logger.warn "WARNING: This project is still using 'gradleutils.gitInfo'. It has been deprecated and will be removed in GradleUtils 3.0. Consider using 'gitversion.info' instead."
 
         var gitversion = this.project.extensions.getByType(GitVersionExtension)
@@ -70,11 +74,11 @@ class GradleUtilsExtension {
         this.gitversion = project.extensions.getByType(GitVersionExtension)
 
         // Pom Utils
-        this.pom = new PomUtils(project, providers, this.gitversion)
+        this.pom = new PomUtils(this.gitversion)
 
         // Tasks
-        GenerateActionsWorkflow.register(this.project)
-        GradleUtils.setupCITasks(this.project)
+        this.project.tasks.register GenerateActionsWorkflow.NAME, GenerateActionsWorkflow
+        GradleUtils.setupCITasks this.project
     }
 
     /**

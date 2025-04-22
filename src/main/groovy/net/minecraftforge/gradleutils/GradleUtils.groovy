@@ -17,41 +17,28 @@ import org.eclipse.jgit.util.SystemReader
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
-import org.gradle.api.provider.Provider
-import org.gradle.api.provider.ProviderFactory
 import org.gradle.authentication.http.BasicAuthentication
 import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nullable
 
 /**
- * Utility methods, usually for GradleUtils itself and is often delegated to from the
- * {@linkplain GradleUtilsExtension extension}.
+ * Utility methods, usually for GradleUtils itself and is often delegated to from the extension.
  *
- * @deprecated In GradleUtils 3.0, this class will be hidden as {@linkplain groovy.transform.PackageScope package-private}.
  * @see GradleUtilsExtension
  */
 @CompileStatic
-@ApiStatus.Internal
+@Deprecated(forRemoval = true, since = '2.5')
+@ApiStatus.ScheduledForRemoval(inVersion = '3.0')
 class GradleUtils {
     static void ensureAfterEvaluate(Project project, Action<? super Project> action) {
         if (project.state.executed)
-            action.execute(project)
+            action.execute project
         else
-            project.afterEvaluate(action)
-    }
-
-    static Provider<String> getEnvVar(String name, ProviderFactory providers) {
-        providers.of(GradleUtilsSources.EnvVar) { it.parameters.variableName.set name }
-    }
-
-    static Provider<Boolean> hasEnvVar(String name, ProviderFactory providers) {
-        providers.of(GradleUtilsSources.HasEnvVar) { it.parameters.variableName.set name }
+            project.afterEvaluate action
     }
 
     //@formatter:off
     @CompileDynamic
-    @Deprecated(forRemoval = true, since = '2.4')
-    @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     private static void initDynamic() { String.metaClass.rsplit = GradleUtils.&rsplit }
     static { initDynamic() }
     //@formatter:on
@@ -61,11 +48,11 @@ class GradleUtils {
     @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static @Nullable List<String> rsplit(@Nullable String input, String del, int limit = -1) {
         if (!rsplitDeprecationLogged) {
-            println 'WARNING: Usage of GradleUtils.rsplit is DEPRECATED and will be removed in GradleUtils 3.0!'
+            println 'WARNING: Usage of GradleUtils/String.rsplit is DEPRECATED and will be removed in GradleUtils 3.0!'
             rsplitDeprecationLogged = true
         }
 
-        rsplitInternal(input, del, limit)
+        rsplitInternal input, del, limit
     }
 
     @Deprecated(forRemoval = true, since = '2.4')
@@ -127,7 +114,7 @@ class GradleUtils {
                 branch       : version.info.branch,
                 commit       : version.info.commit,
                 abbreviatedId: version.info.abbreviatedId,
-                url          : version.info.url
+                url          : version.url
             ].tap { it.removeAll { it.value == null } }
         }
     }
@@ -180,35 +167,41 @@ class GradleUtils {
      * @return The action
      */
     static Action<? super MavenArtifactRepository> setupSnapshotCompatiblePublishing(Project project, String fallbackPublishingEndpoint = 'https://maven.minecraftforge.net/', File defaultFolder = project.rootProject.file('repo'), File defaultSnapshotFolder = project.rootProject.file('snapshots')) {
-        { MavenArtifactRepository repo ->
+        // make properties of what we use so gradle's cache is aware
+        final snapshot = project.objects.property(Boolean).value project.providers.provider {
+            project.version?.toString()?.endsWith('-SNAPSHOT')
+        }
+
+        // collecting all of our environment variables here so gradle's cache is aware
+        final mavenUser = project.providers.environmentVariable 'MAVEN_USER'
+        final mavenPassword = project.providers.environmentVariable 'MAVEN_PASSWORD'
+        final mavenUrlRelease = project.providers.environmentVariable 'MAVEN_URL_RELEASE'
+        final mavenUrlSnapshots = project.providers.environmentVariable 'MAVEN_URL_SNAPSHOTS'
+
+        return { MavenArtifactRepository repo ->
             repo.name = 'forge'
 
-            if (System.getenv('MAVEN_USER') && System.getenv('MAVEN_PASSWORD')) {
-                String publishingEndpoint = fallbackPublishingEndpoint
-                if (System.getenv('MAVEN_URL_RELEASE')) {
-                    publishingEndpoint = System.getenv('MAVEN_URL_RELEASE')
+            if (mavenUser.present && mavenPassword.present) {
+                var publishingEndpoint = mavenUrlRelease.present ? mavenUrlRelease.get() : fallbackPublishingEndpoint
+
+                repo.url = snapshot.getOrElse(false) && mavenUrlSnapshots.present
+                    ? mavenUrlSnapshots.get()
+                    : publishingEndpoint
+
+                repo.authentication { authentication ->
+                    authentication.create('basic', BasicAuthentication)
                 }
 
-                if (project.version.toString().endsWith('-SNAPSHOT') && System.getenv('MAVEN_URL_SNAPSHOTS')) {
-                    repo.url = System.getenv('MAVEN_URL_SNAPSHOTS')
-                } else {
-                    repo.url = publishingEndpoint
-                }
-                repo.authentication { auth ->
-                    auth.create('basic', BasicAuthentication)
-                }
-                repo.credentials { creds ->
-                    creds.username = System.getenv('MAVEN_USER')
-                    creds.password = System.getenv('MAVEN_PASSWORD')
+                repo.credentials { credentials ->
+                    credentials.username = mavenUser.get()
+                    credentials.password = mavenPassword.get()
                 }
             } else {
-                if (project.version.toString().endsWith('-SNAPSHOT')) {
-                    repo.url = 'file://' + defaultSnapshotFolder.absolutePath
-                } else {
-                    repo.url = 'file://' + defaultFolder.absolutePath
-                }
+                repo.url = snapshot.getOrElse(false)
+                    ? defaultSnapshotFolder.absoluteFile.toURI()
+                    : defaultFolder.absoluteFile.toURI()
             }
-        }
+        } as Action<? super MavenArtifactRepository>
     }
 
     /**
@@ -284,7 +277,7 @@ class GradleUtils {
     @Deprecated(forRemoval = true, since = '2.4')
     @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static String getFilteredTagOffsetVersion(Map<String, String> info, boolean prefix = false, String filter) {
-        getTagOffsetVersion(info)
+        getTagOffsetVersion info
     }
 
     /**
@@ -313,7 +306,7 @@ class GradleUtils {
     @Deprecated(forRemoval = true, since = '2.4')
     @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static String getFilteredTagOffsetBranchVersion(Map<String, String> info, boolean prefix = false, String filter, String... allowedBranches) {
-        getTagOffsetBranchVersion(info, allowedBranches)
+        getTagOffsetBranchVersion info, allowedBranches
     }
 
     /**
@@ -339,14 +332,14 @@ class GradleUtils {
     @Deprecated(forRemoval = true, since = '2.4')
     @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static String getFilteredMCTagOffsetBranchVersion(Map<String, String> info, boolean prefix = false, String filter, String mcVersion, String... allowedBranches) {
-        getMCTagOffsetBranchVersion(info, mcVersion, allowedBranches)
+        getMCTagOffsetBranchVersion info, mcVersion, allowedBranches
     }
 
     /** @see net.minecraftforge.gitver.internal.GitUtils#buildProjectUrl(String) GitUtils.buildProjectUrl(String) */
     @Deprecated(forRemoval = true, since = '2.4')
     @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     static String buildProjectUrl(String project) {
-        buildProjectUrl("MinecraftForge", project);
+        buildProjectUrl "MinecraftForge", project
     }
 
     /** @see net.minecraftforge.gitver.internal.GitUtils#buildProjectUrl(String, String) GitUtils.buildProjectUrl(String, String) */
@@ -362,7 +355,7 @@ class GradleUtils {
      * {@link net.minecraftforge.gitver.internal.GitUtils#buildProjectUrl(Git) GitUtils.buildProjectUrl(Git)}. The only
      * difference is that this does not return {@code null} to preserve GradleUtils 2.x behavior.
      *
-     * @deprecated Replaced by GitVersion, use {@link GitVersion.Info#getUrl()} via {@link net.minecraftforge.gradleutils.gitversion.GitVersionExtension#getVersion() GitVersionExtension.getVersion()}
+     * @deprecated Replaced by GitVersion, use {@link GitVersion#getUrl()} via {@link net.minecraftforge.gradleutils.gitversion.GitVersionExtension#getVersion() GitVersionExtension.getVersion()}
      */
     @Deprecated(forRemoval = true, since = '2.4')
     @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
@@ -427,6 +420,6 @@ class GradleUtils {
      */
     @Deprecated(forRemoval = true)
     static void setupCITasks(Project project) {
-        ConfigureTeamCity.register(project)
+        project.tasks.register ConfigureTeamCity.NAME, ConfigureTeamCity
     }
 }

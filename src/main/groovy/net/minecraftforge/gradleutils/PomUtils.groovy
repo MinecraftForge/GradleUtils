@@ -8,12 +8,9 @@ import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
 import net.minecraftforge.gradleutils.gitversion.GitVersionExtension
 import org.gradle.api.Action
-import org.gradle.api.Project
-import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.publish.maven.MavenPom
 import org.gradle.api.publish.maven.MavenPomDeveloper
 import org.gradle.api.publish.maven.MavenPomLicense
-import org.gradle.api.publish.maven.MavenPublication
 import org.jetbrains.annotations.ApiStatus
 
 /**
@@ -24,14 +21,9 @@ import org.jetbrains.annotations.ApiStatus
 @CompileStatic
 @SuppressWarnings('unused')
 final class PomUtils {
-    private final Project project
-    private final ProviderFactory providers
-
     private final GitVersionExtension gitversion
 
-    @PackageScope PomUtils(Project project, ProviderFactory providers, GitVersionExtension gitversion) {
-        this.project = project
-        this.providers = providers
+    @PackageScope PomUtils(GitVersionExtension gitversion) {
         this.gitversion = gitversion
     }
 
@@ -55,6 +47,10 @@ final class PomUtils {
         private Licenses() {}
     }
 
+    // the IDE complains that the keys aren't actually Action<? super MavenPomDeveloper> if we make a map normally with Groovy
+    // so, using Map.<>of() to make it explicit with the type arguments
+    // HashMap so that withDefault() works
+    //@formatter:off
     /** Common developers in the Minecraft Forge organization. */
     public static final Map<String, Action<? super MavenPomDeveloper>> developers = [
         LexManos     : makeDev('LexManos', 'Lex Manos'),
@@ -62,7 +58,8 @@ final class PomUtils {
         SizableShrimp: makeDev('SizableShrimp'),
         cpw          : makeDev('cpw'),
         Jonathing    : makeDev('Jonathing', 'me@jonathing.me', 'https://jonathing.me', 'America/New_York') // i'm overkill
-    ].withDefault(this.&makeDev) as Map<String, Action<? super MavenPomDeveloper>>
+    ].<String, Action<? super MavenPomDeveloper>>withDefault(this.&makeDev)
+    //@formatter:on
 
     /**
      * @deprecated Casing changed.
@@ -74,31 +71,19 @@ final class PomUtils {
 
     private static Action<? super MavenPomDeveloper> makeDev(String id, String name = id) {
         return { MavenPomDeveloper developer ->
-            developer.id.set(id)
-            developer.name.set(name)
-        }
+            developer.id.set id
+            developer.name.set name
+        } as Action<? super MavenPomDeveloper>
     }
 
     private static Action<? super MavenPomDeveloper> makeDev(String id, String name = id, String email, String url, String timezone) {
         return { MavenPomDeveloper developer ->
-            developer.id.set(id)
-            developer.name.set(name)
-            developer.email.set(email)
-            developer.url.set(url)
-            developer.timezone.set(timezone)
-        }
-    }
-
-    @SuppressWarnings('GrDeprecatedAPIUsage')
-    void promote(MavenPublication publication, String promotionType = 'latest') {
-        PromoteArtifact.Type type
-        try {
-            type = PromoteArtifact.Type.valueOf(promotionType.toUpperCase())
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid promotion type: $promotionType. Known types: ${PromoteArtifact.Type.values()*.toString()}", e)
-        }
-
-        PromoteArtifact.register(this.project, publication, type)
+            developer.id.set id
+            developer.name.set name
+            developer.email.set email
+            developer.url.set url
+            developer.timezone.set timezone
+        } as Action<? super MavenPomDeveloper>
     }
 
     /**
@@ -107,7 +92,7 @@ final class PomUtils {
      * @param pom The pom to configure
      */
     void setGitHubDetails(MavenPom pom) {
-        this.setGitHubDetails(pom, '')
+        setGitHubDetails(pom, this.gitversion)
     }
 
     /**
@@ -117,7 +102,7 @@ final class PomUtils {
      * @param pom The pom to configure
      * @param repo The name of the repository on GitHub
      */
-    void setGitHubDetails(MavenPom pom, String repo) {
+    static void setGitHubDetails(MavenPom pom, String repo) {
         this.setGitHubDetails(pom, 'MinecraftForge', repo)
     }
 
@@ -128,41 +113,15 @@ final class PomUtils {
      * @param organization The organization or username the GitHub project is under
      * @param repo The name of the repository on GitHub
      */
-    void setGitHubDetails(MavenPom pom, String organization, String repo) {
-        // always add this
-        pom.organization { org ->
-            org.name.set 'Forge Development LLC'
-            org.url.set 'https://minecraftforge.net'
-        }
+    static void setGitHubDetails(MavenPom pom, String organization, String repo) {
+        setGitHubDetailsInternal pom, "github.com/${organization}/${repo}".toString()
+    }
 
-        var inCI = GradleUtils.hasEnvVar('GITHUB_ACTIONS', this.providers).get().booleanValue()
+    static void setGitHubDetails(MavenPom pom, GitVersionExtension gitversion) {
+        setGitHubDetailsInternal pom, stripProtocol(gitversion.url)
+    }
 
-        var remoteUrl = stripProtocol(this.gitversion.url)
-        var url = remoteUrl
-        if (organization && repo) {
-            url = "github.com/${organization}/${repo}".toString()
-
-            if (url && url == remoteUrl) {
-                this.project.logger.warn "WARNING: The repository name was specified in the 'setGitHubDetails' method, but it was already present in the Git remote URL. This is redundant and may cause issues if the remote repository URL changes in the future."
-            }
-        }
-
-        if (!url) {
-            this.project.logger.warn 'WARNING: The GitHub URL for this repo could not be automatically determined by Git Version. This is likely due to the repository not having any remotes, not having one set, or some other issue with Git Version.'
-            if (inCI)
-                throw new IllegalStateException('GitHub URL could not be determined, which is required in CI')
-
-            return
-        }
-
-        if (!url.contains('github.com')) {
-            this.project.logger.warn "WARNING: The repository URL found or created in 'setGitHubDetails' does not include 'github.com' This is problematic since all Minecraft Forge projects are hosted on GitHub. Found url: $url"
-        }
-
-        if (!url.contains('github.com/MinecraftForge')) {
-            this.project.logger.warn "WARNING: The repository URL found or created in 'setGitHubDetails' does not include 'github.com/MinecraftForge' This is problematic if you are attempting to publish this project, especially from GitHub Actions. Found url: $url"
-        }
-
+    private static void setGitHubDetailsInternal(MavenPom pom, String url) {
         var fullURL = "https://${url}".toString()
         pom.url.set fullURL
         pom.scm { scm ->
@@ -170,13 +129,23 @@ final class PomUtils {
             scm.connection.set "scm:git:git://${url}.git".toString()
             scm.developerConnection.set "scm:git:git@${url}.git".toString()
         }
-        pom.issueManagement { issues ->
-            issues.system.set url.split('\\.', 2)[0]
-            issues.url.set "https://${url}/issues".toString()
+
+        if (url.contains('github.com')) {
+            pom.issueManagement { issues ->
+                issues.system.set url.split('\\.', 2)[0]
+                issues.url.set "https://${url}/issues".toString()
+            }
+            pom.ciManagement { ci ->
+                ci.system.set 'github'
+                ci.url.set "https://${url}/actions".toString()
+            }
         }
-        pom.ciManagement { ci ->
-            ci.system.set 'github'
-            ci.url.set "https://${url}/actions".toString()
+
+        if (url.contains('MinecraftForge/')) {
+            pom.organization { org ->
+                org.name.set 'Forge Development LLC'
+                org.url.set 'https://minecraftforge.net'
+            }
         }
     }
 
