@@ -5,10 +5,8 @@
 package net.minecraftforge.gradleutils
 
 import groovy.transform.CompileStatic
-import groovy.transform.PackageScope
 import net.minecraftforge.gradleutils.gitversion.GitVersionExtension
 import org.gradle.api.DefaultTask
-import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
@@ -17,11 +15,12 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
-import org.gradle.api.tasks.TaskProvider
 import org.yaml.snakeyaml.DumperOptions
 import org.yaml.snakeyaml.Yaml
 
 import javax.inject.Inject
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 
 /**
  * This task generates the GitHub Actions workflow file for the project, respecting declared subprojects in Git Version.
@@ -31,23 +30,18 @@ import javax.inject.Inject
 abstract class GenerateActionsWorkflow extends DefaultTask {
     public static final String NAME = 'generateActionsWorkflow'
 
-    @PackageScope static TaskProvider<GenerateActionsWorkflow> register(Project project) {
-        project.tasks.register(NAME, GenerateActionsWorkflow)
-    }
-
-    @Inject abstract ProviderFactory getProviders()
-
-    GenerateActionsWorkflow() {
+    @Inject
+    GenerateActionsWorkflow(ProviderFactory providers) {
         this.description = 'Generates the GitHub Actions workflow file for the project, respecting declared subprojects in Git Version.'
 
-        this.outputFile.convention this.project.rootProject.layout.projectDirectory.file(this.providers.provider { "build_${this.project.name}.yaml" })
-
-        this.projectName.convention this.providers.provider { this.project.name }
-        this.branch.convention this.providers.provider { this.project.extensions.getByType(GitVersionExtension).info.branch }
+        this.projectName.convention providers.provider { this.project.name }
+        this.branch.convention providers.provider { this.project.extensions.getByType(GitVersionExtension).info.branch }
         this.localPath.convention this.project.extensions.getByType(GitVersionExtension).projectPath
-        this.paths.convention this.providers.provider { this.project.extensions.getByType(GitVersionExtension).subprojectPaths.get().collect { "!${it}/**".toString() } }
+        this.paths.convention providers.provider { this.project.extensions.getByType(GitVersionExtension).subprojectPaths.get().collect { "!${it}/**".toString() } }
         this.gradleJavaVersion.convention 21
         this.sharedActionsBranch.convention 'v0'
+
+        this.outputFile.convention this.project.rootProject.layout.projectDirectory.file(providers.provider { "build_${this.project.name}.yaml" })
     }
 
     abstract @OutputFile RegularFileProperty getOutputFile()
@@ -105,9 +99,13 @@ abstract class GenerateActionsWorkflow extends DefaultTask {
         ).dump(yaml).replace("'on':", 'on:')
 
         var file = outputFile.asFile.get()
-        if (!file.parentFile.exists())
-            file.parentFile.mkdirs()
+        if (!file.parentFile.exists() && !file.parentFile.mkdirs())
+            throw new IllegalStateException('Failed to create directories for output!')
 
-        file.setText(workflow, 'UTF8')
+        Files.writeString(
+            file.toPath(),
+            workflow,
+            StandardCharsets.UTF_8
+        )
     }
 }

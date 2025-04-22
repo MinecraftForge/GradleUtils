@@ -70,11 +70,11 @@ class GradleUtilsExtension {
         this.gitversion = project.extensions.getByType(GitVersionExtension)
 
         // Pom Utils
-        this.pom = new PomUtils(project, providers, this.gitversion)
+        this.pom = new PomUtils(this.gitversion)
 
         // Tasks
-        GenerateActionsWorkflow.register(this.project)
-        GradleUtils.setupCITasks(this.project)
+        this.project.tasks.register GenerateActionsWorkflow.NAME, GenerateActionsWorkflow
+        GradleUtils.setupCITasks this.project
     }
 
     /**

@@ -17,16 +17,14 @@ import javax.inject.Inject
 /** The entry point for the Gradle Utils plugin. Exists to create the {@linkplain GradleUtilsExtension extension}. */
 @CompileStatic
 abstract class GradleUtilsPlugin implements Plugin<Project> {
-    /** @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#objectfactory">ObjectFactory Service Injection</a> */
-    @Inject abstract ObjectFactory getObjects()
-    /** @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#providerfactory">ProviderFactory Service Injection</a> */
-    @Inject abstract ProviderFactory getProviders()
+    protected abstract @Inject ObjectFactory getObjects()
+    protected abstract @Inject ProviderFactory getProviders()
 
     @Override
     void apply(Project project) {
-        project.plugins.apply(GitVersionPlugin)
-        project.plugins.apply(ChangelogPlugin)
+        project.plugins.apply GitVersionPlugin
+        project.plugins.apply ChangelogPlugin
         // TODO [GradleUtils][3.0] Use direct constructor
-        project.extensions.create(GradleUtilsExtension.NAME, GradleUtilsExtension, project, this.objects, this.providers)
+        project.extensions.create GradleUtilsExtension.NAME, GradleUtilsExtension, project, this.objects, this.providers
     }
 }

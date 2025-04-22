@@ -31,19 +31,17 @@ import javax.inject.Inject
 abstract class GenerateChangelog extends DefaultTask {
     @PackageScope static final String NAME = 'createChangelog'
 
-    @Inject abstract ObjectFactory getObjects()
-    @Inject abstract ProjectLayout getLayout()
-    @Inject abstract ProviderFactory getProviders()
-    @Inject abstract BuildFeatures getBuildFeatures()
+    protected abstract @Inject BuildFeatures getBuildFeatures()
 
-    GenerateChangelog() {
+    @Inject
+    GenerateChangelog(ObjectFactory objects, ProjectLayout layout, ProviderFactory providers) {
         this.description = 'Generates a changelog for the project based on the Git history using Git Version.'
 
         //Setup defaults: Using merge-base based text changelog generation of the local project into build/changelog.txt
-        this.outputFile.convention this.layout.buildDirectory.file('changelog/changelog.txt')
+        this.outputFile.convention layout.buildDirectory.file('changelog/changelog.txt')
 
-        this.gitDirectory.convention this.objects.directoryProperty().fileProvider(this.providers.provider { GitVersion.findGitRoot(this.layout.projectDirectory.asFile) }).dir('.git')
-        this.projectPath.convention this.providers.provider { GitVersion.findRelativePath(this.layout.projectDirectory.asFile) }
+        this.gitDirectory.convention objects.directoryProperty().fileProvider(providers.provider { GitVersion.findGitRoot(layout.projectDirectory.asFile) }).dir('.git')
+        this.projectPath.convention providers.provider { GitVersion.findRelativePath(layout.projectDirectory.asFile) }
         this.buildMarkdown.convention false
     }
 
