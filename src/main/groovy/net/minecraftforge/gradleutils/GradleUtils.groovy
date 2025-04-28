@@ -114,7 +114,7 @@ class GradleUtils {
                 branch       : version.info.branch,
                 commit       : version.info.commit,
                 abbreviatedId: version.info.abbreviatedId,
-                url          : version.info.url
+                url          : version.url
             ].tap { it.removeAll { it.value == null } }
         }
     }
@@ -355,7 +355,7 @@ class GradleUtils {
      * {@link net.minecraftforge.gitver.internal.GitUtils#buildProjectUrl(Git) GitUtils.buildProjectUrl(Git)}. The only
      * difference is that this does not return {@code null} to preserve GradleUtils 2.x behavior.
      *
-     * @deprecated Replaced by GitVersion, use {@link GitVersion.Info#getUrl()} via {@link net.minecraftforge.gradleutils.gitversion.GitVersionExtension#getVersion() GitVersionExtension.getVersion()}
+     * @deprecated Replaced by GitVersion, use {@link GitVersion#getUrl()} via {@link net.minecraftforge.gradleutils.gitversion.GitVersionExtension#getVersion() GitVersionExtension.getVersion()}
      */
     @Deprecated(forRemoval = true, since = '2.4')
     @ApiStatus.ScheduledForRemoval(inVersion = '3.0')

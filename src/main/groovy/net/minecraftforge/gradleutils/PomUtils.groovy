@@ -52,13 +52,13 @@ final class PomUtils {
     // HashMap so that withDefault() works
     //@formatter:off
     /** Common developers in the Minecraft Forge organization. */
-    public static final Map<String, Action<? super MavenPomDeveloper>> developers = new HashMap<>(Map.<String, Action<? super MavenPomDeveloper>>of(
-        'LexManos',      makeDev('LexManos', 'Lex Manos'),
-        'Paint_Ninja',   makeDev('Paint_Ninja'),
-        'SizableShrimp', makeDev('SizableShrimp'),
-        'cpw',           makeDev('cpw'),
-        'Jonathing',     makeDev('Jonathing', 'me@jonathing.me', 'https://jonathing.me', 'America/New_York') // i'm overkill
-    )).withDefault(this.&makeDev)
+    public static final Map<String, Action<? super MavenPomDeveloper>> developers = [
+        LexManos     : makeDev('LexManos', 'Lex Manos'),
+        Paint_Ninja  : makeDev('Paint_Ninja'),
+        SizableShrimp: makeDev('SizableShrimp'),
+        cpw          : makeDev('cpw'),
+        Jonathing    : makeDev('Jonathing', 'me@jonathing.me', 'https://jonathing.me', 'America/New_York') // i'm overkill
+    ].<String, Action<? super MavenPomDeveloper>>withDefault(this.&makeDev)
     //@formatter:on
 
     /**

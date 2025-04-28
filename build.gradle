@@ -19,15 +19,11 @@ version = gitversion.tagOffset
 
 println "Version: $version"
 
-// GitVersion requires Java 17
+// Git Version requires Java 17
 java.toolchain.languageVersion = JavaLanguageVersion.of 17
 
-tasks.withType(GroovyCompile).configureEach {
-    groovyOptions.optimizationOptions.indy = true
-}
-
 configurations {
-    runtimeClasspath {
+    named('runtimeClasspath') {
         exclude group: 'org.slf4j', module: 'slf4j-api'
     }
 }
@@ -39,7 +35,7 @@ dependencies {
     // Git Version
     implementation libs.gitver
 
-    // TODO - Deprecated git utilities, remove in 3.0
+    // Backwards compatibility
     implementation libs.jgit
 }
 
@@ -59,13 +55,18 @@ tasks.named('shadowJar', ShadowJar) {
     relocationPrefix = 'net.minecraftforge.gradleutils.shadow'
 }
 
-javadoc.enabled = false
-groovydoc.use = true
+tasks.withType(GroovyCompile).configureEach {
+    groovyOptions.optimizationOptions.indy = true
+}
 
+// TODO [GradleUtils][GU3] Remove, as normal JavaDocs are used instead, with Groovy classes being hidden impl
 // javadocJar is created after evaluation, so we need to configure it here
 afterEvaluate {
+    javadoc.enabled = false
+    groovydoc.use = true
+
     tasks.named('javadocJar', Jar) {
-        dependsOn tasks.named('groovydoc', Groovydoc)
+        dependsOn groovydoc
         from groovydoc.destinationDir
     }
 }
@@ -91,7 +92,7 @@ gradlePlugin {
             id = 'net.minecraftforge.changelog'
             implementationClass = 'net.minecraftforge.gradleutils.changelog.ChangelogPlugin'
             displayName = 'Git Changelog'
-            description = 'Creates a changelog text file based on git history using GitVersion'
+            description = 'Creates a changelog text file based on git history using Git Version'
             tags = ['git', 'changelog']
         }
     }
@@ -100,6 +101,7 @@ gradlePlugin {
 publishing {
     publications.register('pluginMaven', MavenPublication) {
         artifactId = project.name
+
         changelog.publish it
 
         pom { pom ->
