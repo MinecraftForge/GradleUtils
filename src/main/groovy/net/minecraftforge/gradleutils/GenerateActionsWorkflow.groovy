@@ -4,12 +4,14 @@
  */
 package net.minecraftforge.gradleutils
 
+import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import net.minecraftforge.gradleutils.gitversion.GitVersionExtension
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
@@ -53,10 +55,15 @@ abstract class GenerateActionsWorkflow extends DefaultTask {
     abstract @Input Property<Integer> getGradleJavaVersion()
     abstract @Input Property<String> getSharedActionsBranch()
 
+    @CompileDynamic
+    private List<String> getPathsResolved() {
+        this.paths.getOrElse(List.of())
+    }
+
     @TaskAction
     void exec() throws IOException {
         var localPath = this.localPath.orNull
-        var paths = this.paths.getOrElse(Collections.emptyList())
+        var paths = this.pathsResolved
 
         var push = [
             'branches': this.branch.getOrElse('master'),

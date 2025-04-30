@@ -73,7 +73,7 @@ final class PomUtils {
         return { MavenPomDeveloper developer ->
             developer.id.set id
             developer.name.set name
-        }
+        } as Action<? super MavenPomDeveloper>
     }
 
     private static Action<? super MavenPomDeveloper> makeDev(String id, String name = id, String email, String url, String timezone) {
@@ -83,7 +83,7 @@ final class PomUtils {
             developer.email.set email
             developer.url.set url
             developer.timezone.set timezone
-        }
+        } as Action<? super MavenPomDeveloper>
     }
 
     /**

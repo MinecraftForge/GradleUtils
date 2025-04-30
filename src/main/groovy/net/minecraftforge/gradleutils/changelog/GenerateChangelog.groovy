@@ -9,7 +9,6 @@ import groovy.transform.PackageScope
 import net.minecraftforge.gitver.api.GitVersion
 import net.minecraftforge.gitver.api.GitVersionException
 import org.gradle.api.DefaultTask
-import org.gradle.api.configuration.BuildFeatures
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFileProperty
@@ -30,8 +29,6 @@ import javax.inject.Inject
 @CompileStatic
 abstract class GenerateChangelog extends DefaultTask {
     @PackageScope static final String NAME = 'createChangelog'
-
-    protected abstract @Inject BuildFeatures getBuildFeatures()
 
     @Inject
     GenerateChangelog(ObjectFactory objects, ProjectLayout layout, ProviderFactory providers) {
@@ -60,9 +57,7 @@ abstract class GenerateChangelog extends DefaultTask {
 
     @TaskAction
     void exec() throws IOException {
-        // If we are using the configuration cache, disable the system config since it calls the git command line tool
-        if (this.buildFeatures.configurationCache.active.getOrElse(false))
-            GitVersion.disableSystemConfig()
+        GitVersion.disableSystemConfig()
 
         var gitDir = this.gitDirectory.asFile.get()
         try (var version = GitVersion.builder().gitDir(gitDir).project(new File(gitDir.absoluteFile.parentFile, this.projectPath.get())).build()) {

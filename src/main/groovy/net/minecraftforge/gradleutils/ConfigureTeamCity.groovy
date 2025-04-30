@@ -26,7 +26,7 @@ abstract class ConfigureTeamCity extends DefaultTask {
     @Inject
     ConfigureTeamCity(ProviderFactory providers) {
         this.description = 'Prints the marker lines into the log which configure the pipeline. [deprecated]'
-        this.onlyIf('Only runs on TeamCity, so the TEAMCITY_VERSION environment variable must be set.') {
+        this.onlyIf/*('Only runs on TeamCity, so the TEAMCITY_VERSION environment variable must be set.')*/ {
             providers.environmentVariable('TEAMCITY_VERSION').present
         }
 

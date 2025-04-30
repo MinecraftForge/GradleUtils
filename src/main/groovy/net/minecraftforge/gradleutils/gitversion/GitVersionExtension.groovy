@@ -9,7 +9,6 @@ import groovy.transform.PackageScope
 import net.minecraftforge.gitver.api.GitVersion
 import net.minecraftforge.gitver.api.GitVersionException
 import org.gradle.api.Project
-import org.gradle.api.configuration.BuildFeatures
 import org.gradle.api.file.Directory
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemLocation
@@ -38,18 +37,16 @@ class GitVersionExtension {
     private final ObjectFactory objects
     private final ProjectLayout layout
     private final ProviderFactory providers
-    private final BuildFeatures buildFeatures
 
     /** @deprecated This constructor will be made package-private in GradleUtils 3.0 */
     @Inject
     @Deprecated(forRemoval = true)
     @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
-    GitVersionExtension(Project project, ObjectFactory objects, ProjectLayout layout, ProviderFactory providers, BuildFeatures buildFeatures) {
+    GitVersionExtension(Project project, ObjectFactory objects, ProjectLayout layout, ProviderFactory providers) {
         this.project = project
         this.objects = objects
         this.layout = layout
         this.providers = providers
-        this.buildFeatures = buildFeatures
     }
 
 
@@ -58,9 +55,7 @@ class GitVersionExtension {
     @Deprecated(forRemoval = true)
     @ApiStatus.ScheduledForRemoval(inVersion = '3.0')
     @PackageScope @Lazy GitVersion versionInternal = {
-        // If we are using the configuration cache, disable the system config since it calls the git command line tool
-        if (this.buildFeatures.configurationCache.active.getOrElse(false))
-            GitVersion.disableSystemConfig()
+        GitVersion.disableSystemConfig()
 
         var builder = GitVersion.builder().project(this.layout.projectDirectory.asFile)
         try {

@@ -1,4 +1,7 @@
+import dev.gradleplugins.GradleRuntimeCompatibility
+
 plugins {
+    id 'dev.gradleplugins.gradle-plugin-development' version '1.9.0'
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.10.0'
 }
 
@@ -8,7 +11,6 @@ dependencyResolutionManagement {
     repositories {
         maven { url = 'https://maven.minecraftforge.net' }
         mavenCentral()
-        mavenLocal()
     }
 
     versionCatalogs.register('libs') {
@@ -16,6 +18,13 @@ dependencyResolutionManagement {
         plugin 'gradleutils', 'net.minecraftforge.gradleutils' version '2.5.1'
         plugin 'plugin-publish', 'com.gradle.plugin-publish' version '1.3.1'
         plugin 'shadow', 'com.gradleup.shadow' version '9.0.0-beta13'
+
+        // Gradle API
+        final gradle = '7.3'
+        version 'gradle', gradle
+
+        library 'groovy', 'org.codehaus.groovy', 'groovy-all' version GradleRuntimeCompatibility.groovyVersionOf(gradle)
+        library 'nulls', 'org.jetbrains', 'annotations' version '26.0.2'
 
         // GitHub Actions Workflows
         library 'yaml', 'org.yaml', 'snakeyaml' version '2.4'

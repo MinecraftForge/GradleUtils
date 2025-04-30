@@ -4,6 +4,7 @@
  */
 package net.minecraftforge.gradleutils.changelog
 
+import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
 import org.gradle.api.Project
@@ -32,8 +33,8 @@ class ChangelogExtension {
     private @Lazy TaskProvider<GenerateChangelog> task = {
         this.isGenerating = true
 
-        ChangelogUtils.setupChangelogTask(this.project) { task ->
-            this.project.afterEvaluate { project ->
+        ChangelogUtils.setupChangelogTask(this.project) { TaskProvider<GenerateChangelog> task ->
+            this.project.afterEvaluate { Project project ->
                 if (this.gitRoot) {
                     task.configure {
                         it.gitDirectory.set gitRoot

@@ -201,7 +201,7 @@ class GradleUtils {
                     ? defaultSnapshotFolder.absoluteFile.toURI()
                     : defaultFolder.absoluteFile.toURI()
             }
-        }
+        } as Action<? super MavenArtifactRepository>
     }
 
     /**

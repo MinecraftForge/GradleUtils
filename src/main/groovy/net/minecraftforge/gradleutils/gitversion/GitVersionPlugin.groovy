@@ -7,7 +7,6 @@ package net.minecraftforge.gradleutils.gitversion
 import groovy.transform.CompileStatic
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.configuration.BuildFeatures
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ProviderFactory
@@ -23,12 +22,10 @@ abstract class GitVersionPlugin implements Plugin<Project> {
     @Inject abstract ProjectLayout getLayout()
     /** @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#providerfactory">ProviderFactory Service Injection</a> */
     @Inject abstract ProviderFactory getProviders()
-    /** @see <a href="https://docs.gradle.org/current/userguide/implementing_gradle_plugins_binary.html#reacting_to_build_features">Reacting to build features</a> */
-    @Inject abstract BuildFeatures getBuildFeatures()
 
     @Override
     void apply(Project project) {
         // TODO [GradleUtils][3.0][GitVersion] Use direct constructor
-        project.extensions.create(GitVersionExtension.NAME, GitVersionExtension, project, this.objects, this.layout, this.providers, this.buildFeatures)
+        project.extensions.create(GitVersionExtension.NAME, GitVersionExtension, project, this.objects, this.layout, this.providers)
     }
 }

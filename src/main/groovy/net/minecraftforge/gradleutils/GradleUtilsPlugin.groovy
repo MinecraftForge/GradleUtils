@@ -24,7 +24,7 @@ abstract class GradleUtilsPlugin implements Plugin<Project> {
     void apply(Project project) {
         project.plugins.apply GitVersionPlugin
         project.plugins.apply ChangelogPlugin
-        // TODO [GradleUtils][3.0] Use direct constructor
+        // TODO [GradleUtils][GU3.0] Use direct constructor
         project.extensions.create GradleUtilsExtension.NAME, GradleUtilsExtension, project, this.objects, this.providers
     }
 }
