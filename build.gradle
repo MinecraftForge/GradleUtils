@@ -1,26 +1,16 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.gradle.api.attributes.plugin.GradlePluginApiVersion
 
 plugins {
-    id 'dev.gradleplugins.gradle-plugin-development' apply false
-    id 'java'
+    id 'java-gradle-plugin'
     id 'groovy'
     id 'idea'
     id 'eclipse'
     id 'maven-publish'
     alias libs.plugins.licenser
     alias libs.plugins.gradleutils
-    alias libs.plugins.plugin.publish apply false
+    alias libs.plugins.plugin.publish
     alias libs.plugins.shadow
-}
-
-// NOTE: Applying the Plugin Publish plugin causes local Gradle dependencies to be used
-// To develop using the target Gradle and Groovy versions, set this to 'false'
-final inCI = providers.environmentVariable('CI').<boolean>map({ 'true'.equalsIgnoreCase it }).getOrElse(false)
-
-apply {
-    if (!inCI) return
-    plugin 'dev.gradleplugins.gradle-plugin-development'
-    plugin libs.plugins.plugin.publish.get().pluginId
 }
 
 final projectDisplayName = 'Forge Gradle Utilities'
@@ -31,22 +21,29 @@ version = gitversion.tagOffset
 println "Version: $version"
 
 // Git Version requires Java 17
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of 17
-    withSourcesJar()
-    withJavadocJar()
-}
+java.toolchain.languageVersion = JavaLanguageVersion.of 17
 
 configurations {
+    // Applies the "Gradle Plugin API Version" attribute to configuration
+    // This was added in Gradle 7, gives consumers useful errors if they are on an old version
+    def applyGradleVersionAttribute = { Configuration configuration ->
+        configuration.attributes {
+            attribute org.gradle.api.attributes.plugin.GradlePluginApiVersion.GRADLE_PLUGIN_API_VERSION_ATTRIBUTE, objects.named(GradlePluginApiVersion, libs.versions.gradle.get())
+        }
+    }
+
+    named JavaPlugin.API_ELEMENTS_CONFIGURATION_NAME, applyGradleVersionAttribute
+    named JavaPlugin.RUNTIME_ELEMENTS_CONFIGURATION_NAME, applyGradleVersionAttribute
+
     named(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME) {
+        // Fixes a conflict between Git Version's shadowed SLF4J from JGit and Gradle's own loggers
         exclude group: 'org.slf4j', module: 'slf4j-api'
     }
 }
 
 dependencies {
     // Gradle API
-    compileOnly gradleApi(libs.versions.gradle.get())
-    compileOnly libs.groovy
+    compileOnly libs.gradle
     compileOnly libs.nulls
 
     // GitHub Actions Workflows
@@ -59,8 +56,18 @@ dependencies {
     implementation libs.jgit
 }
 
+// Removes local Gradle API from compileOnly. This is a workaround for bugged plugins.
+// TODO [GradleUtils][GradleAPI] Remove this once they are fixed.
+// Publish Plugin: https://github.com/gradle/plugin-portal-requests/issues/260
+// Shadow:         https://github.com/GradleUp/shadow/pull/1422
+afterEvaluate { project ->
+    project.configurations.named(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME) { compileOnly ->
+        compileOnly.dependencies.remove project.dependencies.gradleApi()
+    }
+}
+
 license {
-    header = file('LICENSE-header.txt')
+    header = rootProject.file 'LICENSE-header.txt'
     newLine = false
     exclude '**/*.properties'
 }
@@ -79,13 +86,15 @@ tasks.withType(GroovyCompile).configureEach {
     groovyOptions.optimizationOptions.indy = true
 }
 
-// TODO [GradleUtils][GU3] Remove, as normal JavaDocs are used instead, with Groovy classes being hidden impl
+// TODO [GradleUtils][GU3.0] Remove, as normal JavaDocs are used instead, with Groovy classes being hidden impl
 // javadocJar is created after evaluation, so we need to configure it here
 afterEvaluate {
     tasks.named('javadoc', Javadoc) { enabled = false }
     tasks.named('groovydoc', Groovydoc) { use = true }
 
     tasks.named('javadocJar', Jar) {
+        final groovydoc = tasks.named('groovydoc', Groovydoc).get()
+
         dependsOn groovydoc
         from groovydoc.destinationDir
     }
@@ -96,9 +105,7 @@ changelog {
     publishAll = false
 }
 
-// weird null-safe ?.tap is in case this extension doesn't exist.
-// see start of the buildscript. it's conditionally applied.
-extensions.findByType(GradlePluginDevelopmentExtension)?.tap {
+gradlePlugin {
     website.set gitversion.url
     vcsUrl.set gitversion.url + '.git'
 
@@ -122,8 +129,6 @@ extensions.findByType(GradlePluginDevelopmentExtension)?.tap {
 
 publishing {
     publications.register('pluginMaven', MavenPublication) {
-        if (!inCI) from components.java
-
         artifactId = project.name
 
         changelog.publish it
@@ -138,7 +143,7 @@ publishing {
                 license gradleutils.pom.licenses.LGPLv2_1
             }
 
-            // TODO [GradleUtils] Re-evaluate active developers in GU 3.0
+            // TODO [GradleUtils][GU3.0] Re-evaluate active developers in GU 3.0
             developers {
                 developer gradleutils.pom.developers.LexManos
                 developer gradleutils.pom.developers.SizableShrimp

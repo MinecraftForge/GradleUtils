@@ -1,7 +1,14 @@
-import dev.gradleplugins.GradleRuntimeCompatibility
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+
+        // GitHub Packages
+        maven { url = 'https://maven.moddinglegacy.com/maven' }
+    }
+}
 
 plugins {
-    id 'dev.gradleplugins.gradle-plugin-development' version '1.9.0'
+    id 'me.jonathing.gradle.github-packages' version '2.0.0'
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.10.0'
 }
 
@@ -10,6 +17,7 @@ rootProject.name = 'gradleutils'
 dependencyResolutionManagement {
     repositories {
         maven { url = 'https://maven.minecraftforge.net' }
+        maven githubPackage.maven('remal-gradle-api/packages')
         mavenCentral()
     }
 
@@ -20,10 +28,8 @@ dependencyResolutionManagement {
         plugin 'shadow', 'com.gradleup.shadow' version '9.0.0-beta13'
 
         // Gradle API
-        final gradle = '7.3'
-        version 'gradle', gradle
-
-        library 'groovy', 'org.codehaus.groovy', 'groovy-all' version GradleRuntimeCompatibility.groovyVersionOf(gradle)
+        version 'gradle', '7.3'
+        library 'gradle', 'name.remal.gradle-api', 'gradle-api' versionRef 'gradle'
         library 'nulls', 'org.jetbrains', 'annotations' version '26.0.2'
 
         // GitHub Actions Workflows
