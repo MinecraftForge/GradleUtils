@@ -57,7 +57,12 @@ class GitVersionExtension {
     @PackageScope @Lazy GitVersion versionInternal = {
         GitVersion.disableSystemConfig()
 
-        var builder = GitVersion.builder().project(this.layout.projectDirectory.asFile)
+        var projectDir = this.layout.projectDirectory.asFile
+        var builder = GitVersion.builder().project(projectDir)
+        var gitversion = this.tryBuild(builder)
+        return gitversion ?: tryBuild(builder.project(GitVersion.findGitRoot(projectDir)))
+
+        /*
         try {
             return builder.build().tap { it.info }
         } catch (GitVersionException ignored) {
@@ -67,7 +72,19 @@ class GitVersionExtension {
             this.project.logger.error 'ERROR: Git Version is misconfigured and cannot be used, likely due to incorrect paths being set. This is an unrecoverable problem and needs to be addressed in the config file. Ensure that the correct subprojects and paths are declared in the config file'
             throw e
         }
+         */
     }()
+
+    // TODO [GitVersion][Gradle] Handle this better in GU3.0
+    private static @Nullable GitVersion tryBuild(GitVersion.Builder builder) {
+        try {
+            builder.build().tap { info }
+        } catch (GitVersionException ignored) {
+            builder.strict(false).build()
+        } catch (IllegalArgumentException ignored) {
+            null
+        }
+    }
 
     // TODO [GradleUtils][3.0] Make private
     private static boolean deprecationWarning
