@@ -137,7 +137,7 @@ class GradleUtils {
      * @return The action
      */
     static Action<? super MavenArtifactRepository> getPublishingForgeMaven(Project project, File defaultFolder = project.rootProject.file('repo')) {
-        setupSnapshotCompatiblePublishing(project, 'https://maven.minecraftforge.net/', defaultFolder)
+        setupSnapshotCompatiblePublishing(project, 'https://maven.minecraftforge.net/releases', defaultFolder)
     }
 
     /**
@@ -166,7 +166,7 @@ class GradleUtils {
      * @param defaultFolder The default folder if the required maven information is not set
      * @return The action
      */
-    static Action<? super MavenArtifactRepository> setupSnapshotCompatiblePublishing(Project project, String fallbackPublishingEndpoint = 'https://maven.minecraftforge.net/', File defaultFolder = project.rootProject.file('repo'), File defaultSnapshotFolder = project.rootProject.file('snapshots')) {
+    static Action<? super MavenArtifactRepository> setupSnapshotCompatiblePublishing(Project project, String fallbackPublishingEndpoint = 'https://maven.minecraftforge.net/releases', File defaultFolder = project.rootProject.file('repo'), File defaultSnapshotFolder = project.rootProject.file('snapshots')) {
         // make properties of what we use so gradle's cache is aware
         final snapshot = project.objects.property(Boolean).value project.providers.provider {
             project.version?.toString()?.endsWith('-SNAPSHOT')
