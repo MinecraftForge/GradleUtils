@@ -37,8 +37,11 @@ class ChangelogUtils {
         project.tasks.register(GenerateChangelog.NAME, GenerateChangelog).tap { task ->
             project.configurations.register(GenerateChangelog.NAME) { Configuration c -> c.canBeResolved = false }
             project.artifacts.add(GenerateChangelog.NAME, task)
-            project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME).configure { it.dependsOn(task) }
             action.execute task
+
+            project.afterEvaluate {
+                project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME).configure { it.dependsOn(task) }
+            }
         }
     }
 
