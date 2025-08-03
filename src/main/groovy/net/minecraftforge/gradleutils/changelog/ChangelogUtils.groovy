@@ -40,7 +40,8 @@ class ChangelogUtils {
             action.execute task
 
             project.afterEvaluate {
-                project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME).configure { it.dependsOn(task) }
+                //noinspection ConfigurationAvoidance -- we are in afterEvaluate
+                project.tasks.findByName(LifecycleBasePlugin.ASSEMBLE_TASK_NAME)?.configure { Task assemble -> assemble.dependsOn(task) }
             }
         }
     }
