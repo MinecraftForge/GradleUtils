@@ -1,50 +1,66 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.gradle.api.attributes.plugin.GradlePluginApiVersion
 
 plugins {
-    id 'dev.gradleplugins.groovy-gradle-plugin'
+    id 'java-gradle-plugin'
+    id 'groovy'
     id 'idea'
     id 'eclipse'
     id 'maven-publish'
     alias libs.plugins.licenser
     alias libs.plugins.gradleutils
+    alias libs.plugins.javadoc.links
     alias libs.plugins.plugin.publish
     alias libs.plugins.shadow
 }
 
 final projectDisplayName = 'Forge Gradle Utilities'
+final projectArtifactId = base.archivesName = 'gradleutils'
 description = 'Small collection of utilities for standardizing MinecraftForge gradle scripts'
 group = 'net.minecraftforge'
 version = gitversion.tagOffset
 
 println "Version: $version"
 
-// Git Version requires Java 17
-java.toolchain.languageVersion = JavaLanguageVersion.of 17
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+    withSourcesJar()
+    withJavadocJar()
+}
 
 configurations {
     named(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME) {
         // Fixes a conflict between Git Version's shadowed SLF4J from JGit and Gradle's own loggers
         exclude group: 'org.slf4j', module: 'slf4j-api'
     }
-}
 
-repositories {
-    maven { url = 'https://maven.minecraftforge.net' }
-    mavenCentral()
+    // Applies the "Gradle Plugin API Version" attribute to configuration
+    // This was added in Gradle 7, gives consumers useful errors if they are on an old version
+    def applyGradleVersionAttribute = { Configuration configuration ->
+        configuration.attributes {
+            attribute(GradlePluginApiVersion.GRADLE_PLUGIN_API_VERSION_ATTRIBUTE, objects.named(GradlePluginApiVersion, libs.versions.gradle.get()))
+        }
+    }
+
+    // TODO [GradleUtils] Re-enable this after first publish of GradleUtils 3.0.0
+//    named('apiElements', applyGradleVersionAttribute)
+//    named('runtimeElements', applyGradleVersionAttribute)
+//    named('shadowRuntimeElements', applyGradleVersionAttribute)
 }
 
 dependencies {
-    // Static Analysis
+    // Gradle API
+    compileOnly libs.gradle
     compileOnly libs.nulls
+
+    // JavaDoc Links Plugin
+    compileOnly libs.gradle.javadoc.links
 
     // GitHub Actions Workflows
     implementation libs.yaml
 
-    // Git Version
-    implementation libs.gitver
-
-    // Backwards compatibility
-    implementation libs.jgit
+    // Tools
+    implementation libs.bundles.utils
 }
 
 // Removes local Gradle API from compileOnly. This is a workaround for bugged plugins.
@@ -58,7 +74,7 @@ afterEvaluate { project ->
 }
 
 license {
-    header = rootProject.file 'LICENSE-header.txt'
+    header = rootProject.file('LICENSE-header.txt')
     newLine = false
     exclude '**/*.properties'
 }
@@ -68,7 +84,7 @@ tasks.named('jar', Jar) {
 }
 
 tasks.named('shadowJar', ShadowJar) {
-    enableRelocation = true
+    enableAutoRelocation = true
     archiveClassifier = null
     relocationPrefix = 'net.minecraftforge.gradleutils.shadow'
 }
@@ -77,64 +93,58 @@ tasks.withType(GroovyCompile).configureEach {
     groovyOptions.optimizationOptions.indy = true
 }
 
+tasks.withType(Javadoc).configureEach {
+    javadocTool = javaToolchains.javadocToolFor { languageVersion = JavaLanguageVersion.of(24) }
+
+    options { StandardJavadocDocletOptions options ->
+        options.windowTitle = projectDisplayName + project.version
+        options.tags 'apiNote:a:API Note:', 'implNote:a:Implementation Note:', 'implSpec:a:Implementation Requirements:'
+    }
+}
+
 changelog {
     fromBase()
     publishAll = false
 }
 
 gradlePlugin {
-    website.set gitversion.url
-    vcsUrl.set gitversion.url + '.git'
+    website = gitversion.url
+    vcsUrl = gitversion.url + '.git'
 
-    compatibility {
-        minimumGradleVersion = libs.versions.gradle.get()
+    plugins.register('gradleutils') {
+        id = 'net.minecraftforge.gradleutils'
+        implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
+        displayName = projectDisplayName
+        description = project.description
+        tags.set(['minecraftforge'])
     }
+}
 
-    groovy {
-        withSourcesJar()
-        withGroovydocJar()
-    }
-
-    plugins {
-        register('gradleutils') {
-            id = 'net.minecraftforge.gradleutils'
-            implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
-            displayName = projectDisplayName
-            description = project.description
-            tags = ['minecraftforge']
-        }
-        register('changelog') {
-            id = 'net.minecraftforge.changelog'
-            implementationClass = 'net.minecraftforge.gradleutils.changelog.ChangelogPlugin'
-            displayName = 'Git Changelog'
-            description = 'Creates a changelog text file based on git history using Git Version'
-            tags = ['git', 'changelog']
-        }
-    }
+// Allows the thin jar to be published, but won't be considered as the java-runtime variant in the module
+// This forces Gradle to use the fat jar when applying the plugin
+(components.java as AdhocComponentWithVariants).withVariantsFromConfiguration(configurations.runtimeElements) {
+    skip()
 }
 
 publishing {
     publications.register('pluginMaven', MavenPublication) {
-        artifactId = project.name
-
+        artifactId = projectArtifactId
         changelog.publish it
 
         pom { pom ->
             name = projectDisplayName
             description = project.description
 
-            gradleutils.pom.setGitHubDetails pom
+            gradleutils.pom.setGitHubDetails(pom)
 
             licenses {
                 license gradleutils.pom.licenses.LGPLv2_1
             }
 
-            // TODO [GradleUtils][GU3.0] Re-evaluate active developers in GU 3.0
             developers {
-                developer gradleutils.pom.developers.LexManos
-                developer gradleutils.pom.developers.SizableShrimp
-                developer gradleutils.pom.developers.Paint_Ninja
                 developer gradleutils.pom.developers.Jonathing
+                developer gradleutils.pom.developers.Paint_Ninja
+                developer gradleutils.pom.developers.LexManos
             }
         }
     }
