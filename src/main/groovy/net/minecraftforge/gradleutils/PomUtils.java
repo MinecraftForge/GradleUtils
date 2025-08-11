@@ -46,14 +46,6 @@ public sealed interface PomUtils permits PomUtilsInternal {
     /// {@linkplain MavenPomDeveloper#getId() ID} and {@linkplain MavenPomDeveloper#getName() name}.
     Map<String, Action<? super MavenPomDeveloper>> developers = PomUtilsInternal.makeDevelopers();
 
-    /// Adds MinecraftForge-specific details to the given POM.
-    ///
-    /// @param pom The POM to add details to
-    @ApiStatus.Internal
-    static void addForgeDetails(MavenPom pom) {
-        PomUtilsInternal.addForgeDetails(pom);
-    }
-
     /// Adds details from the project's remote URL to the given POM.
     ///
     /// @param pom The POM to add details to

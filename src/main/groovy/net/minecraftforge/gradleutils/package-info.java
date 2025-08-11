@@ -7,7 +7,6 @@
 /// [net.minecraftforge.gradleutils.PomUtils] that help eliminate duplicate code within buildscripts and allow us to
 /// change any default values, such as Maven URLs, in case things change unexpectedly.
 ///
-/// If you are a non-Forge consumer, it is recommended not to use any Forge-specific APIs, including methods such as
-/// [net.minecraftforge.gradleutils.PomUtils#addForgeDetails(org.gradle.api.publish.maven.MavenPom)] and the
+/// If you are a non-Forge consumer, it is recommended not to use any Forge-specific APIs such as the
 /// [net.minecraftforge.gradleutils.GenerateActionsWorkflow] task.
 package net.minecraftforge.gradleutils;

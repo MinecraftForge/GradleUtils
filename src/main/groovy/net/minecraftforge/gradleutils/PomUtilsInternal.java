@@ -86,13 +86,6 @@ non-sealed interface PomUtilsInternal extends PomUtils, HasPublicType {
         };
     }
 
-    static void addForgeDetails(MavenPom pom) {
-        pom.organization(organization -> {
-            organization.getName().set(Constants.FORGE_ORG_NAME);
-            organization.getUrl().set(Constants.FORGE_ORG_URL);
-        });
-    }
-
     @Override
     @MustBeInvokedByOverriders
     default void addRemoteDetails(MavenPom pom, String url) {
@@ -118,6 +111,14 @@ non-sealed interface PomUtilsInternal extends PomUtils, HasPublicType {
         pom.ciManagement(ci -> {
             ci.getSystem().set("github");
             ci.getUrl().set(fullURL + "/actions");
+        });
+
+        // the rest is Forge-exclusive information
+        if (!strippedUrl.contains("github.com/MinecraftForge/")) return;
+
+        pom.organization(organization -> {
+            organization.getName().set(Constants.FORGE_ORG_NAME);
+            organization.getUrl().set(Constants.FORGE_ORG_URL);
         });
     }
 

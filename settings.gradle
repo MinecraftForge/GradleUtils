@@ -6,11 +6,10 @@ rootProject.name = 'gradleutils'
 
 dependencyResolutionManagement {
     repositories {
+        //mavenLocal()
+        mavenCentral()
         maven { url = 'https://maven.minecraftforge.net/' }
         maven { url = 'https://maven.moddinglegacy.com' } // Gradle API
-        maven { url = 'https://repo.eclipse.org/content/groups/releases/' }
-        mavenCentral()
-        //mavenLocal()
     }
 
     versionCatalogs.register('libs') {

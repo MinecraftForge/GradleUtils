@@ -41,18 +41,4 @@ import javax.inject.Inject
         // Overridden by Git Version Plugin
         throw this.problems.pomUtilsGitVersionMissing()
     }
-
-    @Override
-    void addRemoteDetails(MavenPom pom, String url) {
-        super.addRemoteDetails(pom, url)
-
-        if (url.contains('github.com/MinecraftForge/')) {
-            SharedUtil.ensureAfterEvaluate(this.project) {
-                pom.organization { organization ->
-                    if (organization.name.orNull != Constants.FORGE_ORG_NAME)
-                        this.problems.reportPomUtilsForgeProjWithoutForgeOrg()
-                }
-            }
-        }
-    }
 }
