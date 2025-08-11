@@ -51,7 +51,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
 
         if (this instanceof EnhancedTask<?> enhancedTask) {
             this.defaultToolDir = this.getObjectFactory().directoryProperty().value(
-                enhancedTask.getPlugin().getGlobalCaches().dir(tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal())
+                enhancedTask.getPlugin().globalCaches().dir(tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal())
             );
             this.setClasspath(this.getObjectFactory().fileCollection().from(enhancedTask.getPlugin().getTool(tool)));
         } else {

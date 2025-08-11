@@ -18,30 +18,26 @@ public interface EnhancedTask<T extends EnhancedPlugin<? super Project>> extends
     /// The enhanced plugin type for this task.
     ///
     /// @return The plugin type
-    @Internal
-    Class<T> getPluginType();
+    @Internal Class<T> getPluginType();
 
     /// The enhanced plugin associated with this task.
     ///
     /// @return The plugin
-    @Internal
-    default T getPlugin() {
+    default @Internal T getPlugin() {
         return this.getProject().getPlugins().getPlugin(this.getPluginType());
     }
 
     /// The default output directory to use for this task if it outputs a directory.
     ///
     /// @return A provider for the directory
-    @Internal
-    default Provider<Directory> getDefaultOutputDirectory() {
-        return this.getPlugin().getLocalCaches().dir(this.getName()).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
+    default @Internal Provider<Directory> getDefaultOutputDirectory() {
+        return this.getPlugin().localCaches().dir(this.getName()).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
     }
 
     /// The default output file to use for this task if it outputs a file. Uses the `.jar` extension.
     ///
     /// @return A provider for the file
-    @Internal
-    default Provider<RegularFile> getDefaultOutputFile() {
+    default @Internal Provider<RegularFile> getDefaultOutputFile() {
         return this.getDefaultOutputFile("jar");
     }
 
@@ -50,6 +46,6 @@ public interface EnhancedTask<T extends EnhancedPlugin<? super Project>> extends
     /// @param ext The extension to use for the file
     /// @return A provider for the file
     default Provider<RegularFile> getDefaultOutputFile(String ext) {
-        return this.getPlugin().getLocalCaches().file("%s/output.%s".formatted(this.getName(), ext)).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
+        return this.getPlugin().localCaches().file("%s/output.%s".formatted(this.getName(), ext)).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
     }
 }

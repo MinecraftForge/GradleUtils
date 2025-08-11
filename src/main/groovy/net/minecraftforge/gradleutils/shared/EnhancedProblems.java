@@ -22,6 +22,7 @@ import org.gradle.api.reflect.HasPublicType;
 import org.gradle.api.reflect.TypeOf;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -34,7 +35,7 @@ import java.util.stream.Stream;
 
 /// The enhanced problems contain several base helper members to help reduce duplicate code between Gradle plugins.
 @ApiStatus.OverrideOnly
-public abstract class EnhancedProblems implements Problems {
+public abstract class EnhancedProblems implements Problems, Predicate<String> {
     /// The common message to send in [ProblemSpec#solution(String)] when reporting problems.
     protected static final String HELP_MESSAGE = "Consult the documentation or ask for help on the Forge Forums, GitHub, or Discord server.";
 
@@ -87,7 +88,7 @@ public abstract class EnhancedProblems implements Problems {
     ///
     /// @param property The property to test
     /// @return If the property exists and is `true`
-    protected final boolean hasProperty(String property) {
+    public final boolean test(String property) {
         return this.properties.test(property);
     }
 

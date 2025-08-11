@@ -12,6 +12,7 @@ import org.gradle.api.invocation.Gradle;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
+import org.gradle.api.tasks.Internal;
 import org.jetbrains.annotations.ApiStatus;
 
 import javax.inject.Inject;
@@ -44,7 +45,7 @@ public abstract class EnhancedPlugin<T> implements Plugin<T> {
 
     /// This constructor must be called by all subclasses using a public constructor annotated with [Inject]. The name
     /// and display name passed in are used in a minimal instance of [EnhancedProblems], which is used to set up the
-    /// plugin's [global][#getGlobalCaches()] and [local][#getLocalCaches()] caches. Additionally, the name is used to
+    /// plugin's [global][#globalCaches()] and [local][#localCaches()] caches. Additionally, the name is used to
     /// create the cache folders (`minecraftforge/name`).
     ///
     /// @param name        The name for this plugin (must be machine-friendly)
@@ -70,11 +71,11 @@ public abstract class EnhancedPlugin<T> implements Plugin<T> {
     public abstract void setup(T target);
 
     /// Gets the target for this plugin. This will throw an exception if this is called before application (i.e. through
-    /// early usage of [#getGlobalCaches()]).
+    /// early usage of [#globalCaches()]).
     ///
     /// @return The plugin target
     /// @throws RuntimeException If this plugin is not yet applied
-    protected final T getTarget() {
+    private T getTarget() {
         try {
             return Objects.requireNonNull(this.target);
         } catch (Exception e) {
@@ -96,7 +97,7 @@ public abstract class EnhancedPlugin<T> implements Plugin<T> {
     /// @return A provider for the tool file
     @SuppressWarnings("deprecation") // deprecation intentional, please use this method
     public Provider<File> getTool(Tool tool) {
-        return tool.get(this.getGlobalCaches(), this.getProviders());
+        return tool.get(this.globalCaches(), this.getProviders());
     }
 
 
@@ -112,7 +113,7 @@ public abstract class EnhancedPlugin<T> implements Plugin<T> {
     /// @return The global caches
     /// @throws RuntimeException If this plugin cannot access global caches (i.e. the target is not [Project] or
     ///                          [org.gradle.api.initialization.Settings])
-    public final DirectoryProperty getGlobalCaches() {
+    public final DirectoryProperty globalCaches() {
         return this.globalCaches.get();
     }
 
@@ -142,7 +143,7 @@ public abstract class EnhancedPlugin<T> implements Plugin<T> {
     /// @return The global caches
     /// @throws RuntimeException If this plugin cannot access global caches (i.e. the target is not [Project] or
     ///                          [org.gradle.api.initialization.Settings])
-    public final DirectoryProperty getLocalCaches() {
+    public final DirectoryProperty localCaches() {
         return this.localCaches.get();
     }
 

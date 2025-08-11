@@ -30,7 +30,8 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
 
         final PomUtils pom
 
-        private ForProjectImpl(Project project) {
+        @Inject
+        ForProjectImpl(Project project) {
             this.project = project
 
             this.pom = this.objects.newInstance(PomUtilsImpl, project)
