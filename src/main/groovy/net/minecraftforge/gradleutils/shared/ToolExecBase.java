@@ -29,7 +29,7 @@ import java.util.Objects;
 public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec {
     private final P problems;
     /// The default tool directory (usage is not required).
-    protected final @Internal DirectoryProperty defaultToolDir;
+    protected final DirectoryProperty defaultToolDir;
 
     /**
      * @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#sec:projectlayout">ProjectLayout

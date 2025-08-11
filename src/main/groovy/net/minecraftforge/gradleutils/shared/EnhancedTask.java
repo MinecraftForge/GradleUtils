@@ -49,7 +49,6 @@ public interface EnhancedTask<T extends EnhancedPlugin<? super Project>> extends
     ///
     /// @param ext The extension to use for the file
     /// @return A provider for the file
-    @Internal
     default Provider<RegularFile> getDefaultOutputFile(String ext) {
         return this.getPlugin().getLocalCaches().file("%s/output.%s".formatted(this.getName(), ext)).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
     }
