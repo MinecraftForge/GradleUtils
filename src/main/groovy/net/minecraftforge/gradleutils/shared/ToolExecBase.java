@@ -76,6 +76,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     /// The enhanced problems instance to use for this task.
     ///
     /// @return The enhanced problems
+    @Internal
     protected final P getProblems() {
         return this.problems;
     }
