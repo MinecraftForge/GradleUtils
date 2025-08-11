@@ -12,7 +12,7 @@ jobs:
     uses: MinecraftForge/SharedActions/.github/workflows/gradle.yml@v0
     with:
       java: 17
-      gradle_tasks: "publish publishPlugins"
+      gradle_tasks: "check publish publishPlugins"
       artifact_name: "gradleutils"
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
