@@ -37,7 +37,6 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
             this.pom = this.objects.newInstance(PomUtilsImpl, project)
 
             project.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)
-            project.tasks.register(ConfigureTeamCity.NAME, ConfigureTeamCity)
         }
 
         @Override
