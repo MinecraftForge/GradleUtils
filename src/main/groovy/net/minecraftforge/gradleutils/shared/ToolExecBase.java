@@ -49,11 +49,11 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     protected ToolExecBase(Class<P> problemsType, Tool tool) {
         this.problems = this.getObjectFactory().newInstance(problemsType);
 
-        if (this instanceof EnhancedTask<?> enhancedTask) {
+        if (this instanceof EnhancedTask enhancedTask) {
             this.defaultToolDir = this.getObjectFactory().directoryProperty().value(
-                enhancedTask.getPlugin().globalCaches().dir(tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal())
+                enhancedTask.globalCaches().dir(tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal())
             );
-            this.setClasspath(this.getObjectFactory().fileCollection().from(enhancedTask.getPlugin().getTool(tool)));
+            this.setClasspath(this.getObjectFactory().fileCollection().from(enhancedTask.getTool(tool)));
         } else {
             this.getProject().afterEvaluate(project -> this.problems.reportToolExecNotEnhanced(this));
 

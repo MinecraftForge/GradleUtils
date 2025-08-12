@@ -22,7 +22,6 @@ import org.gradle.api.reflect.HasPublicType;
 import org.gradle.api.reflect.TypeOf;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import javax.inject.Inject;
 import java.io.IOException;
@@ -161,6 +160,19 @@ public abstract class EnhancedProblems implements Problems, Predicate<String> {
                 Not doing so will result in global caches being ignored. Please check your implementations.
                 Affected task: %s (%s)""".formatted(task, task.getClass()))
             .severity(Severity.WARNING)
+            .stackLocation()
+            .solution("Double check your task implementation."));
+    }
+
+    /// Reports an implementation of [EnhancedTask] that does not implement [EnhancedTask#pluginType()]
+    ///
+    /// @param task The affected task
+    public final void reportToolExecNotEnhanced(Class<?> task) {
+        this.getReporter().report(id("enhanced-task-no-plugin", "EnhancedTask doesn't implement #pluginType"), spec -> spec
+            .details("""
+                Implementation of EnhancedTask must implement #pluginType
+                Affected task type: %s""".formatted(task))
+            .severity(Severity.ERROR)
             .stackLocation()
             .solution("Double check your task implementation."));
     }

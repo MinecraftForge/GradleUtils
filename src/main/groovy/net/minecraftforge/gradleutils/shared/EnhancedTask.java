@@ -7,31 +7,44 @@ package net.minecraftforge.gradleutils.shared;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.file.Directory;
+import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFile;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Internal;
 
+import java.io.File;
+
 /// The enhanced task contains a handful of helper methods to make working with the enhanced plugin and caches easier.
-///
-/// @param <T> The type of enhanced plugin
-public interface EnhancedTask<T extends EnhancedPlugin<? super Project>> extends Task {
+public interface EnhancedTask extends Task {
     /// The enhanced plugin type for this task.
     ///
     /// @return The plugin type
-    @Internal Class<T> getPluginType();
+    Class<? extends EnhancedPlugin<? super Project>> pluginType();
 
-    /// The enhanced plugin associated with this task.
-    ///
-    /// @return The plugin
-    default @Internal T getPlugin() {
-        return this.getProject().getPlugins().getPlugin(this.getPluginType());
+    private EnhancedPlugin<? super Project> getPlugin() {
+        return this.getProject().getPlugins().getPlugin(this.pluginType());
+    }
+
+    /// @see EnhancedPlugin#getTool(Tool)
+    default Provider<File> getTool(Tool tool) {
+        return this.getPlugin().getTool(tool);
+    }
+
+    /// @see EnhancedPlugin#globalCaches()
+    default DirectoryProperty globalCaches() {
+        return this.getPlugin().globalCaches();
+    }
+
+    /// @see EnhancedPlugin#localCaches()
+    default DirectoryProperty localCaches() {
+        return this.getPlugin().localCaches();
     }
 
     /// The default output directory to use for this task if it outputs a directory.
     ///
     /// @return A provider for the directory
     default @Internal Provider<Directory> getDefaultOutputDirectory() {
-        return this.getPlugin().localCaches().dir(this.getName()).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
+        return this.localCaches().dir(this.getName()).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
     }
 
     /// The default output file to use for this task if it outputs a file. Uses the `.jar` extension.
@@ -46,6 +59,6 @@ public interface EnhancedTask<T extends EnhancedPlugin<? super Project>> extends
     /// @param ext The extension to use for the file
     /// @return A provider for the file
     default Provider<RegularFile> getDefaultOutputFile(String ext) {
-        return this.getPlugin().localCaches().file("%s/output.%s".formatted(this.getName(), ext)).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
+        return this.localCaches().file("%s/output.%s".formatted(this.getName(), ext)).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
     }
 }
