@@ -30,13 +30,13 @@ public sealed interface PomUtils permits PomUtilsInternal {
     /// @see #getLicenses()
     sealed interface Licenses permits PomUtilsInternal.Licenses {
         /// @see <a href="https://spdx.org/licenses/Apache-2.0.html">Apache License 2.0 on SPDX</a>
-        Action<? extends MavenPomLicense> Apache2_0 = PomUtilsInternal.makeLicense("Apache-2.0", "https://www.apache.org/licenses/LICENSE-2.0");
+        Action<MavenPomLicense> Apache2_0 = PomUtilsInternal.makeLicense("Apache-2.0", "https://www.apache.org/licenses/LICENSE-2.0");
         /// @see <a href="https://spdx.org/licenses/LGPL-2.1-only.html">GNU Lesser General Public License v2.1 only on SPDX</a>
-        Action<? extends MavenPomLicense> LGPLv2_1 = PomUtilsInternal.makeLicense("LGPL-2.1-only", "https://www.gnu.org/licenses/old-licenses/lgpl-2.1-standalone.html");
+        Action<MavenPomLicense> LGPLv2_1 = PomUtilsInternal.makeLicense("LGPL-2.1-only", "https://www.gnu.org/licenses/old-licenses/lgpl-2.1-standalone.html");
         /// @see <a href="https://spdx.org/licenses/LGPL-3.0-only.html">GNU Lesser General Public License v3.0 only on SPDX</a>
-        Action<? extends MavenPomLicense> LGPLv3 = PomUtilsInternal.makeLicense("LGPL-3.0-only", "https://www.gnu.org/licenses/lgpl-3.0-standalone.html");
+        Action<MavenPomLicense> LGPLv3 = PomUtilsInternal.makeLicense("LGPL-3.0-only", "https://www.gnu.org/licenses/lgpl-3.0-standalone.html");
         /// @see <a href="https://spdx.org/licenses/MIT.html">MIT License on SPDX</a>
-        Action<? extends MavenPomLicense> MIT = PomUtilsInternal.makeLicense("MIT", "https://opensource.org/license/mit/");
+        Action<MavenPomLicense> MIT = PomUtilsInternal.makeLicense("MIT", "https://opensource.org/license/mit/");
     }
 
     /// Contains several developers within the MinecraftForge organization to reduce needing to manually write them out

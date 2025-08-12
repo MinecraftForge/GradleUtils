@@ -28,7 +28,7 @@ non-sealed interface PomUtilsInternal extends PomUtils, HasPublicType {
         }
     }
 
-    static Action<? extends MavenPomLicense> makeLicense(String name, String url) {
+    static Action<MavenPomLicense> makeLicense(String name, String url) {
         return license -> {
             license.getName().set(name);
             license.getUrl().set(url);
