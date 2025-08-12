@@ -69,8 +69,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
         this.defaultToolDir.disallowChanges();
         this.defaultToolDir.finalizeValueOnRead();
 
-        this.getMainClass().convention(Objects.requireNonNull(tool.getMainClass(), "Tool must have a main class"));
-        this.getJavaLauncher().convention(SharedUtil.launcherForStrictly(this.getJavaToolchainService(), tool.getJavaVersion()));
+        this.getMainClass().set(Objects.requireNonNull(tool.getMainClass(), "Tool must have a main class"));
+        this.getJavaLauncher().set(SharedUtil.launcherForStrictly(this.getJavaToolchainService(), tool.getJavaVersion()));
     }
 
     /// The enhanced problems instance to use for this task.

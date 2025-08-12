@@ -9,8 +9,6 @@ import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
 import org.gradle.api.reflect.HasPublicType;
 import org.gradle.api.reflect.TypeOf;
 
-import java.util.Objects;
-
 non-sealed interface GradleUtilsExtensionInternal extends GradleUtilsExtension, HasPublicType {
     @Override
     default TypeOf<?> getPublicType() {

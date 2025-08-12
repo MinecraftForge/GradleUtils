@@ -9,8 +9,8 @@ plugins {
     id 'eclipse'
     id 'maven-publish'
     id 'io.freefair.javadoc-links'
-    alias libs.plugins.licenser
     id 'net.minecraftforge.gradleutils'
+    alias libs.plugins.licenser
     alias libs.plugins.gitversion
     alias libs.plugins.changelog
     alias libs.plugins.plugin.publish
@@ -49,7 +49,6 @@ configurations {
         }
     }
 
-    named('apiElements', applyGradleVersionAttribute)
     named('runtimeElements', applyGradleVersionAttribute)
     named('shadowRuntimeElements', applyGradleVersionAttribute)
 }

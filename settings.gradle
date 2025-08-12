@@ -22,7 +22,7 @@ plugins {
 
     // https://plugins.gradle.org/plugin/net.minecraftforge.gradleutils
     // Gradle utilities for Minecraft Forge projects.
-    id 'net.minecraftforge.gradleutils' version '3.0.0-beta.10'
+    id 'net.minecraftforge.gradleutils' version '3.0.0-beta.13'
 }
 
 // Known bug with Groovy DSL in IntelliJ, it's never getting fixed
