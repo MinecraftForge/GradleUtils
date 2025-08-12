@@ -1,6 +1,33 @@
-plugins {
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+import net.minecraftforge.gradleutils.GradleUtilsExtension
+
+pluginManagement {
+    repositories {
+        //mavenLocal()
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url = 'https://maven.minecraftforge.net/' }
+    }
 }
+
+plugins {
+    // https://plugins.gradle.org/plugin/org.gradle.toolchains.foojay-resolver-convention
+    // Java toolchain provisioner to download JDKs for tasks that need them.
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+
+    // https://plugins.gradle.org/plugin/io.freefair.javadoc-links
+    // Enhanced Javadoc links in projects.
+    // GradleUtils 3 adds a service that implements an interface from this plugin.
+    // It is added to the classpath here but not yet applied.
+    id 'io.freefair.javadoc-links' version '8.14' apply false
+
+    // https://plugins.gradle.org/plugin/net.minecraftforge.gradleutils
+    // Gradle utilities for Minecraft Forge projects.
+    id 'net.minecraftforge.gradleutils' version '3.0.0-beta.10'
+}
+
+// Known bug with Groovy DSL in IntelliJ, it's never getting fixed
+// https://youtrack.jetbrains.com/issue/IDEA-332061/Gradle-Missing-Code-Completion-Suggestions-for-Settings-Plugins-in-Groovy-DSL
+final gradleutils = extensions.getByType(GradleUtilsExtension)
 
 rootProject.name = 'gradleutils'
 
@@ -8,16 +35,17 @@ dependencyResolutionManagement {
     repositories {
         //mavenLocal()
         mavenCentral()
-        maven { url = 'https://maven.minecraftforge.net/' }
+        maven gradleutils.forgeMaven
         maven { url = 'https://maven.moddinglegacy.com' } // Gradle API
     }
 
     versionCatalogs.register('libs') {
+        version 'gradle-gitversion',    '3.0.0-beta.9'
         version 'gradle-javadoc-links', '8.14'
 
         plugin 'licenser',       'net.minecraftforge.licenser'    version '1.2.0'                   // https://plugins.gradle.org/plugin/net.minecraftforge.licenser
-        plugin 'gradleutils',    'net.minecraftforge.gradleutils' version '2.6.0'                   // https://plugins.gradle.org/plugin/net.minecraftforge.gradleutils
-        plugin 'javadoc-links',  'io.freefair.javadoc-links'      versionRef 'gradle-javadoc-links' // https://plugins.gradle.org/plugin/io.freefair.javadoc-links
+        plugin 'gitversion',     'net.minecraftforge.gitversion'  versionRef 'gradle-gitversion'    // https://plugins.gradle.org/plugin/net.minecraftforge.gitversion
+        plugin 'changelog',      'net.minecraftforge.changelog'   versionRef 'gradle-gitversion'    // https://plugins.gradle.org/plugin/net.minecraftforge.changelog
         plugin 'plugin-publish', 'com.gradle.plugin-publish'      version '1.3.1'                   // https://plugins.gradle.org/plugin/com.gradle.plugin-publish
         plugin 'shadow',         'com.gradleup.shadow'            version '9.0.0-rc3'               // https://plugins.gradle.org/plugin/com.gradleup.shadow
 
@@ -28,6 +56,7 @@ dependencyResolutionManagement {
         version 'gradle', '9.0.0'
         library 'gradle', 'name.remal.gradle-api', 'gradle-api'  versionRef 'gradle'
         library 'nulls',  'org.jetbrains',         'annotations' version    '26.0.2'
+        bundle 'gradle', ['gradle', 'nulls']
 
         // JavaDoc Links Plugin
         library 'gradle-javadoc-links', 'io.freefair.javadoc-links', 'io.freefair.javadoc-links.gradle.plugin' versionRef 'gradle-javadoc-links'
