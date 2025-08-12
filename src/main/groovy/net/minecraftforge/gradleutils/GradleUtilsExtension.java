@@ -5,13 +5,14 @@
 package net.minecraftforge.gradleutils;
 
 import groovy.lang.Closure;
+import org.gradle.api.Action;
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
 
 import java.io.File;
 
 /// Contains various utilities for working with Gradle scripts.
 ///
 /// [Projects][org.gradle.api.Project] that apply GradleUtils are given [GradleUtilsExtension.ForProject].
-@SuppressWarnings("rawtypes") // public-facing closures
 public sealed interface GradleUtilsExtension permits GradleUtilsExtensionInternal, GradleUtilsExtension.ForProject {
     /// The name for this extension.
     String NAME = "gradleutils";
@@ -25,7 +26,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionInterna
      * }
      * </code></pre>
      */
-    Closure forgeMaven = GradleUtilsExtensionInternal.forgeMaven;
+    Action<MavenArtifactRepository> forgeMaven = GradleUtilsExtensionInternal.forgeMaven;
 
     /**
      * A closure for the Forge releases maven to be passed into
@@ -38,7 +39,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionInterna
      *
      * @see #forgeMaven
      */
-    Closure forgeReleaseMaven = GradleUtilsExtensionInternal.forgeReleaseMaven;
+    Action<MavenArtifactRepository> forgeReleaseMaven = GradleUtilsExtensionInternal.forgeReleaseMaven;
 
     /**
      * A closure for the Minecraft libraries maven to be passed into
@@ -49,7 +50,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionInterna
      * }
      * </code></pre>
      */
-    Closure minecraftLibsMaven = GradleUtilsExtensionInternal.minecraftLibsMaven;
+    Action<MavenArtifactRepository> minecraftLibsMaven = GradleUtilsExtensionInternal.minecraftLibsMaven;
 
     /// The GradleUtils extension for {@linkplain org.gradle.api.Project projects}, which include additional utilities
     /// that are only available for them.
@@ -89,7 +90,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionInterna
         /// (`https://maven.minecraftforge.net/releases`).
         ///
         /// @return The closure
-        default Closure getPublishingForgeMaven() {
+        default Action<MavenArtifactRepository> getPublishingForgeMaven() {
             return getPublishingForgeMaven("https://maven.minecraftforge.net/releases");
         }
 
@@ -115,7 +116,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionInterna
         ///
         /// @param fallbackPublishingEndpoint The fallback URL for the release repository
         /// @return The closure
-        Closure getPublishingForgeMaven(String fallbackPublishingEndpoint);
+        Action<MavenArtifactRepository> getPublishingForgeMaven(String fallbackPublishingEndpoint);
 
         /// Get a configuring closure to be passed into [org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Closure)]
         /// in a publishing block.
@@ -140,7 +141,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionInterna
         /// @param fallbackPublishingEndpoint The fallback URL for the release repository
         /// @param defaultFolder              The default folder if the required maven information is not set
         /// @return The closure
-        default Closure getPublishingForgeMaven(String fallbackPublishingEndpoint, File defaultFolder) {
+        default Action<MavenArtifactRepository> getPublishingForgeMaven(String fallbackPublishingEndpoint, File defaultFolder) {
             return getPublishingForgeMaven(fallbackPublishingEndpoint, defaultFolder, new File(defaultFolder.getAbsoluteFile().getParentFile(), "snapshots"));
         }
 
@@ -169,6 +170,6 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionInterna
         /// @param defaultSnapshotFolder      The default folder for the snapshot repository if the required maven
         ///                                   information is not set
         /// @return The closure
-        Closure getPublishingForgeMaven(String fallbackPublishingEndpoint, File defaultFolder, File defaultSnapshotFolder);
+        Action<MavenArtifactRepository> getPublishingForgeMaven(String fallbackPublishingEndpoint, File defaultFolder, File defaultSnapshotFolder);
     }
 }

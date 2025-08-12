@@ -6,6 +6,7 @@ package net.minecraftforge.gradleutils
 
 import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
+import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.model.ObjectFactory
@@ -40,12 +41,12 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
         }
 
         @Override
-        Closure getPublishingForgeMaven(String fallbackPublishingEndpoint) {
+        Action<MavenArtifactRepository> getPublishingForgeMaven(String fallbackPublishingEndpoint) {
             this.getPublishingForgeMaven(fallbackPublishingEndpoint, this.project.rootProject.file('repo'))
         }
 
         @Override
-        Closure getPublishingForgeMaven(String fallbackPublishingEndpoint, File defaultFolder, File defaultSnapshotFolder) {
+        Action<MavenArtifactRepository> getPublishingForgeMaven(String fallbackPublishingEndpoint, File defaultFolder, File defaultSnapshotFolder) {
             // make properties of what we use so gradle's cache is aware
             final snapshot = this.objects.property(Boolean).value(this.providers.provider {
                 this.project.version?.toString()?.endsWith('-SNAPSHOT')
