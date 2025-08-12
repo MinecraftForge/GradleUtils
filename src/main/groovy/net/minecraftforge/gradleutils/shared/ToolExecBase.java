@@ -27,7 +27,7 @@ import java.util.Objects;
 /// @see JavaExec
 /// @see Tool
 public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec {
-    private final P problems;
+    private transient final P problems;
     /// The default tool directory (usage is not required).
     protected final DirectoryProperty defaultToolDir;
 
