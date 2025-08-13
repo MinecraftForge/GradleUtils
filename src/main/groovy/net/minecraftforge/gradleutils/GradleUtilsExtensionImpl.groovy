@@ -26,13 +26,13 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
     GradleUtilsExtensionImpl() { }
 
     @CompileStatic
-    @PackageScope static abstract class ForProjectImpl extends GradleUtilsExtensionImpl implements GradleUtilsExtensionInternal.ForProject {
+    @PackageScope static abstract class ForProject extends GradleUtilsExtensionImpl implements GradleUtilsExtensionInternal.ForProject {
         private final Project project
 
         final PomUtils pom
 
         @Inject
-        ForProjectImpl(Project project) {
+        ForProject(Project project) {
             this.project = project
 
             this.pom = this.objects.newInstance(PomUtilsImpl, project)

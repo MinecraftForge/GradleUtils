@@ -8,15 +8,13 @@ import org.gradle.api.Action;
 import org.gradle.api.publish.maven.MavenPom;
 import org.gradle.api.publish.maven.MavenPomDeveloper;
 import org.gradle.api.publish.maven.MavenPomLicense;
-import org.jetbrains.annotations.ApiStatus;
 
 import java.util.Map;
 
-/**
- * Contains utilities to make working with {@link MavenPom POMs} more ergonomic.
- * <p>This can be accessed by {@linkplain org.gradle.api.Project projects} using the
- * {@link GradleUtilsExtension.ForProject gradleutils} extension.</p>
- */
+/// Contains utilities to make working with [POMs][MavenPom] more ergonomic.
+///
+/// This can be accessed by [projects][org.gradle.api.Project] using the
+/// {@link GradleUtilsExtensionForProject gradleutils} extension.
 public sealed interface PomUtils permits PomUtilsInternal {
     /// Allows accessing [licenses][Licenses] from buildscripts using `gradleutils.pom.licenses`.
     ///
@@ -28,6 +26,7 @@ public sealed interface PomUtils permits PomUtilsInternal {
     /// that uses one.
     ///
     /// @see #getLicenses()
+    //@formatter:off
     sealed interface Licenses permits PomUtilsInternal.Licenses {
         /// @see <a href="https://spdx.org/licenses/Apache-2.0.html">Apache License 2.0 on SPDX</a>
         Action<MavenPomLicense> Apache2_0 = PomUtilsInternal.makeLicense("Apache-2.0", "https://www.apache.org/licenses/LICENSE-2.0");
@@ -38,6 +37,7 @@ public sealed interface PomUtils permits PomUtilsInternal {
         /// @see <a href="https://spdx.org/licenses/MIT.html">MIT License on SPDX</a>
         Action<MavenPomLicense> MIT = PomUtilsInternal.makeLicense("MIT", "https://opensource.org/license/mit/");
     }
+    //@formatter:on
 
     /// Contains several developers within the MinecraftForge organization to reduce needing to manually write them out
     /// in each project they contribute to.
