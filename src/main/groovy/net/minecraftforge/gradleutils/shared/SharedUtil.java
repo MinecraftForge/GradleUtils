@@ -16,6 +16,7 @@ import org.gradle.api.artifacts.FileCollectionDependency;
 import org.gradle.api.artifacts.ModuleVersionSelector;
 import org.gradle.api.plugins.ExtensionAware;
 import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
@@ -270,6 +271,21 @@ public abstract class SharedUtil {
             reason != null ? " (" + reason + ')' : "",
             dependency instanceof FileCollectionDependency files ? " [%s]".formatted(String.join(", ", files.getFiles().getFiles().stream().map(File::getAbsolutePath).map(CharSequence.class::cast)::iterator)) : ""
         );
+    }
+    //endregion
+
+    //region Properties
+
+    public static <P extends Property<?>> Closure<P> finalizeProperty() {
+        var ret = Closures.<P>unaryOperator(SharedUtil::finalizeProperty);
+        ret.setResolveStrategy(Closure.DELEGATE_FIRST);
+        return ret;
+    }
+
+    public static <P extends Property<?>> P finalizeProperty(P property) {
+        property.disallowChanges();
+        property.finalizeValueOnRead();
+        return property;
     }
     //endregion
 

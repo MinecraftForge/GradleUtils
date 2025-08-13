@@ -31,8 +31,8 @@ abstract class GradleUtilsProblems extends EnhancedProblems {
     //endregion
 
     //region PomUtils
-    RuntimeException pomUtilsGitVersionMissing() {
-        return this.getReporter().throwing(new UnsupportedOperationException(), id("pomutils-missing-url", "Cannot add POM remote details without URL"), spec -> spec
+    RuntimeException pomUtilsGitVersionMissing(Exception e) {
+        return this.getReporter().throwing(e, id("pomutils-missing-url", "Cannot add POM remote details without URL"), spec -> spec
             .details("""
                 Cannot add POM remote details using `gradleutils.pom.addRemoteDetails` without the URL.
                 If the Git Version plugin has not been applied, the URL must be manually specified as the second parameter.""")

@@ -1,6 +1,6 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import com.github.jengelman.gradle.plugins.shadow.ShadowJavaPlugin
 import org.gradle.api.attributes.plugin.GradlePluginApiVersion
-import net.minecraftforge.gradleutils.GradleUtilsExtension
 
 plugins {
     id 'java-gradle-plugin'
@@ -25,10 +25,6 @@ version = gitversion.tagOffset
 
 println "Version: $version"
 
-// This plugin being applied to settings.gradle first also affects linting in the build.gradle
-// https://youtrack.jetbrains.com/issue/IDEA-332061/Gradle-Missing-Code-Completion-Suggestions-for-Settings-Plugins-in-Groovy-DSL
-final gradleutils = extensions.getByType(GradleUtilsExtension.ForProject)
-
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(17)
     withSourcesJar()
@@ -36,11 +32,6 @@ java {
 }
 
 configurations {
-    named(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME) {
-        // Fixes a conflict between Git Version's shadowed SLF4J from JGit and Gradle's own loggers
-        exclude group: 'org.slf4j', module: 'slf4j-api'
-    }
-
     // Applies the "Gradle Plugin API Version" attribute to configuration
     // This was added in Gradle 7, gives consumers useful errors if they are on an old version
     def applyGradleVersionAttribute = { Configuration configuration ->
@@ -49,8 +40,8 @@ configurations {
         }
     }
 
-    named('runtimeElements', applyGradleVersionAttribute)
-    named('shadowRuntimeElements', applyGradleVersionAttribute)
+    named(JavaPlugin.RUNTIME_ELEMENTS_CONFIGURATION_NAME, applyGradleVersionAttribute)
+    named(ShadowJavaPlugin.SHADOW_RUNTIME_ELEMENTS_CONFIGURATION_NAME, applyGradleVersionAttribute)
 }
 
 dependencies {
@@ -73,7 +64,7 @@ dependencies {
 // Shadow:         https://github.com/GradleUp/shadow/pull/1422
 afterEvaluate { project ->
     project.configurations.named(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME) { compileOnly ->
-        compileOnly.dependencies.remove project.dependencies.gradleApi()
+        compileOnly.dependencies.remove(project.dependencies.gradleApi())
     }
 }
 
@@ -122,12 +113,6 @@ gradlePlugin {
         description = project.description
         tags.set(['minecraftforge'])
     }
-}
-
-// Allows the thin jar to be published, but won't be considered as the java-runtime variant in the module
-// This forces Gradle to use the fat jar when applying the plugin
-(components.java as AdhocComponentWithVariants).withVariantsFromConfiguration(configurations.runtimeElements) {
-    skip()
 }
 
 publishing {

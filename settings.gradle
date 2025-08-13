@@ -22,7 +22,7 @@ plugins {
 
     // https://plugins.gradle.org/plugin/net.minecraftforge.gradleutils
     // Gradle utilities for Minecraft Forge projects.
-    id 'net.minecraftforge.gradleutils' version '3.0.0-beta.13'
+    id 'net.minecraftforge.gradleutils' version '3.0.0-beta.15'
 }
 
 // Known bug with Groovy DSL in IntelliJ, it's never getting fixed
@@ -40,14 +40,14 @@ dependencyResolutionManagement {
     }
 
     versionCatalogs.register('libs') {
-        version 'gradle-gitversion',    '3.0.0-beta.9'
+        version 'gradle-gitversion',    '3.0.0-beta.12'
         version 'gradle-javadoc-links', '8.14'
 
-        plugin 'licenser',       'net.minecraftforge.licenser'    version '1.2.0'                   // https://plugins.gradle.org/plugin/net.minecraftforge.licenser
-        plugin 'gitversion',     'net.minecraftforge.gitversion'  versionRef 'gradle-gitversion'    // https://plugins.gradle.org/plugin/net.minecraftforge.gitversion
-        plugin 'changelog',      'net.minecraftforge.changelog'   versionRef 'gradle-gitversion'    // https://plugins.gradle.org/plugin/net.minecraftforge.changelog
-        plugin 'plugin-publish', 'com.gradle.plugin-publish'      version '1.3.1'                   // https://plugins.gradle.org/plugin/com.gradle.plugin-publish
-        plugin 'shadow',         'com.gradleup.shadow'            version '9.0.0-rc3'               // https://plugins.gradle.org/plugin/com.gradleup.shadow
+        plugin 'licenser',       'net.minecraftforge.licenser'    version '1.2.0'                // https://plugins.gradle.org/plugin/net.minecraftforge.licenser
+        plugin 'gitversion',     'net.minecraftforge.gitversion'  versionRef 'gradle-gitversion' // https://plugins.gradle.org/plugin/net.minecraftforge.gitversion
+        plugin 'changelog',      'net.minecraftforge.changelog'   versionRef 'gradle-gitversion' // https://plugins.gradle.org/plugin/net.minecraftforge.changelog
+        plugin 'plugin-publish', 'com.gradle.plugin-publish'      version '1.3.1'                // https://plugins.gradle.org/plugin/com.gradle.plugin-publish
+        plugin 'shadow',         'com.gradleup.shadow'            version '9.0.1'                // https://plugins.gradle.org/plugin/com.gradleup.shadow
 
         // Gradle API
         // TODO [ForgeGradle][FG7][Gradle Api] REMOVE once Gradle publish their own API artifacts

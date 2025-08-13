@@ -38,7 +38,10 @@ import javax.inject.Inject
     @Override
     @CompileDynamic
     void addRemoteDetails(MavenPom pom) {
-        // Overridden by Git Version Plugin
-        throw this.problems.pomUtilsGitVersionMissing()
+        try {
+            this.project.extensions.getByName('gitversion').url
+        } catch (Exception e) {
+            throw this.problems.pomUtilsGitVersionMissing(e)
+        }
     }
 }
