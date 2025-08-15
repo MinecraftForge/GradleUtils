@@ -37,7 +37,7 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
 
     @Inject
     GradleUtilsExtensionImpl() {
-        this.rootDirectory = this.objects.directoryProperty().fileValue(this.buildLayout.rootDirectory)
+        this.rootDirectory = this.objects.directoryProperty().fileValue(this.buildLayout.rootDirectory)\
 
         this.mavenUser = this.objects.property(String).value(this.providers.environmentVariable('MAVEN_USER')).tap(SharedUtil.finalizeProperty())
         this.mavenPassword = this.objects.property(String).value(this.providers.environmentVariable('MAVEN_PASSWORD')).tap(SharedUtil.finalizeProperty())
@@ -50,7 +50,33 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
     }
 
     @Override
-    Action<MavenArtifactRepository> getPublishingForgeMaven(String fallbackPublishingEndpoint, Provider<? extends Directory> defaultFolder) {
+    Action<MavenArtifactRepository> getPublishingForgeMaven(String fallbackPublishingEndpoint, Object defaultFolder) {
+        this.getPublishingForgeMaven(fallbackPublishingEndpoint, this.providers.provider { defaultFolder })
+    }
+
+    @Override
+    Action<MavenArtifactRepository> getPublishingForgeMaven(String fallbackPublishingEndpoint, File defaultFolder) {
+        this.getPublishingForgeMavenInternal(fallbackPublishingEndpoint, this.providers.provider { defaultFolder })
+    }
+
+    @Override
+    Action<MavenArtifactRepository> getPublishingForgeMaven(String fallbackPublishingEndpoint, Directory defaultFolder) {
+        this.getPublishingForgeMavenInternal(fallbackPublishingEndpoint, this.providers.provider { defaultFolder.asFile.absoluteFile })
+    }
+
+    @Override
+    Action<MavenArtifactRepository> getPublishingForgeMaven(String fallbackPublishingEndpoint, Provider<?> defaultFolder) {
+        this.getPublishingForgeMavenInternal(fallbackPublishingEndpoint, defaultFolder.map {
+            if (it instanceof Directory)
+                it.asFile
+            else if (it instanceof File)
+                it
+            else
+                this.rootDirectory.files(it).singleFile
+        }.map(File.&getAbsoluteFile))
+    }
+
+    private Action<MavenArtifactRepository> getPublishingForgeMavenInternal(String fallbackPublishingEndpoint, Provider<? extends File> defaultFolder) {
         { MavenArtifactRepository repo ->
             repo.name = 'forge'
 
@@ -67,7 +93,7 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                 }
             } else {
                 LOGGER.info('Forge publishing credentials not found, using local folder')
-                repo.url = defaultFolder.get().asFile.absoluteFile.toURI()
+                repo.url = defaultFolder.get().absoluteFile.toURI()
             }
         }
     }
