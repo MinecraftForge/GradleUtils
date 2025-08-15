@@ -78,7 +78,7 @@ tasks.withType(Javadoc).configureEach {
 }
 
 // Allows the thin jar to be published, but won't be considered as the java-runtime variant in the module
-// This forces Gradle to use the fat jar when applying the plugin
+// This forces Gradle to use the fat jar when consuming this as a runtime dependency
 (components.java as AdhocComponentWithVariants).withVariantsFromConfiguration(configurations.runtimeElements) {
     skip()
 }
