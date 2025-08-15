@@ -10,8 +10,6 @@ import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
 import org.gradle.api.file.Directory;
 import org.gradle.api.provider.Provider;
 
-import java.io.File;
-
 /// Contains various utilities for working with Gradle scripts.
 ///
 /// [Projects][org.gradle.api.Project] that apply GradleUtils are given [GradleUtilsExtensionForProject].

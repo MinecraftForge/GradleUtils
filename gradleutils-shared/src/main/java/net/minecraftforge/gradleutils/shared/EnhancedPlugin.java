@@ -12,7 +12,6 @@ import org.gradle.api.invocation.Gradle;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
-import org.gradle.api.tasks.Internal;
 import org.jetbrains.annotations.ApiStatus;
 
 import javax.inject.Inject;

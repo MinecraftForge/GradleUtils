@@ -4,6 +4,8 @@
  */
 package net.minecraftforge.gradleutils;
 
+// NOTE: This interface MUST be top-level and not an inner class, otherwise IDE have problems with linting for the
+//  'gradleutils' extension in buildscripts.
 /// The GradleUtils extension for [projects][org.gradle.api.Project], which include additional utilities that are only
 /// available for them.
 ///

@@ -11,6 +11,7 @@ import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputFile;
+import org.jetbrains.annotations.ApiStatus;
 
 /// This task generates the GitHub Actions workflow file for the project.
 ///
@@ -18,6 +19,7 @@ import org.gradle.api.tasks.OutputFile;
 /// declared subprojects.
 ///
 /// @implNote See [GenerateActionsWorkflowImpl]
+@ApiStatus.Internal
 public sealed interface GenerateActionsWorkflow extends Task permits GenerateActionsWorkflowInternal {
     /// The name for this task.
     ///

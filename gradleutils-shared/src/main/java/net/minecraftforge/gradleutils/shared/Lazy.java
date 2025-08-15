@@ -17,7 +17,7 @@ import java.util.function.Supplier;
 /// @apiNote This lazy implementation uses Groovy's [closures][Closure] instead of typical [suppliers][Supplier] or
 /// [callables][Callable], as the closure API allows chaining via [Closure#compose(Closure)] and
 /// [Closure#andThen(Closure)]. They can still be created using callables.
-/// @see Lazy.Actionable
+/// @see Actionable
 public sealed class Lazy<T> implements Supplier<T>, Callable<T> permits Lazy.Actionable {
     /// Creates a simple lazy of the given callable.
     ///

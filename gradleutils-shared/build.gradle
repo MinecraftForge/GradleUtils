@@ -3,8 +3,7 @@ import com.github.jengelman.gradle.plugins.shadow.ShadowJavaPlugin
 import org.gradle.api.attributes.plugin.GradlePluginApiVersion
 
 plugins {
-    id 'java-gradle-plugin'
-    id 'groovy'
+    id 'java-library'
     id 'idea'
     id 'eclipse'
     id 'maven-publish'
@@ -12,14 +11,12 @@ plugins {
     id 'net.minecraftforge.gradleutils'
     alias libs.plugins.licenser
     alias libs.plugins.gitversion
-    alias libs.plugins.changelog
-    alias libs.plugins.plugin.publish
     alias libs.plugins.shadow
 }
 
-final projectDisplayName = 'Forge Gradle Utilities'
-final projectArtifactId = base.archivesName = 'gradleutils'
-description = 'Small collection of utilities for standardizing MinecraftForge gradle scripts'
+final projectDisplayName = 'Minecraft Forge Shared Plugin Base'
+final projectArtifactId = base.archivesName = 'gradleutils-shared'
+description = 'The shared base used by all of Minecraft Forge\'s Gradle plugins'
 group = 'net.minecraftforge'
 version = gitversion.tagOffset
 
@@ -32,20 +29,6 @@ java {
 }
 
 configurations {
-    // NOTE: If you are making a new Gradle plugin, do not copy this block!
-    configureEach {
-        resolutionStrategy.dependencySubstitution {
-            // NOTE: We build this in this repo, but enforce the module using a dependency substitution
-            //  That way, new plugins can effectively copy this buildscript just without this section
-            //  The "shadowed" attribute is declared here since project dependencies do not read the published module file
-            substitute module('net.minecraftforge:gradleutils-shared') using variant(project(':gradleutils-shared')) {
-                attributes {
-                    attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.SHADOWED))
-                }
-            }
-        }
-    }
-
     // Applies the "Gradle Plugin API Version" attribute to configuration
     // This was added in Gradle 7, gives consumers useful errors if they are on an old version
     def applyGradleVersionAttribute = { Configuration configuration ->
@@ -65,24 +48,8 @@ dependencies {
     // Gradle API
     compileOnly libs.gradle
 
-    // GradleUtils Shared Base
-    implementation libs.gradleutils.shared
-
-    // JavaDoc Links Plugin
-    compileOnly libs.gradle.javadoc.links
-
-    // GitHub Actions Workflows
-    implementation libs.yaml
-}
-
-// Removes local Gradle API from compileOnly. This is a workaround for bugged plugins.
-// TODO [GradleUtils][GradleAPI] Remove this once they are fixed.
-// Publish Plugin: https://github.com/gradle/plugin-portal-requests/issues/260
-// Shadow:         https://github.com/GradleUp/shadow/pull/1422
-afterEvaluate { project ->
-    project.configurations.named(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME) { compileOnly ->
-        compileOnly.dependencies.remove(project.dependencies.gradleApi())
-    }
+    // Tools
+    implementation libs.bundles.utils
 }
 
 license {
@@ -98,11 +65,7 @@ tasks.named('jar', Jar) {
 tasks.named('shadowJar', ShadowJar) {
     enableAutoRelocation = true
     archiveClassifier = null
-    relocationPrefix = 'net.minecraftforge.gradleutils.shadow'
-}
-
-tasks.withType(GroovyCompile).configureEach {
-    groovyOptions.optimizationOptions.indy = true
+    relocationPrefix = 'net.minecraftforge.gradleutils.shared.shadow'
 }
 
 tasks.withType(Javadoc).configureEach {
@@ -114,28 +77,16 @@ tasks.withType(Javadoc).configureEach {
     }
 }
 
-changelog {
-    fromBase()
-    publishAll = false
-}
-
-gradlePlugin {
-    website = gitversion.url
-    vcsUrl = gitversion.url + '.git'
-
-    plugins.register('gradleutils') {
-        id = 'net.minecraftforge.gradleutils'
-        implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
-        displayName = projectDisplayName
-        description = project.description
-        tags.set(['minecraftforge'])
-    }
+// Allows the thin jar to be published, but won't be considered as the java-runtime variant in the module
+// This forces Gradle to use the fat jar when applying the plugin
+(components.java as AdhocComponentWithVariants).withVariantsFromConfiguration(configurations.runtimeElements) {
+    skip()
 }
 
 publishing {
-    publications.register('pluginMaven', MavenPublication) {
+    publications.register('mavenJava', MavenPublication) {
+        from components.java
         artifactId = projectArtifactId
-        changelog.publish it
 
         pom { pom ->
             name = projectDisplayName
@@ -149,8 +100,6 @@ publishing {
 
             developers {
                 developer gradleutils.pom.developers.Jonathing
-                developer gradleutils.pom.developers.Paint_Ninja
-                developer gradleutils.pom.developers.LexManos
             }
         }
     }
