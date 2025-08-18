@@ -4,6 +4,8 @@
  */
 package net.minecraftforge.gradleutils.shared;
 
+import groovy.lang.GroovyObjectSupport;
+import org.codehaus.groovy.runtime.InvokerHelper;
 import org.gradle.api.Action;
 import org.gradle.api.Task;
 import org.gradle.api.Transformer;
@@ -34,7 +36,7 @@ import java.util.stream.Stream;
 
 /// The enhanced problems contain several base helper members to help reduce duplicate code between Gradle plugins.
 @ApiStatus.OverrideOnly
-public abstract class EnhancedProblems implements Problems, Predicate<String> {
+public abstract class EnhancedProblems extends GroovyObjectSupport implements Problems, Predicate<String> {
     /// The common message to send in [ProblemSpec#solution(String)] when reporting problems.
     protected static final String HELP_MESSAGE = "Consult the documentation or ask for help on the Forge Forums, GitHub, or Discord server.";
 
@@ -338,5 +340,36 @@ public abstract class EnhancedProblems implements Problems, Predicate<String> {
 
     private static boolean isFalse(Provider<? extends String> provider) {
         return Boolean.FALSE.equals(getBoolean(provider));
+    }
+
+
+    /* META CLASS */
+
+    @Override
+    public Object invokeMethod(String name, Object args) {
+        try {
+            return super.invokeMethod(name, args);
+        } catch (Exception suppressed) {
+            try {
+                return InvokerHelper.getMetaClass(this.delegate).invokeMethod(this.delegate, name, args);
+            } catch (Exception e) {
+                e.addSuppressed(suppressed);
+                throw e;
+            }
+        }
+    }
+
+    @Override
+    public Object getProperty(String propertyName) {
+        try {
+            return super.getProperty(propertyName);
+        } catch (Exception suppressed) {
+            try {
+                return InvokerHelper.getProperty(this.delegate, propertyName);
+            } catch (Exception e) {
+                e.addSuppressed(suppressed);
+                throw e;
+            }
+        }
     }
 }

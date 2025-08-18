@@ -9,16 +9,17 @@ import io.freefair.gradle.plugins.maven.javadoc.JavadocLinkUtil;
 import org.gradle.util.GradleVersion;
 import org.jetbrains.annotations.Nullable;
 
-/// Service to allow Nokee and Remal's redistributions of the Gradle API to link to Gradle's JavaDocs website.
-public class GradleAPIJavadocLinkProvider implements JavadocLinkProvider {
+/// Service for custom JavaDoc links not provided by the plugin
+public class GradleUtilsJavadocLinkProvider implements JavadocLinkProvider {
     /// Invoked by the [java.util.ServiceLoader].
-    public GradleAPIJavadocLinkProvider() { }
+    public GradleUtilsJavadocLinkProvider() { }
 
     @Override
     public @Nullable String getJavadocLink(String group, String artifact, String version) {
-        if (!"gradle-api".equals(artifact)) return null;
-        if (!"dev.gradleplugins".equals(group) && !"name.remal.gradle-api".equals(group)) return null;
+        // Allow Nokee and Remal's redistributions of Gradle API to link to Gradle's JavaDocs
+        if ("gradle-api".equals(artifact) && ("dev.gradleplugins".equals(group) || "name.remal.gradle-api".equals(group)))
+            return JavadocLinkUtil.getGradleApiLink(GradleVersion.version(version));
 
-        return JavadocLinkUtil.getGradleApiLink(GradleVersion.version(version));
+        return null;
     }
 }
