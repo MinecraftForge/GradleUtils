@@ -13,9 +13,7 @@ import org.gradle.api.provider.Provider;
 import java.io.File;
 
 /// Contains various utilities for working with Gradle scripts.
-///
-/// [Projects][org.gradle.api.Project] that apply GradleUtils are given [GradleUtilsExtensionForProject].
-public sealed interface GradleUtilsExtension permits GradleUtilsExtensionInternal, GradleUtilsExtensionForProject {
+public sealed interface GradleUtilsExtension permits GradleUtilsExtensionInternal {
     /// The name for this extension.
     String NAME = "gradleutils";
 
@@ -256,4 +254,9 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionInterna
     /// @return The closure
     Action<MavenArtifactRepository> getPublishingForgeMaven(String fallbackPublishingEndpoint, Provider<?> defaultFolder);
 
+    /// Utilities for working with a [org.gradle.api.publish.maven.MavenPom] for publishing artifacts.
+    ///
+    /// @return The POM utilities
+    /// @see PomUtils
+    PomUtils getPom();
 }

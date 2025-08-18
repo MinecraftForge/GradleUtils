@@ -13,6 +13,7 @@ import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.file.Directory
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
@@ -35,13 +36,21 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
     private final Property<String> mavenPassword
     private final Property<String> mavenUrl
 
+    final PomUtils pom
+
     @Inject
-    GradleUtilsExtensionImpl() {
-        this.rootDirectory = this.objects.directoryProperty().fileValue(this.buildLayout.rootDirectory)\
+    GradleUtilsExtensionImpl(ExtensionAware target) {
+        this.rootDirectory = this.objects.directoryProperty().fileValue(this.buildLayout.rootDirectory)
 
         this.mavenUser = this.objects.property(String).value(this.providers.environmentVariable('MAVEN_USER')).tap(SharedUtil.finalizeProperty())
         this.mavenPassword = this.objects.property(String).value(this.providers.environmentVariable('MAVEN_PASSWORD')).tap(SharedUtil.finalizeProperty())
         this.mavenUrl = this.objects.property(String).value(this.providers.environmentVariable('MAVEN_URL').orElse(this.providers.environmentVariable('MAVEN_URL_RELEASE'))).tap(SharedUtil.finalizeProperty())
+
+        this.pom = this.objects.newInstance(PomUtilsImpl, target)
+
+        if (target instanceof Project) {
+            target.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)
+        }
     }
 
     @Override
@@ -95,18 +104,6 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                 LOGGER.info('Forge publishing credentials not found, using local folder')
                 repo.url = defaultFolder.get().absoluteFile.toURI()
             }
-        }
-    }
-
-    @CompileStatic
-    @PackageScope static abstract class ForProject extends GradleUtilsExtensionImpl implements GradleUtilsExtensionInternal.ForProject {
-        final PomUtils pom
-
-        @Inject
-        ForProject(Project project) {
-            this.pom = this.objects.newInstance(PomUtilsImpl, project)
-
-            project.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)
         }
     }
 }

@@ -10,20 +10,21 @@ import groovy.transform.PackageScope
 import net.minecraftforge.gradleutils.shared.SharedUtil
 import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.publish.maven.MavenPom
 
 import javax.inject.Inject
 
 @CompileStatic
 @PackageScope abstract class PomUtilsImpl implements PomUtilsInternal {
-    private final Project project
+    private final ExtensionAware target
     private final GradleUtilsProblems problems
 
     protected abstract @Inject ObjectFactory getObjects()
 
     @Inject
-    PomUtilsImpl(Project project) {
-        this.project = project
+    PomUtilsImpl(ExtensionAware target) {
+        this.target = target
         this.problems = this.objects.newInstance(GradleUtilsProblems)
     }
 
@@ -47,7 +48,7 @@ import javax.inject.Inject
             // As such, this contract must ALWAYS be true:
             // - Project contains an extension named 'gitversion'
             // - The extension contains method '#getUrl()' or property 'url'
-            this.project.extensions.getByName('gitversion').url
+            this.target.extensions.getByName('gitversion').url
 
             // IN CASE you need to migrate to Java, here is the Java equivalent of this, safe to compile:
             //org.codehaus.groovy.runtime.InvokerHelper.getProperty(this.project.extensions.getByName("gitversion"), "url")

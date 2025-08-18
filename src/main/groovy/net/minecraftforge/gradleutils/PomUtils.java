@@ -13,8 +13,7 @@ import java.util.Map;
 
 /// Contains utilities to make working with [POMs][MavenPom] more ergonomic.
 ///
-/// This can be accessed by [projects][org.gradle.api.Project] using the
-/// {@link GradleUtilsExtensionForProject gradleutils} extension.
+/// This can be accessed using the [gradleutils][GradleUtilsExtension] extension.
 public sealed interface PomUtils permits PomUtilsInternal {
     /// Allows accessing [licenses][Licenses] from buildscripts using `gradleutils.pom.licenses`.
     ///
