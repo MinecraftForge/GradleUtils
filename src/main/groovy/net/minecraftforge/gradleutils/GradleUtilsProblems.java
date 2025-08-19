@@ -49,7 +49,24 @@ abstract class GradleUtilsProblems extends EnhancedProblems {
                 This project was autodetected as a MinecraftForge project, but `gradleutils.pom.addForgeDetails` was not used.""")
             .severity(Severity.ADVICE)
             .stackLocation()
-            .solution("Consider using `gradleutils.pom.addForgeDetails`"));
+            .solution("Consider using `gradleutils.pom.addForgeDetails`."));
+    }
+    //endregion
+
+    //region JavaDoc Links
+    void reportJavadocLinksNotOnClasspath(Throwable e) {
+        this.getReporter().report(id("javadoc-links-plugin-not-found", "JavaDoc Links plugin not in classpath"), spec -> spec
+            .details("""
+                This project is using `resolveJavadocLinks` from FreeFair's JavaDoc Links plugin, but it was not loaded in the classpath!
+                The javadoc links plugin must be loaded in the classpath before GradleUtils, even if it is not applied (i.e. in `settings.gradle`).
+                
+                This can be done by declaring it as so (in Groovy DSL):
+                `id 'io.freefair.javadoc-links' version '8.14' apply false`""")
+            .withException(e)
+            .severity(Severity.ERROR)
+            .stackLocation()
+            .solution("Add the JavaDoc Links plugin before GradleUtils (use `apply(false)` if necessary).")
+            .solution(HELP_MESSAGE));
     }
     //endregion
 }

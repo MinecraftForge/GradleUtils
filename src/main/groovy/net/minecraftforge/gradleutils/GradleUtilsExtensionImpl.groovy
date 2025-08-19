@@ -6,12 +6,13 @@ package net.minecraftforge.gradleutils
 
 import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
-import net.minecraftforge.gradleutils.shared.SharedUtil
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.file.Directory
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.flow.FlowProviders
+import org.gradle.api.flow.FlowScope
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.provider.Property
@@ -26,10 +27,6 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
 
 @CompileStatic
 @PackageScope abstract class GradleUtilsExtensionImpl implements GradleUtilsExtensionInternal {
-    protected abstract @Inject ObjectFactory getObjects()
-    protected abstract @Inject BuildLayout getBuildLayout()
-    protected abstract @Inject ProviderFactory getProviders()
-
     private final DirectoryProperty rootDirectory
 
     private final Property<String> mavenUser
@@ -38,15 +35,28 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
 
     final PomUtils pom
 
+    protected abstract @Inject ObjectFactory getObjects()
+    protected abstract @Inject BuildLayout getBuildLayout()
+    protected abstract @Inject ProviderFactory getProviders()
+
+    protected abstract @Inject FlowScope getFlowScope()
+    protected abstract @Inject FlowProviders getFlowProviders()
+
     @Inject
     GradleUtilsExtensionImpl(ExtensionAware target) {
         this.rootDirectory = this.objects.directoryProperty().fileValue(this.buildLayout.rootDirectory)
 
-        this.mavenUser = this.objects.property(String).value(this.providers.environmentVariable('MAVEN_USER')).tap(SharedUtil.finalizeProperty())
-        this.mavenPassword = this.objects.property(String).value(this.providers.environmentVariable('MAVEN_PASSWORD')).tap(SharedUtil.finalizeProperty())
-        this.mavenUrl = this.objects.property(String).value(this.providers.environmentVariable('MAVEN_URL').orElse(this.providers.environmentVariable('MAVEN_URL_RELEASE'))).tap(SharedUtil.finalizeProperty())
+        this.mavenUser = this.objects.property(String).value(this.providers.environmentVariable('MAVEN_USER')).tap(Util.finalizeProperty())
+        this.mavenPassword = this.objects.property(String).value(this.providers.environmentVariable('MAVEN_PASSWORD')).tap(Util.finalizeProperty())
+        this.mavenUrl = this.objects.property(String).value(this.providers.environmentVariable('MAVEN_URL').orElse(this.providers.environmentVariable('MAVEN_URL_RELEASE'))).tap(Util.finalizeProperty())
 
         this.pom = this.objects.newInstance(PomUtilsImpl, target)
+
+        this.flowScope.always(GradleUtilsFlowAction.JavadocLinksClassCheck) {
+            it.parameters { parameters ->
+                parameters.failure.set(this.flowProviders.buildWorkResult.map { it.failure.orElse(null) })
+            }
+        }
 
         if (target instanceof Project) {
             target.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)
