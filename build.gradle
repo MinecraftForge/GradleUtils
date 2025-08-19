@@ -18,8 +18,8 @@ plugins {
 }
 
 final projectDisplayName = 'Forge Gradle Utilities'
-final projectArtifactId = base.archivesName = 'gradleutils'
 description = 'Small collection of utilities for standardizing MinecraftForge gradle scripts'
+base.archivesName = 'gradleutils'
 group = 'net.minecraftforge'
 version = gitversion.tagOffset
 
@@ -42,7 +42,7 @@ configurations {
                 attributes {
                     attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.SHADOWED))
                 }
-            }
+            } because 'Project dependencies do not read the published module file, so the shadowed attribute is manually declared'
         }
     }
 
@@ -133,9 +133,12 @@ gradlePlugin {
 }
 
 publishing {
+    repositories {
+        maven gradleutils.publishingForgeMaven
+    }
+
     publications.register('pluginMaven', MavenPublication) {
-        artifactId = projectArtifactId
-        changelog.publish it
+        changelog.publish(it)
 
         pom { pom ->
             name = projectDisplayName
@@ -153,10 +156,6 @@ publishing {
                 developer gradleutils.pom.developers.LexManos
             }
         }
-    }
-
-    repositories {
-        maven gradleutils.publishingForgeMaven
     }
 }
 
