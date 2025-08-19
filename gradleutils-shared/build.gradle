@@ -23,7 +23,7 @@ version = gitversion.tagOffset
 println "Version: $version"
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(17)
+    toolchain.languageVersion = JavaLanguageVersion.of(8)
     withSourcesJar()
     withJavadocJar()
 }
@@ -46,10 +46,10 @@ dependencies {
     compileOnly libs.nulls
 
     // Gradle API
-    compileOnly libs.gradle
+    compileOnly sharedLibs.gradle
 
     // Tools
-    implementation libs.bundles.utils
+    implementation sharedLibs.bundles.utils
 }
 
 license {
@@ -84,6 +84,10 @@ tasks.withType(Javadoc).configureEach {
 }
 
 publishing {
+    repositories {
+        maven gradleutils.publishingForgeMaven
+    }
+
     publications.register('mavenJava', MavenPublication) {
         from components.java
         artifactId = projectArtifactId
@@ -102,10 +106,6 @@ publishing {
                 developer gradleutils.pom.developers.Jonathing
             }
         }
-    }
-
-    repositories {
-        maven gradleutils.publishingForgeMaven
     }
 }
 

@@ -21,11 +21,47 @@ import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 
-record ToolImpl(String getName, String version, String fileName, String downloadUrl, int getJavaVersion, @Nullable String getMainClass) implements Tool {
+class ToolImpl implements Tool {
     private static final Logger LOGGER = Logging.getLogger(Tool.class);
 
+    private final String name;
+    private final String version;
+    private final String fileName;
+    private final String downloadUrl;
+    private final int javaVersion;
+    private final @Nullable String mainClass;
+
+    public ToolImpl(String name, String version, String fileName, String downloadUrl, int javaVersion, @Nullable String mainClass) {
+        this.name = name;
+        this.version = version;
+        this.fileName = fileName;
+        this.downloadUrl = downloadUrl;
+        this.javaVersion = javaVersion;
+        this.mainClass = mainClass;
+    }
+
     ToolImpl(String name, String version, String downloadUrl, int javaVersion, @Nullable String mainClass) {
-        this(name, version, "%s-%s.jar".formatted(name, version), downloadUrl, javaVersion, mainClass);
+        this(name, version, String.format("%s-%s.jar", name, version), downloadUrl, javaVersion, mainClass);
+    }
+
+    @Override
+    public String getName() {
+        return this.name;
+    }
+
+    @Override
+    public String getVersion() {
+        return this.version;
+    }
+
+    @Override
+    public int getJavaVersion() {
+        return this.javaVersion;
+    }
+
+    @Override
+    public @Nullable String getMainClass() {
+        return this.mainClass;
     }
 
     @Override
@@ -48,17 +84,17 @@ record ToolImpl(String getName, String version, String fileName, String download
 
         @Override
         public File obtain() {
-            var parameters = this.getParameters();
+            Parameters parameters = this.getParameters();
 
             // inputs
-            var downloadUrl = parameters.getDownloadUrl().get();
+            String downloadUrl = parameters.getDownloadUrl().get();
 
             // outputs
-            var outFile = parameters.getInputFile().get().getAsFile();
-            var name = outFile.getName();
+            File outFile = parameters.getInputFile().get().getAsFile();
+            String name = outFile.getName();
 
             // in-house caching
-            var cache = HashStore.fromFile(outFile).add("url", downloadUrl);
+            HashStore cache = HashStore.fromFile(outFile).add("url", downloadUrl);
 
             if (outFile.exists() && cache.isSame()) {
                 LOGGER.info("Default tool already downloaded: {}", name);

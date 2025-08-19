@@ -27,7 +27,8 @@ import java.util.Objects;
 /// @see JavaExec
 /// @see Tool
 public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec {
-    private transient final P problems;
+    private final Class<P> problemsType;
+    private transient P problems;
     /// The default tool directory (usage is not required).
     protected final DirectoryProperty defaultToolDir;
 
@@ -47,18 +48,18 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     /// best practice is to make a single `ToolExec` class for the implementing plugin to use, which other tasks can
     /// extend off of.
     protected ToolExecBase(Class<P> problemsType, Tool tool) {
-        this.problems = this.getObjectFactory().newInstance(problemsType);
+        this.problems = this.getObjectFactory().newInstance(this.problemsType = problemsType);
 
-        if (this instanceof EnhancedTask enhancedTask) {
+        if (this instanceof EnhancedTask) {
             this.defaultToolDir = this.getObjectFactory().directoryProperty().value(
-                enhancedTask.globalCaches().dir(tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal())
+                ((EnhancedTask) this).globalCaches().dir(tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal())
             );
-            this.setClasspath(this.getObjectFactory().fileCollection().from(enhancedTask.getTool(tool)));
+            this.setClasspath(this.getObjectFactory().fileCollection().from(((EnhancedTask) this).getTool(tool)));
         } else {
-            this.getProject().afterEvaluate(project -> this.problems.reportToolExecNotEnhanced(this));
+            this.getProject().afterEvaluate(project -> this.getProblems().reportToolExecNotEnhanced(this));
 
             this.defaultToolDir = this.getObjectFactory().directoryProperty().value(
-                this.getProjectLayout().getBuildDirectory().dir("minecraftforge/tools/%s/workDir".formatted(tool.getName().toLowerCase(Locale.ENGLISH))).map(this.ensureFileLocationInternal())
+                this.getProjectLayout().getBuildDirectory().dir(String.format("minecraftforge/tools/%s/workDir", tool.getName().toLowerCase(Locale.ENGLISH))).map(this.ensureFileLocationInternal())
             );
             this.setClasspath(this.getObjectFactory().fileCollection().from(tool.get(
                 this.getProjectLayout().getBuildDirectory().dir("minecraftforge/tools/" + tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal()),
@@ -76,13 +77,12 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     /// The enhanced problems instance to use for this task.
     ///
     /// @return The enhanced problems
-    @Internal
-    protected final P getProblems() {
-        return this.problems;
+    protected final @Internal P getProblems() {
+        return this.problems == null ? this.problems = this.getObjectFactory().newInstance(this.problemsType) : this.problems;
     }
 
     private <T extends FileSystemLocation> Transformer<T, T> ensureFileLocationInternal() {
-        return t -> this.problems.<T>ensureFileLocation().transform(t);
+        return t -> this.getProblems().<T>ensureFileLocation().transform(t);
     }
 
     /// This method should be overridden by subclasses to add arguments to this task via [JavaExec#args]. To preserve
@@ -95,7 +95,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
         if (this.getArgs().isEmpty())
             this.addArguments();
         else
-            this.problems.reportToolExecEagerArgs(this);
+            this.getProblems().reportToolExecEagerArgs(this);
 
         this.getLogger().info("{} {}", this.getClasspath().getAsPath(), String.join(" ", this.getArgs()));
 
@@ -108,7 +108,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     /// @param arg   The flag to use for each file
     /// @param files The files to add
     protected final void args(String arg, Iterable<? extends File> files) {
-        for (var file : files)
+        for (File file : files)
             this.args(arg, file);
     }
 
@@ -125,7 +125,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     /// @param arg      The flag to use
     /// @param provider The object (or file) to add
     protected final void args(String arg, Provider<?> provider) {
-        var value = provider.map(it -> it instanceof FileSystemLocation f ? f.getAsFile() : it).get();
+        Object value = provider.map(it -> it instanceof FileSystemLocation ? ((FileSystemLocation) it).getAsFile() : it).get();
 
         this.args(arg, String.valueOf(value));
     }

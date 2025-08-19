@@ -11,6 +11,7 @@ import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFile;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Internal;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import java.io.File;
 
@@ -21,7 +22,8 @@ public interface EnhancedTask extends Task {
     /// @return The plugin type
     Class<? extends EnhancedPlugin<? super Project>> pluginType();
 
-    private EnhancedPlugin<? super Project> getPlugin() {
+    @VisibleForTesting
+    default @Internal EnhancedPlugin<? super Project> getPlugin() {
         return this.getProject().getPlugins().getPlugin(this.pluginType());
     }
 
@@ -59,6 +61,6 @@ public interface EnhancedTask extends Task {
     /// @param ext The extension to use for the file
     /// @return A provider for the file
     default Provider<RegularFile> getDefaultOutputFile(String ext) {
-        return this.localCaches().file("%s/output.%s".formatted(this.getName(), ext)).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
+        return this.localCaches().file(String.format("%s/output.%s", this.getName(), ext)).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
     }
 }

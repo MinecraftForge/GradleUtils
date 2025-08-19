@@ -61,13 +61,14 @@ public final class Closures {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static <T> @UnknownNullability T invokeInternal(Closure closure, Object... object) {
-        var original = Thread.currentThread().getContextClassLoader();
+        ClassLoader original = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(closure.getClass().getClassLoader());
         try {
-            var ret = closure.getMaximumNumberOfParameters() == 0 ? closure.call() : closure.call(object);
+            Object ret = closure.getMaximumNumberOfParameters() == 0 ? closure.call() : closure.call(object);
             return ret != null ? (T) ret : null;
         } catch (InvokerInvocationException e) {
-            throw e.getCause() instanceof RuntimeException rte ? rte : e;
+            Throwable cause = e.getCause();
+            throw cause instanceof RuntimeException ? (RuntimeException) cause : e;
         } finally {
             Thread.currentThread().setContextClassLoader(original);
         }
@@ -79,7 +80,7 @@ public final class Closures {
     /// @param <R>      The return type of the function
     /// @return The closure
     /// @apiNote For static methods only.
-    public static <R> Closure<R> unaryOperator(UnaryOperator<? extends R> function) {
+    public static <R> Closure<R> unaryOperator(UnaryOperator<R> function) {
         return unaryOperator(ReflectionUtils.getCallingClass(), function);
     }
 
@@ -90,7 +91,7 @@ public final class Closures {
     /// @param <R>      The return type of the function
     /// @return The closure
     /// @apiNote For instance methods only.
-    public static <R> Closure<R> unaryOperator(Object owner, UnaryOperator<? extends R> function) {
+    public static <R> Closure<R> unaryOperator(Object owner, UnaryOperator<R> function) {
         return function(owner, function);
     }
 
@@ -304,7 +305,7 @@ public final class Closures {
         }
     }
 
-    private static sealed class Empty extends Closure<Void> permits Running {
+    private static class Empty extends Closure<Void> {
         public Empty(Object owner) {
             super(owner, owner);
         }

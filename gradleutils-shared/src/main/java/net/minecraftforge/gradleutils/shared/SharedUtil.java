@@ -13,9 +13,11 @@ import org.gradle.api.Project;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.FileCollectionDependency;
 import org.gradle.api.artifacts.ModuleVersionSelector;
+import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.provider.ProviderFactory;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
@@ -81,7 +83,7 @@ public abstract class SharedUtil {
     /// @return A provider for the Java launcher
     public static Provider<JavaLauncher> launcherFor(Provider<? extends JavaPluginExtension> java, Provider<? extends JavaToolchainService> javaToolchains, JavaLanguageVersion version) {
         return java.flatMap(j -> {
-            var currentToolchain = j.getToolchain();
+            JavaToolchainSpec currentToolchain = j.getToolchain();
             return currentToolchain.getLanguageVersion().orElse(JavaLanguageVersion.current()).flatMap(languageVersion -> languageVersion.canCompileOrRun(version)
                 ? javaToolchains.flatMap(t -> t.launcherFor(spec -> spec.getLanguageVersion().set(languageVersion)))
                 : launcherForStrictly(javaToolchains, version));
@@ -97,8 +99,8 @@ public abstract class SharedUtil {
     /// @param version The version of Java required
     /// @return A provider for the Java launcher
     public static Provider<JavaLauncher> launcherFor(Project project, int version) {
-        var providers = project.getProviders();
-        var extensions = project.getExtensions();
+        ProviderFactory providers = project.getProviders();
+        ExtensionContainer extensions = project.getExtensions();
         return launcherFor(providers.provider(() -> extensions.getByType(JavaPluginExtension.class)), providers.provider(() -> extensions.getByType(JavaToolchainService.class)), version);
     }
 
@@ -111,8 +113,8 @@ public abstract class SharedUtil {
     /// @param version The version of Java required
     /// @return A provider for the Java launcher
     public static Provider<JavaLauncher> launcherFor(Project project, JavaLanguageVersion version) {
-        var providers = project.getProviders();
-        var extensions = project.getExtensions();
+        ProviderFactory providers = project.getProviders();
+        ExtensionContainer extensions = project.getExtensions();
         return launcherFor(providers.provider(() -> extensions.getByType(JavaPluginExtension.class)), providers.provider(() -> extensions.getByType(JavaToolchainService.class)), version);
     }
 
@@ -163,8 +165,8 @@ public abstract class SharedUtil {
     /// @param version The version of Java required
     /// @return A provider for the Java launcher
     public static Provider<JavaLauncher> launcherForStrictly(Project project, int version) {
-        var providers = project.getProviders();
-        var extensions = project.getExtensions();
+        ProviderFactory providers = project.getProviders();
+        ExtensionContainer extensions = project.getExtensions();
         return launcherForStrictly(providers.provider(() -> extensions.getByType(JavaToolchainService.class)), version);
     }
 
@@ -175,8 +177,8 @@ public abstract class SharedUtil {
     /// @param version The version of Java required
     /// @return A provider for the Java launcher
     public static Provider<JavaLauncher> launcherForStrictly(Project project, JavaLanguageVersion version) {
-        var providers = project.getProviders();
-        var extensions = project.getExtensions();
+        ProviderFactory providers = project.getProviders();
+        ExtensionContainer extensions = project.getExtensions();
         return launcherForStrictly(providers.provider(() -> extensions.getByType(JavaToolchainService.class)), version);
     }
     //endregion
@@ -223,7 +225,7 @@ public abstract class SharedUtil {
             @Override
             public void write(int b) {
                 if (b == '\r' || b == '\n') {
-                    if (!this.buffer.isEmpty()) {
+                    if (this.buffer.length() > 0) {
                         logger.execute(this.buffer.toString());
                         this.buffer = new StringBuffer(512);
                     }
@@ -242,8 +244,8 @@ public abstract class SharedUtil {
     /// @param module The module
     /// @return The string representation
     public static String toString(ModuleVersionSelector module) {
-        var version = module.getVersion();
-        return "%s:%s%s".formatted(
+        String version = module.getVersion();
+        return String.format("%s:%s%s",
             module.getGroup(),
             module.getName(),
             version != null ? ':' + version : ""
@@ -255,16 +257,16 @@ public abstract class SharedUtil {
     /// @param dependency The dependency
     /// @return The string representation
     public static String toString(Dependency dependency) {
-        var group = dependency.getGroup();
-        var version = dependency.getVersion();
-        var reason = dependency.getReason();
-        return "(%s) %s%s%s%s%s".formatted(
+        String group = dependency.getGroup();
+        String version = dependency.getVersion();
+        String reason = dependency.getReason();
+        return String.format("(%s) %s%s%s%s%s",
             dependency.getClass().getName(),
             group != null ? group + ':' : "",
             dependency.getName(),
             version != null ? ':' + version : "",
             reason != null ? " (" + reason + ')' : "",
-            dependency instanceof FileCollectionDependency files ? " [%s]".formatted(String.join(", ", files.getFiles().getFiles().stream().map(File::getAbsolutePath).map(CharSequence.class::cast)::iterator)) : ""
+            dependency instanceof FileCollectionDependency ? String.format(" [%s]", String.join(", ", ((FileCollectionDependency) dependency).getFiles().getFiles().stream().map(File::getAbsolutePath).map(CharSequence.class::cast)::iterator)) : ""
         );
     }
     //endregion
@@ -272,7 +274,7 @@ public abstract class SharedUtil {
     //region Properties
 
     public static <P extends Property<?>> Closure<P> finalizeProperty() {
-        var ret = Closures.<P>unaryOperator(SharedUtil::finalizeProperty);
+        Closure<P> ret = Closures.unaryOperator(SharedUtil::finalizeProperty);
         ret.setResolveStrategy(Closure.DELEGATE_FIRST);
         return ret;
     }

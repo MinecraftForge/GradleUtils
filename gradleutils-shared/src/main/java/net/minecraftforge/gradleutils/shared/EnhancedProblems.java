@@ -26,6 +26,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Collection;
@@ -107,10 +108,10 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
     /// @return The exception to throw
     public final RuntimeException illegalPluginTarget(Exception e, Class<?> firstAllowedTarget, Class<?>... allowedTargets) {
         return this.getReporter().throwing(e, id("invalid-plugin-target", "Invalid plugin target"), spec -> spec
-            .details("""
-                Attempted to apply the %s plugin to an invalid target.
-                This plugin can only be applied on the following types:
-                %s""".formatted(this.displayName, Stream.concat(Stream.of(firstAllowedTarget), Stream.of(allowedTargets)).map(Class::getName).collect(Collectors.joining(", ", "[", "]"))))
+            .details(String.format(
+                "Attempted to apply the %s plugin to an invalid target.\n" +
+                "This plugin can only be applied on the following types:\n" +
+                "%s", this.displayName, Stream.concat(Stream.of(firstAllowedTarget), Stream.of(allowedTargets)).map(Class::getName).collect(Collectors.joining(", ", "[", "]"))))
             .severity(Severity.ERROR)
             .stackLocation()
             .solution("Use a valid plugin target.")
@@ -124,9 +125,9 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
     /// @return The exception to throw
     public final RuntimeException illegalPluginTarget(Exception e, String allowedTargets) {
         return this.getReporter().throwing(e, id("invalid-plugin-target", "Invalid plugin target"), spec -> spec
-            .details("""
-                Attempted to apply the %s plugin to an invalid target.
-                This plugin can only be applied on %s""".formatted(this.displayName, allowedTargets))
+            .details(String.format(
+                "Attempted to apply the %s plugin to an invalid target.\n" +
+                "This plugin can only be applied on %s", this.displayName, allowedTargets))
             .severity(Severity.ERROR)
             .stackLocation()
             .solution("Use a valid plugin target.")
@@ -138,9 +139,9 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
     /// @param e The exception that was caught, will be re-thrown (or wrapped with a [RuntimeException])
     /// @return The exception to throw
     public final RuntimeException pluginNotYetApplied(Exception e) {
-        return this.getReporter().throwing(e, id("plugin-not-yet-applied", "%s is not applied".formatted(this.displayName)), spec -> spec
-            .details("""
-                Attempted to get details from the %s plugin, but it has not yet been applied to the target.""".formatted(this.displayName))
+        return this.getReporter().throwing(e, id("plugin-not-yet-applied", String.format("%s is not applied", this.displayName)), spec -> spec
+            .details(String.format(
+                "Attempted to get details from the %s plugin, but it has not yet been applied to the target.", this.displayName))
             .severity(Severity.ERROR)
             .stackLocation()
             .solution("Apply the plugin before attempting to use it from the target's plugin manager.")
@@ -157,10 +158,10 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
     /// @param task The affected task
     public final void reportToolExecNotEnhanced(Task task) {
         this.getReporter().report(id("tool-exec-not-enhanced", "ToolExec subclass doesn't implement EnhancedTask"), spec -> spec
-            .details("""
-                Implementing subclass of ToolExecBase should also implement (a subclass of) EnhancedTask.
-                Not doing so will result in global caches being ignored. Please check your implementations.
-                Affected task: %s (%s)""".formatted(task, task.getClass()))
+            .details(String.format(
+                "Implementing subclass of ToolExecBase should also implement (a subclass of) EnhancedTask.\n" +
+                "Not doing so will result in global caches being ignored. Please check your implementations.\n" +
+                "Affected task: %s (%s)", task, task.getClass()))
             .severity(Severity.WARNING)
             .stackLocation()
             .solution("Double check your task implementation."));
@@ -171,9 +172,9 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
     /// @param task The affected task
     public final void reportToolExecNotEnhanced(Class<?> task) {
         this.getReporter().report(id("enhanced-task-no-plugin", "EnhancedTask doesn't implement #pluginType"), spec -> spec
-            .details("""
-                Implementation of EnhancedTask must implement #pluginType
-                Affected task type: %s""".formatted(task))
+            .details(String.format(
+                "Implementation of EnhancedTask must implement #pluginType\n" +
+                "Affected task type: %s", task))
             .severity(Severity.ERROR)
             .stackLocation()
             .solution("Double check your task implementation."));
@@ -184,10 +185,10 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
     /// @param task The affected task
     public final void reportToolExecEagerArgs(Task task) {
         this.getReporter().report(id("tool-exec-eager-args", "ToolExecBase implementation adds arguments without using addArguments()"), spec -> spec
-            .details("""
-                A ToolExecBase task is eagerly adding arguments using JavaExec#args without using ToolExecBase#addArguments.
-                This may cause implementations or superclasses to have their arguments ignored or missing.
-                Affected task: %s (%s)""".formatted(task, task.getClass()))
+            .details(String.format(
+                "A ToolExecBase task is eagerly adding arguments using JavaExec#args without using ToolExecBase#addArguments.\n" +
+                "This may cause implementations or superclasses to have their arguments ignored or missing.\n" +
+                "Affected task: %s (%s)", task, task.getClass()))
             .severity(Severity.WARNING)
             .stackLocation()
             .solution("Use ToolExecBase#addArguments"));
@@ -203,15 +204,15 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
     /// @return The transformer to apply onto a provider
     public final <T extends FileSystemLocation> Transformer<T, T> ensureFileLocation() {
         return file -> {
-            var dir = file instanceof Directory ? file.getAsFile() : file.getAsFile().getParentFile();
+            File dir = file instanceof Directory ? file.getAsFile() : file.getAsFile().getParentFile();
             try {
                 Files.createDirectories(dir.toPath());
             } catch (IOException e) {
                 throw this.getReporter().throwing(e, id("cannot-ensure-directory", "Failed to create directory"), spec -> spec
-                    .details("""
-                        Failed to create a directory required for %s to function.
-                        Directory: %s"""
-                        .formatted(this.displayName, dir.getAbsolutePath()))
+                    .details(String.format(
+                        "Failed to create a directory required for %s to function.\n" +
+                        "Directory: %s",
+                        this.displayName, dir.getAbsolutePath()))
                     .severity(Severity.ERROR)
                     .stackLocation()
                     .solution("Ensure that the you have write access to the directory that needs to be created.")
@@ -264,8 +265,8 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
             return this.toRTE(exception);
         }
 
-        private RuntimeException toRTE(Throwable exception) {
-            return exception instanceof RuntimeException rte ? rte : new RuntimeException(exception);
+        default RuntimeException toRTE(Throwable exception) {
+            return exception instanceof RuntimeException ? (RuntimeException) exception : new RuntimeException(exception);
         }
     }
 
@@ -310,7 +311,7 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
 
     private Predicate<String> unwrapProperties() {
         try {
-            var providers = Objects.requireNonNull(this.getProviders());
+            ProviderFactory providers = Objects.requireNonNull(this.getProviders());
             return property -> isTrue(providers, property);
         } catch (Exception e) {
             return Boolean::getBoolean;

@@ -4,6 +4,7 @@
  */
 package net.minecraftforge.gradleutils.shared;
 
+import org.gradle.api.Named;
 import org.gradle.api.file.Directory;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
@@ -15,7 +16,7 @@ import java.io.File;
 /// [org.gradle.api.provider.ValueSource]. This means that while the downloading and local caching of this file are done
 /// in house, the Gradle-specific caching and file tracking are done by Gradle. This enables the usage of downloading
 /// external files quickly without breaking caches.
-public sealed interface Tool permits ToolImpl {
+public interface Tool extends Named {
     /// Creates a new tool with the given information.
     ///
     /// @param name        The name for this tool (will be used in the file name)
@@ -42,7 +43,13 @@ public sealed interface Tool permits ToolImpl {
     /// The name for this tool. Primarily used by [ToolExecBase] to create a default tool directory.
     ///
     /// @return The name of this tool
+    @Override
     String getName();
+
+    /// The version of this tool.
+    ///
+    /// @return The version of this tool
+    String getVersion();
 
     /// The Java version this tool was built with. Primarily used by [ToolExecBase] to determine the
     /// [org.gradle.jvm.toolchain.JavaLauncher].

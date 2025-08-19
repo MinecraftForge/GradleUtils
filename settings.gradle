@@ -8,19 +8,12 @@ pluginManagement {
 }
 
 plugins {
-    // https://plugins.gradle.org/plugin/org.gradle.toolchains.foojay-resolver-convention
-    // Java toolchain provisioner to download JDKs for tasks that need them.
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0' // https://plugins.gradle.org/plugin/org.gradle.toolchains.foojay-resolver-convention
 
-    // https://plugins.gradle.org/plugin/io.freefair.javadoc-links
-    // Enhanced Javadoc links in projects.
-    // GradleUtils 3 adds a service that implements an interface from this plugin.
-    // It is added to the classpath here but not yet applied.
-    id 'io.freefair.javadoc-links' version '8.14' apply false
+    // NOTE: We need to load this into the classpath before GradleUtils for the service to load correctly
+    id 'io.freefair.javadoc-links' version '8.14' apply false // https://plugins.gradle.org/plugin/io.freefair.javadoc-links
 
-    // https://plugins.gradle.org/plugin/net.minecraftforge.gradleutils
-    // Gradle utilities for Minecraft Forge projects.
-    id 'net.minecraftforge.gradleutils' version '3.0.0-beta.16'
+    id 'net.minecraftforge.gradleutils' version '3.0.0-beta.20' // https://plugins.gradle.org/plugin/net.minecraftforge.gradleutils
 }
 
 rootProject.name = 'gradleutils'
@@ -35,38 +28,44 @@ dependencyResolutionManagement {
         maven { url = 'https://maven.moddinglegacy.com' } // Gradle API
     }
 
-    versionCatalogs.register('libs') {
-        version 'gradle-gitversion',    '3.0.0-beta.16'
-        version 'gradle-javadoc-links', '8.14'
+    versionCatalogs {
+        register('libs') {
+            version 'gradle-javadoc-links', '8.14'
 
-        plugin 'licenser',       'net.minecraftforge.licenser'    version '1.2.0'                // https://plugins.gradle.org/plugin/net.minecraftforge.licenser
-        plugin 'gitversion',     'net.minecraftforge.gitversion'  versionRef 'gradle-gitversion' // https://plugins.gradle.org/plugin/net.minecraftforge.gitversion
-        plugin 'changelog',      'net.minecraftforge.changelog'   versionRef 'gradle-gitversion' // https://plugins.gradle.org/plugin/net.minecraftforge.changelog
-        plugin 'plugin-publish', 'com.gradle.plugin-publish'      version '1.3.1'                // https://plugins.gradle.org/plugin/com.gradle.plugin-publish
-        plugin 'shadow',         'com.gradleup.shadow'            version '9.0.1'                // https://plugins.gradle.org/plugin/com.gradleup.shadow
+            plugin 'licenser',       'net.minecraftforge.licenser'    version '1.2.0'         // https://plugins.gradle.org/plugin/net.minecraftforge.licenser
+            plugin 'gitversion',     'net.minecraftforge.gitversion'  version '3.0.0-beta.22' // https://plugins.gradle.org/plugin/net.minecraftforge.gitversion
+            plugin 'changelog',      'net.minecraftforge.changelog'   version '3.0.0-beta.22' // https://plugins.gradle.org/plugin/net.minecraftforge.changelog
+            plugin 'plugin-publish', 'com.gradle.plugin-publish'      version '1.3.1'         // https://plugins.gradle.org/plugin/com.gradle.plugin-publish
+            plugin 'shadow',         'com.gradleup.shadow'            version '9.0.2'         // https://plugins.gradle.org/plugin/com.gradleup.shadow
 
-        // Static Analysis
-        library 'nulls',  'org.jetbrains', 'annotations' version '26.0.2'
+            // Static Analysis
+            library 'nulls',  'org.jetbrains', 'annotations' version '26.0.2'
 
-        // Gradle API
-        // TODO [ForgeGradle][FG7][Gradle Api] REMOVE once Gradle publish their own API artifacts
-        // Original:  https://github.com/remal-gradle-api/packages/packages/760197?version=9.0.0
-        // Mirror:    https://repos.moddinglegacy.com/#/modding-legacy/name/remal/gradle-api/gradle-api/9.0.0
-        version 'gradle', '9.0.0'
-        library 'gradle', 'name.remal.gradle-api', 'gradle-api'  versionRef 'gradle'
+            // Gradle API
+            // Original: https://github.com/remal-gradle-api/packages/packages/760197?version=9.0.0
+            // Mirror:   https://repos.moddinglegacy.com/#/modding-legacy/name/remal/gradle-api/gradle-api/9.0.0
+            version 'gradle', '9.0.0'
+            library 'gradle', 'name.remal.gradle-api', 'gradle-api'  versionRef 'gradle'
 
-        // GradleUtils Shared Base
-        library 'gradleutils-shared', 'net.minecraftforge', 'gradleutils-shared' withoutVersion()
+            // GradleUtils Shared Base
+            library 'gradleutils-shared', 'net.minecraftforge', 'gradleutils-shared' withoutVersion()
 
-        // JavaDoc Links Plugin
-        library 'gradle-javadoc-links', 'io.freefair.javadoc-links', 'io.freefair.javadoc-links.gradle.plugin' versionRef 'gradle-javadoc-links'
+            // JavaDoc Links Plugin
+            library 'gradle-javadoc-links', 'io.freefair.javadoc-links', 'io.freefair.javadoc-links.gradle.plugin' versionRef 'gradle-javadoc-links'
 
-        // GitHub Actions Workflows
-        library 'yaml', 'org.yaml', 'snakeyaml' version '2.4'
+            // GitHub Actions Workflows
+            library 'yaml', 'org.yaml', 'snakeyaml' version '2.4'
+        }
 
-        // Tools
-        library 'utils-hash',     'net.minecraftforge', 'hash-utils'      version '0.1.9' // https://files.minecraftforge.net/net/minecraftforge/hash-utils/index.html
-        library 'utils-download', 'net.minecraftforge', 'download-utils'  version '0.3.1' // https://files.minecraftforge.net/net/minecraftforge/download-utils/index.html
-        bundle 'utils', ['utils-hash', 'utils-download']
+        register('sharedLibs') {
+            // Gradle API
+            version 'gradle', '8.13'
+            library 'gradle', 'name.remal.gradle-api', 'gradle-api'  versionRef 'gradle'
+
+            // Tools
+            library 'utils-hash',     'net.minecraftforge', 'hash-utils'      version '0.1.9' // https://files.minecraftforge.net/net/minecraftforge/hash-utils/index.html
+            library 'utils-download', 'net.minecraftforge', 'download-utils'  version '0.3.1' // https://files.minecraftforge.net/net/minecraftforge/download-utils/index.html
+            bundle 'utils', ['utils-hash', 'utils-download']
+        }
     }
 }
