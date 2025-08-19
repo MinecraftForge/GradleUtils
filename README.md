@@ -16,6 +16,7 @@ helps us standardize our buildscripts.
 | 2.4.0 - 2.4.9  | 17   | 8.6    |
 | 2.4.10 - 2.5.x | 17   | 8.1*   |
 | 2.6.x          | 17   | 7.3    |
+| 3.x            | 17   | 9.0.0  |
 
 \*Compatibility was not tested for this version, but this is the lowest recommended version as it was built
 against it.

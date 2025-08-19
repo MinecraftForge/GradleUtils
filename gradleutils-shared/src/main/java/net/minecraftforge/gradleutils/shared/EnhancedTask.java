@@ -48,6 +48,11 @@ public interface EnhancedTask extends Task, EnhancedPluginAdditions {
         return this.getPlugin().localCaches();
     }
 
+    @Override
+    default DirectoryProperty workingProjectDirectory() {
+        return this.getPlugin().workingProjectDirectory();
+    }
+
     /// The default output directory to use for this task if it outputs a directory.
     ///
     /// @return A provider for the directory

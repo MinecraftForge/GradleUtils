@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) Forge Development LLC and contributors
+ * SPDX-License-Identifier: LGPL-2.1-only
+ */
 package net.minecraftforge.gradleutils.shared;
 
 import org.gradle.api.file.DirectoryProperty;
@@ -34,4 +38,16 @@ public interface EnhancedPluginAdditions {
     /// @throws RuntimeException If this plugin cannot access global caches (i.e. the target is not
     ///                          [org.gradle.api.Project] or [org.gradle.api.initialization.Settings])
     DirectoryProperty localCaches();
+
+    /// Gets the working project directory to be used for this plugin. This directory is either the
+    /// [org.gradle.api.file.ProjectLayout#getProjectDirectory()] of the [org.gradle.api.Project] or the
+    /// [org.gradle.api.file.BuildLayout#getRootDirectory()] of the [org.gradle.api.initialization.Settings]. Attempting
+    /// to call this when the plugin target is not either type will throw an exception.
+    ///
+    /// It is located in `project/build/minecraftforge/plugin`.
+    ///
+    /// @return The working project directory
+    /// @throws RuntimeException If this plugin cannot access the working project directory (i.e. the target is not
+    ///                          [org.gradle.api.Project] or [org.gradle.api.initialization.Settings])
+    DirectoryProperty workingProjectDirectory();
 }

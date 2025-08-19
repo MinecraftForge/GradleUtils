@@ -15,7 +15,7 @@ plugins {
 }
 
 final projectDisplayName = 'Minecraft Forge Shared Plugin Base'
-final projectArtifactId = base.archivesName = 'gradleutils-shared'
+base.archivesName = 'gradleutils-shared'
 description = 'The shared base used by all of Minecraft Forge\'s Gradle plugins'
 group = 'net.minecraftforge'
 version = gitversion.tagOffset
@@ -90,7 +90,6 @@ publishing {
 
     publications.register('mavenJava', MavenPublication) {
         from components.java
-        artifactId = projectArtifactId
 
         pom { pom ->
             name = projectDisplayName

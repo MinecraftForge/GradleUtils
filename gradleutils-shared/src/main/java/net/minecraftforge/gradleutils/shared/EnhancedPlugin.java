@@ -5,11 +5,12 @@
 package net.minecraftforge.gradleutils.shared;
 
 import org.codehaus.groovy.runtime.InvokerHelper;
-import org.gradle.StartParameter;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.file.BuildLayout;
 import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.file.ProjectLayout;
+import org.gradle.api.initialization.Settings;
 import org.gradle.api.invocation.Gradle;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Provider;
@@ -36,6 +37,13 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
     /// @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#objectfactory">ObjectFactory
     /// Service Injection</a>
     protected abstract @Inject ObjectFactory getObjects();
+
+    /// The project layout provided by Gradle services.
+    ///
+    /// @return The build layout
+    /// @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#buildlayout">BuildLayout
+    /// Service Injection</a>
+    protected abstract @Inject ProjectLayout getProjectLayout();
 
     /// The build layout provided by Gradle services.
     ///
@@ -116,8 +124,8 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
 
     private DirectoryProperty makeGlobalCaches() {
         try {
-            StartParameter startParameter = ((Gradle) InvokerHelper.getPropertySafe(this.target, "gradle")).getStartParameter();
-            DirectoryProperty gradleUserHomeDir = this.getObjects().directoryProperty().fileValue(startParameter.getGradleUserHomeDir());
+            Gradle gradle = ((Gradle) InvokerHelper.getProperty(this.target, "gradle"));
+            DirectoryProperty gradleUserHomeDir = this.getObjects().directoryProperty().fileValue(gradle.getGradleUserHomeDir());
 
             return this.getObjects().directoryProperty().convention(
                 gradleUserHomeDir.dir("caches/minecraftforge/" + this.name).map(this.problemsInternal.ensureFileLocation())
@@ -125,7 +133,7 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
         } catch (Exception e) {
             throw this.problemsInternal.illegalPluginTarget(
                 new IllegalArgumentException(String.format("Failed to get %s global caches directory for target: %s", this.displayName, this.target), e),
-                "types with access to Gradle (#getGradle()Lorg/gradle/api/invocation/Gradle), such as projects or settings."
+                "projects or settings"
             );
         }
     }
@@ -141,11 +149,11 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
         try {
             DirectoryProperty workingProjectBuildDir;
             if (this.target instanceof Project) {
-                workingProjectBuildDir = ((Project) this.target).getLayout().getBuildDirectory();
+                workingProjectBuildDir = this.getProjectLayout().getBuildDirectory();
+            } else if (this.target instanceof Settings) {
+                workingProjectBuildDir = this.getObjects().directoryProperty().fileValue(new File(this.getBuildLayout().getRootDirectory().getAsFile(), "build"));
             } else {
-                StartParameter startParameter = ((Gradle) InvokerHelper.getPropertySafe(this.target, "gradle")).getStartParameter();
-                File projectDir = startParameter.getProjectDir();
-                workingProjectBuildDir = this.getObjects().directoryProperty().fileValue(new File(projectDir != null ? projectDir : this.getBuildLayout().getRootDirectory().getAsFile(), "build"));
+                throw new IllegalStateException("Cannot make local caches with an unsupported type (must be project or settings)");
             }
 
             return this.getObjects().directoryProperty().convention(
@@ -154,7 +162,32 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
         } catch (Exception e) {
             throw this.problemsInternal.illegalPluginTarget(
                 new IllegalArgumentException(String.format("Failed to get %s local caches directory for target: %s", this.displayName, this.getTarget()), e),
-                "projects or types with access to Gradle (#getGradle()Lorg/gradle/api/invocation/Gradle), such as settings."
+                "projects or settings"
+            );
+        }
+    }
+
+    private final Lazy<DirectoryProperty> workingProjectDirectory = Lazy.simple(this::makeWorkingProjectDirectory);
+
+    @Override
+    public final DirectoryProperty workingProjectDirectory() {
+        return this.workingProjectDirectory.get();
+    }
+
+    private DirectoryProperty makeWorkingProjectDirectory() {
+        try {
+            DirectoryProperty workingProjectDirectory = this.getObjects().directoryProperty();
+            if (this.target instanceof Project) {
+                return workingProjectDirectory.value(this.getProjectLayout().getProjectDirectory());
+            } else if (this.target instanceof Settings) {
+                return workingProjectDirectory.value(this.getBuildLayout().getRootDirectory());
+            } else {
+                throw new IllegalStateException("Cannot get working project directory with an unsupported type (must be project or settings)");
+            }
+        } catch (Exception e) {
+            throw this.problemsInternal.illegalPluginTarget(
+                new IllegalArgumentException(String.format("Failed to get %s working project directory for target: %s", this.displayName, this.getTarget()), e),
+                "projects or settings"
             );
         }
     }
