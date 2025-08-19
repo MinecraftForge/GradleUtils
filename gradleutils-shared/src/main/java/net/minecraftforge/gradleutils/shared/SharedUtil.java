@@ -22,6 +22,7 @@ import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
 import org.gradle.jvm.toolchain.JavaToolchainSpec;
+import org.jetbrains.annotations.Contract;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -275,12 +276,29 @@ public abstract class SharedUtil {
 
     //region Properties
 
+    /// Makes a returning-self closure that finalizes a given property using [#finalizeProperty(Property)].
+    ///
+    /// This is best used as the method argument for [org.codehaus.groovy.runtime.DefaultGroovyMethods#tap(Object,
+    /// Closure)], which allows for in-lining property creation in Groovy code.
+    ///
+    /// @param <P> The type of property to finalize
+    /// @return The returning-self closure for finalizing a property
     public static <P extends Property<?>> Closure<P> finalizeProperty() {
         Closure<P> ret = Closures.unaryOperator(SharedUtil::finalizeProperty);
         ret.setResolveStrategy(Closure.DELEGATE_FIRST);
         return ret;
     }
 
+    /// Finalizes the given property to prevent any additional changes from being made to it.
+    ///
+    /// This is done by simply calling [Property#disallowChanges()] and [Property#finalizeValueOnRead()]. These methods
+    /// do not return the object itself, so this helper method exists to in-line property creation without needing to
+    /// reference it again just to call these methods.
+    ///
+    /// @param <P>      The type of property to finalize
+    /// @param property The property to finalize
+    /// @return The property
+    @Contract(value = "_ -> param1", mutates = "param1")
     public static <P extends Property<?>> P finalizeProperty(P property) {
         property.disallowChanges();
         property.finalizeValueOnRead();

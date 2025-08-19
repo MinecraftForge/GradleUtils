@@ -9,6 +9,8 @@
  * that include Forge-specific helper methods.</p>
  **/
 @ApiStatus.Internal
+@NotNullByDefault
 package net.minecraftforge.gradleutils.shared;
 
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNullByDefault;

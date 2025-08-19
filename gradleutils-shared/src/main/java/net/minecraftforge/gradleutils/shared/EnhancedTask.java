@@ -11,33 +11,39 @@ import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFile;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Internal;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import java.io.File;
 
 /// The enhanced task contains a handful of helper methods to make working with the enhanced plugin and caches easier.
-public interface EnhancedTask extends Task {
+public interface EnhancedTask extends Task, EnhancedPluginAdditions {
     /// The enhanced plugin type for this task.
     ///
     /// @return The plugin type
     Class<? extends EnhancedPlugin<? super Project>> pluginType();
 
-    @VisibleForTesting
+    /// Gets the enhanced plugin used by this task as defined in [#pluginType()].
+    ///
+    /// @return The enhanced plugin
+    /// @deprecated This method is public only due to the limitations imposed by Java 8. Do not use this. Use
+    /// [Task#getProject()] -> [org.gradle.api.plugins.PluginAware#getPlugins()] ->
+    /// [org.gradle.api.plugins.PluginContainer#getPlugin(Class)].
+    @Deprecated
+    @SuppressWarnings("DeprecatedIsStillUsed")
     default @Internal EnhancedPlugin<? super Project> getPlugin() {
         return this.getProject().getPlugins().getPlugin(this.pluginType());
     }
 
-    /// @see EnhancedPlugin#getTool(Tool)
+    @Override
     default Provider<File> getTool(Tool tool) {
         return this.getPlugin().getTool(tool);
     }
 
-    /// @see EnhancedPlugin#globalCaches()
+    @Override
     default DirectoryProperty globalCaches() {
         return this.getPlugin().globalCaches();
     }
 
-    /// @see EnhancedPlugin#localCaches()
+    @Override
     default DirectoryProperty localCaches() {
         return this.getPlugin().localCaches();
     }

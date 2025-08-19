@@ -22,7 +22,6 @@ import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.reflect.HasPublicType;
 import org.gradle.api.reflect.TypeOf;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
@@ -287,15 +286,19 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
 
     /* IMPL INSTANTIATION */
 
-    /** @see <a href="https://docs.gradle.org/current/userguide/reporting_problems.html">Reporting Problems</a> */
+    /// The problems instance provided by Gradle services.
+    ///
+    /// @return The problems instance
+    /// @see <a href="https://docs.gradle.org/current/userguide/reporting_problems.html">Reporting Problems</a>
     protected @Inject Problems getProblems() {
         throw new IllegalStateException();
     }
 
-    /**
-     * @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#providerfactory">ProviderFactory
-     * Service Injection</a>
-     */
+    /// The provider factory provided by Gradle services.
+    ///
+    /// @return The provider factory
+    /// @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#providerfactory">ProviderFactory
+    /// Service Injection</a>
     protected @Inject ProviderFactory getProviders() {
         throw new IllegalStateException();
     }

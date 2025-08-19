@@ -142,7 +142,7 @@ public class Lazy<T> implements Supplier<T>, Callable<T> {
         /// Copies this actionable lazy. This can be useful if you need to split off execution paths and have the same
         /// object with different mutations at a specific time.
         ///
-        /// @return The a new actionable lazy copied from this one
+        /// @return A new actionable lazy copied from this one
         public Actionable<T> copy() {
             Actionable<T> ret = new Actionable<>(this.closure);
             ret.value = this.value;

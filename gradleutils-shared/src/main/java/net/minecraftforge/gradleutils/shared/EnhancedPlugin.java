@@ -14,7 +14,6 @@ import org.gradle.api.invocation.Gradle;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
-import org.jetbrains.annotations.ApiStatus;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -24,29 +23,32 @@ import java.util.Objects;
 /// needing to duplicate code across projects.
 ///
 /// @param <T> The type of target
-public abstract class EnhancedPlugin<T> implements Plugin<T> {
+public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAdditions {
     private final String name;
     private final String displayName;
 
     private T target;
     private final EnhancedProblems problemsInternal;
 
-    /**
-     * @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#objectfactory">ObjectFactory
-     * Service Injection</a>
-     */
+    /// The object factory provided by Gradle services.
+    ///
+    /// @return The object factory
+    /// @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#objectfactory">ObjectFactory
+    /// Service Injection</a>
     protected abstract @Inject ObjectFactory getObjects();
 
-    /**
-     * @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#buildlayout">BuildLayout
-     * Service Injection</a>
-     */
+    /// The build layout provided by Gradle services.
+    ///
+    /// @return The build layout
+    /// @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#buildlayout">BuildLayout
+    /// Service Injection</a>
     protected abstract @Inject BuildLayout getBuildLayout();
 
-    /**
-     * @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#providerfactory">ProviderFactory
-     * Service Injection</a>
-     */
+    /// The provider factory provided by Gradle services.
+    ///
+    /// @return The provider factory
+    /// @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#providerfactory">ProviderFactory
+    /// Service Injection</a>
     protected abstract @Inject ProviderFactory getProviders();
 
     /// This constructor must be called by all subclasses using a public constructor annotated with [Inject]. The name
@@ -96,12 +98,8 @@ public abstract class EnhancedPlugin<T> implements Plugin<T> {
 
     /* TOOLS */
 
-    /// Gets a provider to the file for a [Tool] to be used. The tool's state is managed by Gradle through the
-    /// [org.gradle.api.provider.ValueSource] API and will not cause caching issues.
-    ///
-    /// @param tool The tool to get
-    /// @return A provider for the tool file
     @SuppressWarnings("deprecation") // deprecation intentional, please use this method
+    @Override
     public Provider<File> getTool(Tool tool) {
         return tool.get(this.globalCaches(), this.getProviders());
     }
@@ -111,14 +109,7 @@ public abstract class EnhancedPlugin<T> implements Plugin<T> {
 
     private final Lazy<DirectoryProperty> globalCaches = Lazy.simple(this::makeGlobalCaches);
 
-    /// Gets the global caches to be used for this plugin. These caches persist between projects and should be used to
-    /// eliminate excess work done by projects that request the same data.
-    ///
-    /// It is stored in `~/.gradle/caches/minecraftforge/plugin`.
-    ///
-    /// @return The global caches
-    /// @throws RuntimeException If this plugin cannot access global caches (i.e. the target is not [Project] or
-    ///                          [org.gradle.api.initialization.Settings])
+    @Override
     public final DirectoryProperty globalCaches() {
         return this.globalCaches.get();
     }
@@ -141,14 +132,7 @@ public abstract class EnhancedPlugin<T> implements Plugin<T> {
 
     private final Lazy<DirectoryProperty> localCaches = Lazy.simple(this::makeLocalCaches);
 
-    /// Gets the local caches to be used for this plugin. Data done by tasks that should not be shared between projects
-    /// should be stored here.
-    ///
-    /// It is located in `project/build/minecraftforge/plugin`.
-    ///
-    /// @return The global caches
-    /// @throws RuntimeException If this plugin cannot access global caches (i.e. the target is not [Project] or
-    ///                          [org.gradle.api.initialization.Settings])
+    @Override
     public final DirectoryProperty localCaches() {
         return this.localCaches.get();
     }

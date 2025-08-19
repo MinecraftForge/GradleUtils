@@ -25,6 +25,8 @@ import java.util.Objects;
 /// consistent between plugins.
 ///
 /// @param <P> The type of enhanced problems, used for common problems reporting with illegal task arguments
+/// @implSpec Implementing plugins should make a shared subclass named `ToolExec` which all other tool executing tasks
+/// should extend from.
 /// @see JavaExec
 /// @see Tool
 public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec {
@@ -33,10 +35,11 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     /// The default tool directory (usage is not required).
     protected final DirectoryProperty defaultToolDir;
 
-    /**
-     * @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#sec:projectlayout">ProjectLayout
-     * Service Injection</a>
-     */
+    /// The project layout provided by Gradle services.
+    ///
+    /// @return The project layout
+    /// @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#projectlayout">ProjectLayout
+    /// Service Injection</a>
     protected abstract @Inject ProjectLayout getProjectLayout();
 
     /// Creates a new task instance using the given types and tool information.
@@ -91,6 +94,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     @MustBeInvokedByOverriders
     protected void addArguments() { }
 
+    /// @implNote Not invoking this method from an overriding method *will* result in the tool never being executed and
+    /// [#addArguments()] never being run.
     @Override
     public void exec() {
         if (this.getArgs().isEmpty())
