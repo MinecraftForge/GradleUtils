@@ -14,6 +14,7 @@ import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.JavaExec;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
+import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -28,7 +29,7 @@ import java.util.Objects;
 /// @see Tool
 public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec {
     private final Class<P> problemsType;
-    private transient P problems;
+    private transient @Nullable P problems;
     /// The default tool directory (usage is not required).
     protected final DirectoryProperty defaultToolDir;
 
@@ -48,7 +49,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     /// best practice is to make a single `ToolExec` class for the implementing plugin to use, which other tasks can
     /// extend off of.
     protected ToolExecBase(Class<P> problemsType, Tool tool) {
-        this.problems = this.getObjectFactory().newInstance(this.problemsType = problemsType);
+        this.problemsType = problemsType;
 
         if (this instanceof EnhancedTask) {
             this.defaultToolDir = this.getObjectFactory().directoryProperty().value(

@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /// The enhanced problems contain several base helper members to help reduce duplicate code between Gradle plugins.
-@ApiStatus.OverrideOnly
 public abstract class EnhancedProblems extends GroovyObjectSupport implements Problems, Predicate<String> {
     /// The common message to send in [ProblemSpec#solution(String)] when reporting problems.
     protected static final String HELP_MESSAGE = "Consult the documentation or ask for help on the Forge Forums, GitHub, or Discord server.";

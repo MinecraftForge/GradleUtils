@@ -24,7 +24,6 @@ import java.util.Objects;
 /// needing to duplicate code across projects.
 ///
 /// @param <T> The type of target
-@ApiStatus.OverrideOnly
 public abstract class EnhancedPlugin<T> implements Plugin<T> {
     private final String name;
     private final String displayName;

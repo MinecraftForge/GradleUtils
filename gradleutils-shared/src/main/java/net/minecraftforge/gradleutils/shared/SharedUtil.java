@@ -27,6 +27,8 @@ import java.io.File;
 import java.io.OutputStream;
 
 /// Shared utilities for Gradle plugins.
+///
+/// @implNote Consumers should make their own `Util` class and extend this one with it to inherit all static methods.
 public abstract class SharedUtil {
     //region Java Launcher
 
