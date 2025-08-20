@@ -114,8 +114,7 @@ tasks.withType(Javadoc).configureEach {
 }
 
 changelog {
-    fromBase()
-    publishAll = false
+    from '3.0'
 }
 
 gradlePlugin {

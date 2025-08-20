@@ -14,8 +14,8 @@ plugins {
 }
 
 final projectDisplayName = 'Minecraft Forge Shared Plugin Base'
-base.archivesName = 'gradleutils-shared'
 description = 'The shared base used by all of Minecraft Forge\'s Gradle plugins'
+base.archivesName = 'gradleutils-shared'
 group = 'net.minecraftforge'
 // version set by gitversion in settings.gradle
 
