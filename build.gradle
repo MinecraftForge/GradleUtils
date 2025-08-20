@@ -10,9 +10,9 @@ plugins {
     id 'maven-publish'
     id 'io.freefair.javadoc-links'
     id 'net.minecraftforge.gradleutils'
-    alias libs.plugins.licenser
-    alias libs.plugins.gitversion
+    id 'net.minecraftforge.gitversion'
     alias libs.plugins.changelog
+    alias libs.plugins.licenser
     alias libs.plugins.plugin.publish
     alias libs.plugins.shadow
 }
@@ -21,7 +21,7 @@ final projectDisplayName = 'Forge Gradle Utilities'
 description = 'Small collection of utilities for standardizing MinecraftForge gradle scripts'
 base.archivesName = 'gradleutils'
 group = 'net.minecraftforge'
-version = gitversion.tagOffset
+// version set by gitversion in settings.gradle
 
 println "Version: $version"
 
@@ -42,7 +42,7 @@ configurations {
                 attributes {
                     attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.SHADOWED))
                 }
-            } because 'Project dependencies do not read the published module file, so the shadowed attribute is manually declared'
+            } because 'Project dependencies do not read the published module file, so the shadowed attribute is manually declared.'
         }
     }
 
@@ -76,7 +76,6 @@ dependencies {
 }
 
 // Removes local Gradle API from compileOnly. This is a workaround for bugged plugins.
-// TODO [GradleUtils][GradleAPI] Remove this once they are fixed.
 // Publish Plugin: https://github.com/gradle/plugin-portal-requests/issues/260
 // Shadow:         https://github.com/GradleUp/shadow/pull/1422
 afterEvaluate { project ->
@@ -128,7 +127,7 @@ gradlePlugin {
         implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
         displayName = projectDisplayName
         description = project.description
-        tags.set(['minecraftforge'])
+        tags = ['minecraftforge']
     }
 }
 

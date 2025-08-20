@@ -4,8 +4,8 @@ on:
   push:
     branches: [ 'main' ]
     paths-ignore:
-      - 'gradleutils-shared/**'
       - '.github/workflows/**'
+      - 'docs/**'
       - 'README.md'
 
 permissions:
@@ -16,8 +16,8 @@ jobs:
     uses: MinecraftForge/SharedActions/.github/workflows/gradle.yml@v0
     with:
       java: 17
-      gradle_tasks: ':gradleutils-shared:check :check :publish :publishPlugins'
-      artifact_name: 'gradleutils'
+      gradle_tasks: ':gradleutils-shared:check :check :gradleutils-shared:publish :publish :publishPlugins'
+      artifact_name: 'gradleutils,gradleutils-shared'
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       PROMOTE_ARTIFACT_WEBHOOK: ${{ secrets.PROMOTE_ARTIFACT_WEBHOOK }}
