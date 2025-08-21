@@ -23,6 +23,7 @@ import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.authentication.http.BasicAuthentication
 import org.gradle.initialization.layout.BuildLayout
+import org.jetbrains.annotations.Nullable
 
 import javax.inject.Inject
 
@@ -129,8 +130,11 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
         }
 
         @Override
-        TaskProvider<? extends PromotePublication> promote(MavenPublication publication) {
+        TaskProvider<? extends PromotePublication> promote(MavenPublication publication, @Nullable Action<? super PromotePublication> cfg) {
             this.project.tasks.register('promote' + publication.name.capitalize(), PromotePublicationImpl).tap { promote ->
+                if (cfg !== null)
+                    promote.configure { cfg.execute(it) }
+
                 this.project.tasks.withType(PublishToMavenRepository).configureEach { publish ->
                     // if the publish task's publication isn't this one and the repo name isn't 'forge', skip
                     // the name being 'forge' is enforced by gradle utils
