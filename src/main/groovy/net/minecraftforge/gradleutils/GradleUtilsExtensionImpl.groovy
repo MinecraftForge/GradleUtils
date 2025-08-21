@@ -142,7 +142,7 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                         return
 
                     publish.finalizedBy(promote)
-                    promote.configure { it.mustRunAfter(publish) }
+                    promote.get().mustRunAfter(publish)
                 }
             }
         }
