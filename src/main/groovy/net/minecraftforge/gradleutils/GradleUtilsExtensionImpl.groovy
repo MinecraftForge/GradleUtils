@@ -131,7 +131,7 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
 
         @Override
         TaskProvider<? extends PromotePublication> promote(MavenPublication publication, @Nullable Action<? super PromotePublication> cfg) {
-            this.project.tasks.register('promote' + publication.name.capitalize(), PromotePublicationImpl).tap { promote ->
+            this.project.tasks.register("promote${publication.name.capitalize()}Publication", PromotePublicationImpl, publication).tap { promote ->
                 if (cfg !== null)
                     promote.configure { cfg.execute(it) }
 
