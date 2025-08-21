@@ -13,7 +13,9 @@ import org.gradle.api.provider.Provider;
 import java.io.File;
 
 /// Contains various utilities for working with Gradle scripts.
-public sealed interface GradleUtilsExtension permits GradleUtilsExtensionInternal {
+///
+/// @see GradleUtilsExtensionForProject
+public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProject, GradleUtilsExtensionInternal {
     /// The name for this extension.
     String NAME = "gradleutils";
 

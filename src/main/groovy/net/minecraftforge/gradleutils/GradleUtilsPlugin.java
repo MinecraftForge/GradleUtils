@@ -5,6 +5,7 @@
 package net.minecraftforge.gradleutils;
 
 import net.minecraftforge.gradleutils.shared.EnhancedPlugin;
+import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 import org.gradle.api.plugins.ExtensionAware;
@@ -24,6 +25,9 @@ abstract class GradleUtilsPlugin extends EnhancedPlugin<ExtensionAware> {
 
     @Override
     public void setup(ExtensionAware target) {
-        target.getExtensions().create(GradleUtilsExtension.NAME, GradleUtilsExtensionImpl.class, target);
+        if (target instanceof Project project)
+            project.getExtensions().create(GradleUtilsExtension.NAME, GradleUtilsExtensionImpl.ForProjectImpl.class);
+        else
+            target.getExtensions().create(GradleUtilsExtension.NAME, GradleUtilsExtensionImpl.class, target);
     }
 }

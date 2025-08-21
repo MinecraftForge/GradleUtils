@@ -29,4 +29,11 @@ non-sealed interface GradleUtilsExtensionInternal extends GradleUtilsExtension, 
         repo.setName("Minecraft libraries");
         repo.setUrl(Constants.MC_LIBS_MAVEN);
     };
+
+    non-sealed interface ForProject extends GradleUtilsExtensionForProject, HasPublicType {
+        @Override
+        default TypeOf<?> getPublicType() {
+            return TypeOf.typeOf(GradleUtilsExtensionForProject.class);
+        }
+    }
 }

@@ -18,6 +18,9 @@ import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.authentication.http.BasicAuthentication
 import org.gradle.initialization.layout.BuildLayout
 
@@ -56,10 +59,6 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
             it.parameters { parameters ->
                 parameters.failure.set(this.flowProviders.buildWorkResult.map { it.failure.orElse(null) })
             }
-        }
-
-        if (target instanceof Project) {
-            target.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)
         }
     }
 
@@ -113,6 +112,33 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
             } else {
                 LOGGER.info('Forge publishing credentials not found, using local folder')
                 repo.url = defaultFolder.get().absoluteFile.toURI()
+            }
+        }
+    }
+
+    @CompileStatic
+    @PackageScope static abstract class ForProjectImpl implements GradleUtilsExtensionInternal.ForProject {
+        private final Project project
+
+        @Inject
+        ForProjectImpl(Project project) {
+            this.project = project
+
+            project.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)
+        }
+
+        @Override
+        TaskProvider<? extends PromotePublication> promote(MavenPublication publication) {
+            this.project.tasks.register('promote' + publication.name.capitalize(), PromotePublicationImpl).tap { promote ->
+                this.project.tasks.withType(PublishToMavenRepository).configureEach { publish ->
+                    // if the publish task's publication isn't this one and the repo name isn't 'forge', skip
+                    // the name being 'forge' is enforced by gradle utils
+                    if (publish.publication !== publication || publish.repository.name != 'forge')
+                        return
+
+                    publish.finalizedBy(promote)
+                    promote.configure { it.mustRunAfter(publish) }
+                }
             }
         }
     }
