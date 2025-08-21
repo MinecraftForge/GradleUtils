@@ -117,11 +117,12 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
     }
 
     @CompileStatic
-    @PackageScope static abstract class ForProjectImpl implements GradleUtilsExtensionInternal.ForProject {
+    @PackageScope static abstract class ForProjectImpl extends GradleUtilsExtensionImpl implements GradleUtilsExtensionInternal.ForProject {
         private final Project project
 
         @Inject
         ForProjectImpl(Project project) {
+            super(project)
             this.project = project
 
             project.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)

@@ -26,7 +26,7 @@ abstract class GradleUtilsPlugin extends EnhancedPlugin<ExtensionAware> {
     @Override
     public void setup(ExtensionAware target) {
         if (target instanceof Project project)
-            project.getExtensions().create(GradleUtilsExtension.NAME, GradleUtilsExtensionImpl.ForProjectImpl.class);
+            project.getExtensions().create(GradleUtilsExtension.NAME, GradleUtilsExtensionImpl.ForProjectImpl.class, project);
         else
             target.getExtensions().create(GradleUtilsExtension.NAME, GradleUtilsExtensionImpl.class, target);
     }

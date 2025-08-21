@@ -30,7 +30,7 @@ non-sealed interface GradleUtilsExtensionInternal extends GradleUtilsExtension, 
         repo.setUrl(Constants.MC_LIBS_MAVEN);
     };
 
-    non-sealed interface ForProject extends GradleUtilsExtensionForProject, HasPublicType {
+    non-sealed interface ForProject extends GradleUtilsExtensionInternal, GradleUtilsExtensionForProject, HasPublicType {
         @Override
         default TypeOf<?> getPublicType() {
             return TypeOf.typeOf(GradleUtilsExtensionForProject.class);
