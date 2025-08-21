@@ -17,7 +17,6 @@ jobs:
     with:
       java: 17
       gradle_tasks: ':gradleutils-shared:check :check :gradleutils-shared:publish :publish :publishPlugins'
-      artifact_name: 'gradleutils,gradleutils-shared'
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       PROMOTE_ARTIFACT_WEBHOOK: ${{ secrets.PROMOTE_ARTIFACT_WEBHOOK }}

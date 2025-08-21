@@ -11,8 +11,9 @@ import org.jetbrains.annotations.ApiStatus;
 
 /// This task promotes a publication to the <a href="https://files.minecraftforge.net">Forge Files Site</a>.
 ///
-/// @apiNote This task is still [experimental][ApiStatus.Experimental]. It may be buggy and is subject to change.
-@ApiStatus.Experimental
+/// @apiNote This task is [internal][org.jetbrains.annotations.ApiStatus.Internal] as it is meant for use in Forge
+/// projects only.
+@ApiStatus.Internal
 public sealed interface PromotePublication extends Task permits PromotePublicationInternal {
     /// The publication group to promote.
     ///

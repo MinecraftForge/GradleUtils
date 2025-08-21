@@ -11,6 +11,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.publish.plugins.PublishingPlugin
 import org.gradle.api.tasks.TaskAction
 
 import javax.inject.Inject
@@ -26,6 +27,9 @@ import java.time.Duration
 
     @Inject
     PromotePublicationImpl(MavenPublication publication) {
+        this.group = PublishingPlugin.PUBLISH_TASK_GROUP
+        this.description = "Publishes Maven publication '${publication.name}' to the Forge Files site."
+
         this.artifactGroup.convention(this.providers.provider(this.project.&getGroup).map(Object.&toString)).set(this.providers.provider(publication.&getGroupId))
         this.artifactName.convention(this.project.extensions.getByType(BasePluginExtension).archivesName).set(this.providers.provider(publication.&getArtifactId))
         this.artifactVersion.convention(this.providers.provider(this.project.&getVersion).map(Object.&toString)).set(this.providers.provider(publication.&getVersion))
@@ -45,7 +49,7 @@ import java.time.Duration
     @TaskAction
     void exec() {
         var client = HttpClient.newBuilder().tap {
-            sslParameters(SSLContext.default.defaultSSLParameters.tap { protocols = ["TLSv1.3"] })
+            sslParameters(SSLContext.default.defaultSSLParameters.tap { protocols = ['TLSv1.3'] })
         }.build()
 
         var request = HttpRequest.newBuilder().tap {
@@ -62,7 +66,7 @@ import java.time.Duration
         }.build()
 
         var response = client.send(request, HttpResponse.BodyHandlers.ofString())
-        if (response.statusCode() != 200)
+        if (response.statusCode() !== 200)
             throw new RuntimeException("Failed to promote artifact: ${response.statusCode()} ${response.body()}")
     }
 }

@@ -90,6 +90,8 @@ publishing {
     publications.register('mavenJava', MavenPublication) {
         from components.java
 
+        gradleutils.promote(it)
+
         pom { pom ->
             name = projectDisplayName
             description = project.description

@@ -137,6 +137,7 @@ publishing {
 
     publications.register('pluginMaven', MavenPublication) {
         changelog.publish(it)
+        gradleutils.promote(it)
 
         pom { pom ->
             name = projectDisplayName
