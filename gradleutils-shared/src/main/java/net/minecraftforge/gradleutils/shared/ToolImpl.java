@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 
 class ToolImpl implements Tool {
+    private static final long serialVersionUID = -862411638019629688L;
     private static final Logger LOGGER = Logging.getLogger(Tool.class);
 
     private final String name;

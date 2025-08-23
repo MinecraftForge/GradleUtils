@@ -11,12 +11,13 @@ import org.gradle.api.provider.ProviderFactory;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.io.Serializable;
 
 /// Tools are definitions of Java libraries (may or may not be executable) that are managed by Gradle using a
 /// [org.gradle.api.provider.ValueSource]. This means that while the downloading and local caching of this file are done
 /// in house, the Gradle-specific caching and file tracking are done by Gradle. This enables the usage of downloading
 /// external files quickly without breaking caches.
-public interface Tool extends Named {
+public interface Tool extends Named, Serializable {
     /// Creates a new tool with the given information.
     ///
     /// @param name        The name for this tool (will be used in the file name)

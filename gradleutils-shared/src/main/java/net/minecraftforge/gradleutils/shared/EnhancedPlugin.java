@@ -133,7 +133,7 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
         } catch (Exception e) {
             throw this.problemsInternal.illegalPluginTarget(
                 new IllegalArgumentException(String.format("Failed to get %s global caches directory for target: %s", this.displayName, this.target), e),
-                "projects or settings"
+                "types with access to Gradle via `#getGradle()`"
             );
         }
     }
@@ -162,7 +162,7 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
         } catch (Exception e) {
             throw this.problemsInternal.illegalPluginTarget(
                 new IllegalArgumentException(String.format("Failed to get %s local caches directory for target: %s", this.displayName, this.getTarget()), e),
-                "projects or settings"
+                Project.class, Settings.class
             );
         }
     }
@@ -187,7 +187,7 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
         } catch (Exception e) {
             throw this.problemsInternal.illegalPluginTarget(
                 new IllegalArgumentException(String.format("Failed to get %s working project directory for target: %s", this.displayName, this.getTarget()), e),
-                "projects or settings"
+                Project.class, Settings.class
             );
         }
     }

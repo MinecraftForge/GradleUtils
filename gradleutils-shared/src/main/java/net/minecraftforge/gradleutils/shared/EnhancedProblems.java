@@ -5,12 +5,13 @@
 package net.minecraftforge.gradleutils.shared;
 
 import groovy.lang.GroovyObjectSupport;
-import org.codehaus.groovy.runtime.InvokerHelper;
 import org.gradle.api.Action;
 import org.gradle.api.Task;
 import org.gradle.api.Transformer;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.FileSystemLocation;
+import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.Logging;
 import org.gradle.api.problems.Problem;
 import org.gradle.api.problems.ProblemGroup;
 import org.gradle.api.problems.ProblemId;
@@ -27,30 +28,60 @@ import org.jetbrains.annotations.Nullable;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.util.Collection;
-import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /// The enhanced problems contain several base helper members to help reduce duplicate code between Gradle plugins.
-public abstract class EnhancedProblems extends GroovyObjectSupport implements Problems, Predicate<String> {
+public abstract class EnhancedProblems implements Serializable, Predicate<String> {
+    private static final long serialVersionUID = 2037193772993696096L;
+
     /// The common message to send in [ProblemSpec#solution(String)] when reporting problems.
     protected static final String HELP_MESSAGE = "Consult the documentation or ask for help on the Forge Forums, GitHub, or Discord server.";
 
+    /// The display name used in reported problems to describe the plugin using this.
     private final String displayName;
+    /// The problem group used when reporting problems using this.
     private final ProblemGroup problemGroup;
 
-    private final Problems delegate;
-    private final Predicate<String> properties;
+    /// The problems instance provided by Gradle services.
+    ///
+    /// @return The problems instance
+    /// @see <a href="https://docs.gradle.org/current/userguide/reporting_problems.html">Reporting Problems</a>
+    /// @deprecated Does not handle if Problems API cannot be accessed. Use [#getDelegate()].
+    @Deprecated
+    @SuppressWarnings("DeprecatedIsStillUsed") // Used by #getDelegate
+    protected abstract @Inject Problems getProblems();
 
-    @Override
-    public ProblemReporter getReporter() {
-        return this.delegate.getReporter();
+    /// The provider factory provided by Gradle services.
+    ///
+    /// @return The provider factory
+    /// @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#providerfactory">ProviderFactory
+    /// Service Injection</a>
+    protected abstract @Inject ProviderFactory getProviders();
+
+    /// Gets the problems instance used by this enhanced problems.
+    ///
+    /// @return The delegate problems instance
+    public final Problems getDelegate() {
+        try {
+            return this.getProblems();
+        } catch (Exception e) {
+            return EmptyReporter.AS_PROBLEMS;
+        }
     }
 
-    /// Gets the problem group used by this problems instance. It is unique for the plugin.
+    /// Gets the problem reporter used by the [delegate][#getDelegate()] problems instance.
+    ///
+    /// @return The problem reporter
+    protected final ProblemReporter getReporter() {
+        return this.getDelegate().getReporter();
+    }
+
+    /// Gets the problem group used by this enhanced problems. It is unique for the plugin.
     ///
     /// @return The problem group
     public final ProblemGroup getProblemGroup() {
@@ -66,9 +97,13 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
     /// [Inject], and have no parameters, passing in static strings to this base constructor.
     protected EnhancedProblems(String name, String displayName) {
         this.problemGroup = ProblemGroup.create(name, this.displayName = displayName);
+    }
 
-        this.delegate = this.unwrapProblems();
-        this.properties = this.unwrapProperties();
+    /// Gets the logger to be used by this enhanced problems.
+    ///
+    /// @return The logger
+    protected final Logger getLogger() {
+        return Logging.getLogger(this.getClass());
     }
 
     /// Creates a problem ID to be used when reporting problems. The name must be unique so as to not potentially
@@ -88,8 +123,13 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
     ///
     /// @param property The property to test
     /// @return If the property exists and is `true`
+    @Override
     public final boolean test(String property) {
-        return this.properties.test(property);
+        try {
+            return isTrue(this.getProviders(), property);
+        } catch (Exception e) {
+            return Boolean.getBoolean(property);
+        }
     }
 
 
@@ -108,8 +148,8 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
         return this.getReporter().throwing(e, id("invalid-plugin-target", "Invalid plugin target"), spec -> spec
             .details(String.format(
                 "Attempted to apply the %s plugin to an invalid target.\n" +
-                "This plugin can only be applied on the following types:\n" +
-                "%s", this.displayName, Stream.concat(Stream.of(firstAllowedTarget), Stream.of(allowedTargets)).map(Class::getName).collect(Collectors.joining(", ", "[", "]"))))
+                    "This plugin can only be applied on the following types:\n" +
+                    "%s", this.displayName, Stream.concat(Stream.of(firstAllowedTarget), Stream.of(allowedTargets)).map(Class::getName).collect(Collectors.joining(", ", "[", "]"))))
             .severity(Severity.ERROR)
             .stackLocation()
             .solution("Use a valid plugin target.")
@@ -125,7 +165,7 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
         return this.getReporter().throwing(e, id("invalid-plugin-target", "Invalid plugin target"), spec -> spec
             .details(String.format(
                 "Attempted to apply the %s plugin to an invalid target.\n" +
-                "This plugin can only be applied on %s", this.displayName, allowedTargets))
+                    "This plugin can only be applied on %s.", this.displayName, allowedTargets))
             .severity(Severity.ERROR)
             .stackLocation()
             .solution("Use a valid plugin target.")
@@ -158,8 +198,8 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
         this.getReporter().report(id("tool-exec-not-enhanced", "ToolExec subclass doesn't implement EnhancedTask"), spec -> spec
             .details(String.format(
                 "Implementing subclass of ToolExecBase should also implement (a subclass of) EnhancedTask.\n" +
-                "Not doing so will result in global caches being ignored. Please check your implementations.\n" +
-                "Affected task: %s (%s)", task, task.getClass()))
+                    "Not doing so will result in global caches being ignored. Please check your implementations.\n" +
+                    "Affected task: %s (%s)", task, task.getClass()))
             .severity(Severity.WARNING)
             .stackLocation()
             .solution("Double check your task implementation."));
@@ -172,7 +212,7 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
         this.getReporter().report(id("enhanced-task-no-plugin", "EnhancedTask doesn't implement #pluginType"), spec -> spec
             .details(String.format(
                 "Implementation of EnhancedTask must implement #pluginType\n" +
-                "Affected task type: %s", task))
+                    "Affected task type: %s", task))
             .severity(Severity.ERROR)
             .stackLocation()
             .solution("Double check your task implementation."));
@@ -185,8 +225,8 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
         this.getReporter().report(id("tool-exec-eager-args", "ToolExecBase implementation adds arguments without using addArguments()"), spec -> spec
             .details(String.format(
                 "A ToolExecBase task is eagerly adding arguments using JavaExec#args without using ToolExecBase#addArguments.\n" +
-                "This may cause implementations or superclasses to have their arguments ignored or missing.\n" +
-                "Affected task: %s (%s)", task, task.getClass()))
+                    "This may cause implementations or superclasses to have their arguments ignored or missing.\n" +
+                    "Affected task: %s (%s)", task, task.getClass()))
             .severity(Severity.WARNING)
             .stackLocation()
             .solution("Use ToolExecBase#addArguments"));
@@ -209,7 +249,7 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
                 throw this.getReporter().throwing(e, id("cannot-ensure-directory", "Failed to create directory"), spec -> spec
                     .details(String.format(
                         "Failed to create a directory required for %s to function.\n" +
-                        "Directory: %s",
+                            "Directory: %s",
                         this.displayName, dir.getAbsolutePath()))
                     .severity(Severity.ERROR)
                     .stackLocation()
@@ -272,6 +312,8 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
     /* MINIMAL */
 
     static abstract class Minimal extends EnhancedProblems implements HasPublicType {
+        private static final long serialVersionUID = -6804792858587052477L;
+
         @Inject
         public Minimal(String name, String displayName) {
             super(name, displayName);
@@ -280,43 +322,6 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
         @Override
         public TypeOf<?> getPublicType() {
             return TypeOf.typeOf(EnhancedProblems.class);
-        }
-    }
-
-
-    /* IMPL INSTANTIATION */
-
-    /// The problems instance provided by Gradle services.
-    ///
-    /// @return The problems instance
-    /// @see <a href="https://docs.gradle.org/current/userguide/reporting_problems.html">Reporting Problems</a>
-    protected @Inject Problems getProblems() {
-        throw new IllegalStateException();
-    }
-
-    /// The provider factory provided by Gradle services.
-    ///
-    /// @return The provider factory
-    /// @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#providerfactory">ProviderFactory
-    /// Service Injection</a>
-    protected @Inject ProviderFactory getProviders() {
-        throw new IllegalStateException();
-    }
-
-    private Problems unwrapProblems() {
-        try {
-            return this.getProblems();
-        } catch (Exception e) {
-            return EmptyReporter.AS_PROBLEMS;
-        }
-    }
-
-    private Predicate<String> unwrapProperties() {
-        try {
-            ProviderFactory providers = Objects.requireNonNull(this.getProviders());
-            return property -> isTrue(providers, property);
-        } catch (Exception e) {
-            return Boolean::getBoolean;
         }
     }
 
@@ -343,36 +348,5 @@ public abstract class EnhancedProblems extends GroovyObjectSupport implements Pr
 
     private static boolean isFalse(Provider<? extends String> provider) {
         return Boolean.FALSE.equals(getBoolean(provider));
-    }
-
-
-    /* META CLASS */
-
-    @Override
-    public Object invokeMethod(String name, Object args) {
-        try {
-            return super.invokeMethod(name, args);
-        } catch (Exception suppressed) {
-            try {
-                return InvokerHelper.getMetaClass(this.delegate).invokeMethod(this.delegate, name, args);
-            } catch (Exception e) {
-                e.addSuppressed(suppressed);
-                throw e;
-            }
-        }
-    }
-
-    @Override
-    public Object getProperty(String propertyName) {
-        try {
-            return super.getProperty(propertyName);
-        } catch (Exception suppressed) {
-            try {
-                return InvokerHelper.getProperty(this.delegate, propertyName);
-            } catch (Exception e) {
-                e.addSuppressed(suppressed);
-                throw e;
-            }
-        }
     }
 }

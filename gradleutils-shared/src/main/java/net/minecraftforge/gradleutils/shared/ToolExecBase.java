@@ -30,8 +30,7 @@ import java.util.Objects;
 /// @see JavaExec
 /// @see Tool
 public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec {
-    private final Class<P> problemsType;
-    private transient @Nullable P problems;
+    private final P problems;
     /// The default tool directory (usage is not required).
     protected final DirectoryProperty defaultToolDir;
 
@@ -52,7 +51,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     /// best practice is to make a single `ToolExec` class for the implementing plugin to use, which other tasks can
     /// extend off of.
     protected ToolExecBase(Class<P> problemsType, Tool tool) {
-        this.problemsType = problemsType;
+        this.problems = this.getObjectFactory().newInstance(problemsType);
 
         if (this instanceof EnhancedTask) {
             this.defaultToolDir = this.getObjectFactory().directoryProperty().value(
@@ -82,7 +81,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     ///
     /// @return The enhanced problems
     protected final @Internal P getProblems() {
-        return this.problems == null ? this.problems = this.getObjectFactory().newInstance(this.problemsType) : this.problems;
+        return this.problems;
     }
 
     private <T extends FileSystemLocation> Transformer<T, T> ensureFileLocationInternal() {

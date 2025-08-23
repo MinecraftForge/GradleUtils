@@ -8,8 +8,11 @@ import net.minecraftforge.gradleutils.shared.EnhancedProblems;
 import org.gradle.api.problems.Severity;
 
 import javax.inject.Inject;
+import java.io.Serial;
 
 abstract class GradleUtilsProblems extends EnhancedProblems {
+    private static final @Serial long serialVersionUID = 3278085642147772954L;
+
     @Inject
     public GradleUtilsProblems() {
         super(GradleUtilsPlugin.NAME, GradleUtilsPlugin.DISPLAY_NAME);
