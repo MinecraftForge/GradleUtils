@@ -24,8 +24,13 @@ import org.gradle.jvm.toolchain.JavaToolchainService;
 import org.gradle.jvm.toolchain.JavaToolchainSpec;
 import org.jetbrains.annotations.Contract;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.OutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.util.function.Consumer;
 
 /// Shared utilities for Gradle plugins.
 ///
@@ -221,22 +226,26 @@ public abstract class SharedUtil {
     ///
     /// @param logger The logger to log to
     /// @return The output stream
-    public static OutputStream toLog(Action<? super String> logger) {
-        return new OutputStream() {
-            private StringBuffer buffer = new StringBuffer(512);
+    public static PipedOutputStream toLog(Consumer<? super String> logger) {
+        final PipedOutputStream output;
+        final PipedInputStream input;
+        try {
+            output = new PipedOutputStream();
+            input = new PipedInputStream(output);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-            @Override
-            public void write(int b) {
-                if (b == '\r' || b == '\n') {
-                    if (this.buffer.length() > 0) {
-                        logger.execute(this.buffer.toString());
-                        this.buffer = new StringBuffer(512);
-                    }
-                } else {
-                    this.buffer.append(b);
-                }
-            }
-        };
+        Thread thread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(input))) {
+                reader.lines().forEach(logger);
+            } catch (IOException ignored) { }
+        });
+
+        thread.setDaemon(true);
+        thread.start();
+
+        return output;
     }
     //endregion
 

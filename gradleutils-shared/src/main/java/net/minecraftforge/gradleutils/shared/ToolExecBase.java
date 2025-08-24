@@ -75,6 +75,9 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
 
         this.getMainClass().set(Objects.requireNonNull(tool.getMainClass(), "Tool must have a main class"));
         this.getJavaLauncher().set(SharedUtil.launcherForStrictly(this.getJavaToolchainService(), tool.getJavaVersion()));
+
+        this.setStandardOutput(SharedUtil.toLog(this.getLogger()::lifecycle));
+        this.setErrorOutput(SharedUtil.toLog(this.getLogger()::error));
     }
 
     /// The enhanced problems instance to use for this task.
