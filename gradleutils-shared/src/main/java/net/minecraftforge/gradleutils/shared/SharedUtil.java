@@ -10,6 +10,7 @@ import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.FirstParam;
 import org.gradle.api.Action;
 import org.gradle.api.Project;
+import org.gradle.api.Transformer;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.FileCollectionDependency;
 import org.gradle.api.artifacts.ModuleVersionSelector;
@@ -21,9 +22,9 @@ import org.gradle.api.provider.ProviderFactory;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
-import org.gradle.jvm.toolchain.JavaToolchainSpec;
 import org.jetbrains.annotations.Contract;
 
+import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -38,84 +39,30 @@ import java.util.function.Consumer;
 public abstract class SharedUtil {
     //region Java Launcher
 
-    /// Gets the Java launcher that [can compile or run][JavaLanguageVersion#canCompileOrRun(JavaLanguageVersion)] the
-    /// given version.
-    ///
-    /// If the currently running Java toolchain is able to compile and run the given version, it will be used instead.
-    ///
-    /// @param java           The Java plugin extension of the currently-used toolchain
-    /// @param javaToolchains The Java toolchain service to get the Java launcher from
-    /// @param version        The version of Java required
-    /// @return A provider for the Java launcher
-    public static Provider<JavaLauncher> launcherFor(JavaPluginExtension java, JavaToolchainService javaToolchains, int version) {
-        return launcherFor(java, javaToolchains, JavaLanguageVersion.of(version));
-    }
+    /// Transformer to map a Java launcher to its executable path. Use to store in properties since [JavaLauncher]
+    /// cannot be serialized.
+    public static final Transformer<String, JavaLauncher> LAUNCHER_EXECUTABLE = it -> it.getExecutablePath().toString();
 
     /// Gets the Java launcher that [can compile or run][JavaLanguageVersion#canCompileOrRun(JavaLanguageVersion)] the
     /// given version.
     ///
-    /// If the currently running Java toolchain is able to compile and run the given version, it will be used instead.
-    ///
-    /// @param java           The Java plugin extension of the currently-used toolchain
-    /// @param javaToolchains The Java toolchain service to get the Java launcher from
-    /// @param version        The version of Java required
-    /// @return A provider for the Java launcher
-    public static Provider<JavaLauncher> launcherFor(JavaPluginExtension java, JavaToolchainService javaToolchains, JavaLanguageVersion version) {
-        JavaToolchainSpec currentToolchain = java.getToolchain();
-        return currentToolchain.getLanguageVersion().orElse(JavaLanguageVersion.current()).flatMap(languageVersion -> languageVersion.canCompileOrRun(version)
-            ? javaToolchains.launcherFor(spec -> spec.getLanguageVersion().set(languageVersion))
-            : launcherForStrictly(javaToolchains, version));
-    }
-
-    /// Gets the Java launcher that [can compile or run][JavaLanguageVersion#canCompileOrRun(JavaLanguageVersion)] the
-    /// given version.
-    ///
-    /// If the currently running Java toolchain is able to compile and run the given version, it will be used instead.
-    ///
-    /// @param java           The Java plugin extension of the currently-used toolchain
-    /// @param javaToolchains The Java toolchain service to get the Java launcher from
-    /// @param version        The version of Java required
-    /// @return A provider for the Java launcher
-    public static Provider<JavaLauncher> launcherFor(Provider<? extends JavaPluginExtension> java, Provider<? extends JavaToolchainService> javaToolchains, int version) {
-        return launcherFor(java, javaToolchains, JavaLanguageVersion.of(version));
-    }
-
-    /// Gets the Java launcher that [can compile or run][JavaLanguageVersion#canCompileOrRun(JavaLanguageVersion)] the
-    /// given version.
-    ///
-    /// If the currently running Java toolchain is able to compile and run the given version, it will be used instead.
-    ///
-    /// @param java           The Java plugin extension of the currently-used toolchain
-    /// @param javaToolchains The Java toolchain service to get the Java launcher from
-    /// @param version        The version of Java required
-    /// @return A provider for the Java launcher
-    public static Provider<JavaLauncher> launcherFor(Provider<? extends JavaPluginExtension> java, Provider<? extends JavaToolchainService> javaToolchains, JavaLanguageVersion version) {
-        return java.flatMap(j -> {
-            JavaToolchainSpec currentToolchain = j.getToolchain();
-            return currentToolchain.getLanguageVersion().orElse(JavaLanguageVersion.current()).flatMap(languageVersion -> languageVersion.canCompileOrRun(version)
-                ? javaToolchains.flatMap(t -> t.launcherFor(spec -> spec.getLanguageVersion().set(languageVersion)))
-                : launcherForStrictly(javaToolchains, version));
-        });
-    }
-
-    /// Gets the Java launcher that [can compile or run][JavaLanguageVersion#canCompileOrRun(JavaLanguageVersion)] the
-    /// given version.
-    ///
-    /// If the currently running Java toolchain is able to compile and run the given version, it will be used instead.
+    /// If the currently available Java toolchain is able to compile and run the given version, it will be used instead.
+    /// The toolchain is first queried from the project's [JavaPluginExtension#getToolchain()]. If the toolchain is not
+    /// set or does not apply the `java` plugin, [JavaLanguageVersion#current()] will be used instead.
     ///
     /// @param project The project to get the Java extensions from
     /// @param version The version of Java required
     /// @return A provider for the Java launcher
     public static Provider<JavaLauncher> launcherFor(Project project, int version) {
-        ProviderFactory providers = project.getProviders();
-        ExtensionContainer extensions = project.getExtensions();
-        return launcherFor(providers.provider(() -> extensions.getByType(JavaPluginExtension.class)), providers.provider(() -> extensions.getByType(JavaToolchainService.class)), version);
+        return launcherFor(project, JavaLanguageVersion.of(version));
     }
 
     /// Gets the Java launcher that [can compile or run][JavaLanguageVersion#canCompileOrRun(JavaLanguageVersion)] the
     /// given version.
     ///
-    /// If the currently running Java toolchain is able to compile and run the given version, it will be used instead.
+    /// If the currently available Java toolchain is able to compile and run the given version, it will be used instead.
+    /// The toolchain is first queried from the project's [JavaPluginExtension#getToolchain()]. If the toolchain is not
+    /// set or does not apply the `java` plugin, [JavaLanguageVersion#current()] will be used instead.
     ///
     /// @param project The project to get the Java extensions from
     /// @param version The version of Java required
@@ -123,11 +70,59 @@ public abstract class SharedUtil {
     public static Provider<JavaLauncher> launcherFor(Project project, JavaLanguageVersion version) {
         ProviderFactory providers = project.getProviders();
         ExtensionContainer extensions = project.getExtensions();
-        return launcherFor(providers.provider(() -> extensions.getByType(JavaPluginExtension.class)), providers.provider(() -> extensions.getByType(JavaToolchainService.class)), version);
+        return launcherFor(providers.provider(() -> extensions.findByType(JavaPluginExtension.class)), getJavaToolchainService(project), version);
     }
 
-    /// Gets the Java launcher strictly for the given version, even if the currently running Java toolchain is higher
-    /// than it.
+    private static Provider<JavaLauncher> launcherFor(Provider<? extends JavaPluginExtension> java, JavaToolchainService javaToolchains, int version) {
+        return launcherFor(java, javaToolchains, JavaLanguageVersion.of(version));
+    }
+
+    private static Provider<JavaLauncher> launcherFor(Provider<? extends JavaPluginExtension> java, JavaToolchainService javaToolchains, JavaLanguageVersion version) {
+        return java.flatMap(j -> launcherFor(j, javaToolchains, version)).orElse(launcherFor(javaToolchains, version));
+    }
+
+    private static Provider<JavaLauncher> launcherFor(JavaPluginExtension java, JavaToolchainService javaToolchains, int version) {
+        return launcherFor(java, javaToolchains, JavaLanguageVersion.of(version));
+    }
+
+    private static Provider<JavaLauncher> launcherFor(JavaPluginExtension java, JavaToolchainService javaToolchains, JavaLanguageVersion version) {
+        return java.getToolchain().getLanguageVersion().orElse(JavaLanguageVersion.current()).flatMap(
+            languageVersion -> languageVersion.canCompileOrRun(version)
+                ? javaToolchains.launcherFor(spec -> spec.getLanguageVersion().set(languageVersion))
+                : launcherForStrictly(javaToolchains, version)
+        );
+    }
+
+    private static Provider<JavaLauncher> launcherFor(JavaToolchainService javaToolchains, int version) {
+        return launcherFor(javaToolchains, JavaLanguageVersion.of(version));
+    }
+
+    private static Provider<JavaLauncher> launcherFor(JavaToolchainService javaToolchains, JavaLanguageVersion version) {
+        JavaLanguageVersion languageVersion = JavaLanguageVersion.current();
+        return languageVersion.canCompileOrRun(version)
+            ? javaToolchains.launcherFor(spec -> spec.getLanguageVersion().set(languageVersion))
+            : launcherForStrictly(javaToolchains, version);
+    }
+
+    /// Gets the Java launcher for the given version, even if the currently running Java toolchain is higher.
+    ///
+    /// @param project The extension-aware object to get the Java extensions from
+    /// @param version The version of Java required
+    /// @return A provider for the Java launcher
+    public static Provider<JavaLauncher> launcherForStrictly(Project project, int version) {
+        return launcherForStrictly(getJavaToolchainService(project), version);
+    }
+
+    /// Gets the Java launcher for the given version, even if the currently running Java toolchain is higher.
+    ///
+    /// @param project The extension-aware object to get the Java extensions from
+    /// @param version The version of Java required
+    /// @return A provider for the Java launcher
+    public static Provider<JavaLauncher> launcherForStrictly(Project project, JavaLanguageVersion version) {
+        return launcherForStrictly(getJavaToolchainService(project), version);
+    }
+
+    /// Gets the Java launcher for the given version, even if the currently running Java toolchain is higher.
     ///
     /// @param javaToolchains The Java toolchain service to get the Java launcher from
     /// @param version        The version of Java required
@@ -136,8 +131,7 @@ public abstract class SharedUtil {
         return launcherForStrictly(javaToolchains, JavaLanguageVersion.of(version));
     }
 
-    /// Gets the Java launcher strictly for the given version, even if the currently running Java toolchain is higher
-    /// than it.
+    /// Gets the Java launcher for the given version, even if the currently running Java toolchain is higher.
     ///
     /// @param javaToolchains The Java toolchain service to get the Java launcher from
     /// @param version        The version of Java required
@@ -146,48 +140,15 @@ public abstract class SharedUtil {
         return javaToolchains.launcherFor(spec -> spec.getLanguageVersion().set(version));
     }
 
-    /// Gets the Java launcher strictly for the given version, even if the currently running Java toolchain is higher
-    /// than it.
-    ///
-    /// @param javaToolchains The Java toolchain service to get the Java launcher from
-    /// @param version        The version of Java required
-    /// @return A provider for the Java launcher
-    public static Provider<JavaLauncher> launcherForStrictly(Provider<? extends JavaToolchainService> javaToolchains, int version) {
-        return launcherForStrictly(javaToolchains, JavaLanguageVersion.of(version));
+    private static JavaToolchainService getJavaToolchainService(Project project) {
+        return project.getObjects().newInstance(ProjectServiceWrapper.class).getJavaToolchains();
     }
 
-    /// Gets the Java launcher strictly for the given version, even if the currently running Java toolchain is higher
-    /// than it.
-    ///
-    /// @param javaToolchains The Java toolchain service to get the Java launcher from
-    /// @param version        The version of Java required
-    /// @return A provider for the Java launcher
-    public static Provider<JavaLauncher> launcherForStrictly(Provider<? extends JavaToolchainService> javaToolchains, JavaLanguageVersion version) {
-        return javaToolchains.flatMap(t -> t.launcherFor(spec -> spec.getLanguageVersion().set(version)));
-    }
+    static abstract class ProjectServiceWrapper {
+        protected abstract @Inject JavaToolchainService getJavaToolchains();
 
-    /// Gets the Java launcher strictly for the given version, even if the currently running Java toolchain is higher
-    /// than it.
-    ///
-    /// @param project The extension-aware object to get the Java extensions from
-    /// @param version The version of Java required
-    /// @return A provider for the Java launcher
-    public static Provider<JavaLauncher> launcherForStrictly(Project project, int version) {
-        ProviderFactory providers = project.getProviders();
-        ExtensionContainer extensions = project.getExtensions();
-        return launcherForStrictly(providers.provider(() -> extensions.getByType(JavaToolchainService.class)), version);
-    }
-
-    /// Gets the Java launcher strictly for the given version, even if the currently running Java toolchain is higher
-    /// than it.
-    ///
-    /// @param project The extension-aware object to get the Java extensions from
-    /// @param version The version of Java required
-    /// @return A provider for the Java launcher
-    public static Provider<JavaLauncher> launcherForStrictly(Project project, JavaLanguageVersion version) {
-        ProviderFactory providers = project.getProviders();
-        ExtensionContainer extensions = project.getExtensions();
-        return launcherForStrictly(providers.provider(() -> extensions.getByType(JavaToolchainService.class)), version);
+        @Inject
+        public ProjectServiceWrapper() { }
     }
     //endregion
 
@@ -285,13 +246,15 @@ public abstract class SharedUtil {
 
     //region Properties
 
-    /// Makes a returning-self closure that finalizes a given property using [#finalizeProperty(Property)].
-    ///
-    /// This is best used as the method argument for [org.codehaus.groovy.runtime.DefaultGroovyMethods#tap(Object,
-    /// Closure)], which allows for in-lining property creation in Groovy code.
-    ///
-    /// @param <P> The type of property to finalize
-    /// @return The returning-self closure for finalizing a property
+    /**
+     * Makes a returning-self closure that finalizes a given property using {@link #finalizeProperty(Property)}.
+     * <p>This is best used as the method argument for
+     * {@link org.codehaus.groovy.runtime.DefaultGroovyMethods#tap(Object, Closure)}, which allows for in-lining
+     * property creation in Groovy code.</p>
+     *
+     * @param <P> The type of property to finalize
+     * @return The returning-self closure for finalizing a property
+     */
     public static <P extends Property<?>> Closure<P> finalizeProperty() {
         Closure<P> ret = Closures.unaryOperator(SharedUtil::finalizeProperty);
         ret.setResolveStrategy(Closure.DELEGATE_FIRST);
@@ -312,6 +275,16 @@ public abstract class SharedUtil {
         property.disallowChanges();
         property.finalizeValueOnRead();
         return property;
+    }
+
+    /// Conditionally set the given provider's value to the given property's value if the property is
+    /// [present][Provider#isPresent()].
+    ///
+    /// @param from The provider value to apply
+    /// @param to   The property to apply the new value to
+    /// @param <T>  The type of property
+    public static <T> void setOptional(Property<T> to, Provider<? extends T> from) {
+        if (from.isPresent()) to.set(from);
     }
     //endregion
 

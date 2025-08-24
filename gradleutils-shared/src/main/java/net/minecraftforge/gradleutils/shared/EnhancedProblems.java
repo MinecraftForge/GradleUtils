@@ -116,10 +116,11 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
         return ProblemId.create(name, displayName, this.getProblemGroup());
     }
 
-    /// Checks if the given property exists and equals `true`. This checks both [Gradle][ProviderFactory#gradleProperty]
-    /// and [System][ProviderFactory#systemProperty] properties, giving the former higher priority. If for some reason a
-    /// provider factory is not available in the current environment, [Boolean#getBoolean(String)] will be used
-    /// instead.
+    /// Checks if the given property exists and equals `true`.
+    ///
+    /// This checks both [Gradle][ProviderFactory#gradleProperty] and [System][ProviderFactory#systemProperty]
+    /// properties, giving the former higher priority. If for some reason a provider factory is not available in the
+    /// current environment, [Boolean#getBoolean(String)] will be used instead.
     ///
     /// @param property The property to test
     /// @return If the property exists and is `true`
@@ -127,6 +128,22 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
     public final boolean test(String property) {
         try {
             return isTrue(this.getProviders(), property);
+        } catch (Exception e) {
+            return Boolean.getBoolean(property);
+        }
+    }
+
+    /// Checks if the given property exists and equals `false`.
+    ///
+    /// This checks both [Gradle][ProviderFactory#gradleProperty] and [System][ProviderFactory#systemProperty]
+    /// properties, giving the former higher priority. If for some reason a provider factory is not available in the
+    /// current environment, [Boolean#getBoolean(String)] will be used instead.
+    ///
+    /// @param property The property to test
+    /// @return If the property exists and is `false`
+    public final boolean testFalse(String property) {
+        try {
+            return isFalse(this.getProviders(), property);
         } catch (Exception e) {
             return Boolean.getBoolean(property);
         }
