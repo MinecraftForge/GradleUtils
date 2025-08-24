@@ -14,10 +14,12 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.flow.FlowProviders
 import org.gradle.api.flow.FlowScope
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
+import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.api.tasks.TaskProvider
@@ -119,6 +121,8 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
 
     @CompileStatic
     @PackageScope static abstract class ForProjectImpl extends GradleUtilsExtensionImpl implements GradleUtilsExtensionInternal.ForProject {
+        private final GradleUtilsProblems problems
+
         private final Project project
 
         @Inject
@@ -126,7 +130,19 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
             super(project)
             this.project = project
 
+            this.problems = this.objects.newInstance(GradleUtilsProblems)
+
             project.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)
+
+            project.afterEvaluate { this.finish(it) }
+        }
+
+        private void finish(Project project) {
+            if (this.problems.test('net.minecraftforge.gradleutils.publishing.use-base-archives-name')) {
+                project.extensions.getByType(PublishingExtension).publications.withType(MavenPublication).configureEach {
+                    it.artifactId = project.extensions.getByType(BasePluginExtension).archivesName
+                }
+            }
         }
 
         @Override
