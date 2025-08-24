@@ -248,6 +248,8 @@ public final class Closures {
     }
 
     private static final class Functional<T, R> extends Closure<R> {
+        private static final long serialVersionUID = -8736820647200105725L;
+
         private final Function<? super T, ? extends R> function;
 
         private Functional(Object owner, Function<? super T, ? extends R> function) {
@@ -262,6 +264,8 @@ public final class Closures {
     }
 
     private static final class Supplying<R> extends Closure<R> {
+        private static final long serialVersionUID = 1281109313872080614L;
+
         private final Callable<? extends R> supplier;
 
         private Supplying(Object owner, Callable<? extends R> supplier) {
@@ -276,6 +280,8 @@ public final class Closures {
     }
 
     private static final class Consuming<T> extends Closure<Void> {
+        private static final long serialVersionUID = 1165200476195312981L;
+
         private final Consumer<? super T> consumer;
 
         private Consuming(Object owner, Consumer<? super T> consumer) {
@@ -291,6 +297,8 @@ public final class Closures {
     }
 
     private static final class Running extends Empty {
+        private static final long serialVersionUID = -3453835628821302135L;
+
         private final Runnable runnable;
 
         private Running(Object owner, Runnable runnable) {
@@ -306,7 +314,9 @@ public final class Closures {
     }
 
     private static class Empty extends Closure<Void> {
-        public Empty(Object owner) {
+        private static final long serialVersionUID = 6072707343050307552L;
+
+        private Empty(Object owner) {
             super(owner, owner);
         }
 

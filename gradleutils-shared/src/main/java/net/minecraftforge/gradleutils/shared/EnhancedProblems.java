@@ -4,7 +4,6 @@
  */
 package net.minecraftforge.gradleutils.shared;
 
-import groovy.lang.GroovyObjectSupport;
 import org.gradle.api.Action;
 import org.gradle.api.Task;
 import org.gradle.api.Transformer;
@@ -31,6 +30,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -136,15 +136,8 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
     /* DEFAULT PROBLEMS */
 
     //region Enhanced Plugin
-
-    /// Reports an illegal plugin target.
-    ///
-    /// @param e                  The exception that was caught, will be re-thrown (or wrapped with a
-    ///                           [RuntimeException])
-    /// @param firstAllowedTarget The first allowed target for the plugin
-    /// @param allowedTargets     The remaining allowed targets for the plugin
-    /// @return The exception to throw
-    public final RuntimeException illegalPluginTarget(Exception e, Class<?> firstAllowedTarget, Class<?>... allowedTargets) {
+    @SuppressWarnings("SameParameterValue")
+    final RuntimeException illegalPluginTarget(Exception e, Class<?> firstAllowedTarget, Class<?>... allowedTargets) {
         return this.getReporter().throwing(e, id("invalid-plugin-target", "Invalid plugin target"), spec -> spec
             .details(String.format(
                 "Attempted to apply the %s plugin to an invalid target.\n" +
@@ -156,12 +149,8 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
             .solution(HELP_MESSAGE));
     }
 
-    /// Reports an illegal plugin target.
-    ///
-    /// @param e              The exception that was caught, will be re-thrown (or wrapped with a [RuntimeException])
-    /// @param allowedTargets A string stating the allowed targets for the plugin
-    /// @return The exception to throw
-    public final RuntimeException illegalPluginTarget(Exception e, String allowedTargets) {
+    @SuppressWarnings("SameParameterValue")
+    final RuntimeException illegalPluginTarget(Exception e, String allowedTargets) {
         return this.getReporter().throwing(e, id("invalid-plugin-target", "Invalid plugin target"), spec -> spec
             .details(String.format(
                 "Attempted to apply the %s plugin to an invalid target.\n" +
@@ -172,11 +161,7 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
             .solution(HELP_MESSAGE));
     }
 
-    /// Reports an illegal access of a plugin before it has been applied.
-    ///
-    /// @param e The exception that was caught, will be re-thrown (or wrapped with a [RuntimeException])
-    /// @return The exception to throw
-    public final RuntimeException pluginNotYetApplied(Exception e) {
+    final RuntimeException pluginNotYetApplied(Exception e) {
         return this.getReporter().throwing(e, id("plugin-not-yet-applied", String.format("%s is not applied", this.displayName)), spec -> spec
             .details(String.format(
                 "Attempted to get details from the %s plugin, but it has not yet been applied to the target.", this.displayName))
@@ -190,14 +175,12 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
     //endregion
 
     //region ToolExecBase
-
-    /// Reports an implementation of [ToolExecBase] that is not enhanced with [EnhancedTask].
-    ///
-    /// @param task The affected task
-    public final void reportToolExecNotEnhanced(Task task) {
-        this.getReporter().report(id("tool-exec-not-enhanced", "ToolExec subclass doesn't implement EnhancedTask"), spec -> spec
+    final void reportToolExecNotEnhanced(Task task) {
+        String className = task.getClass().getSimpleName().replace('.', '-');
+        task.getLogger().warn("WARNING: {} doesn't implement EnhancedTask", className);
+        this.getReporter().report(id(String.format("%s-not-enhanced", className.toLowerCase(Locale.ROOT)), String.format("%s doesn't implement EnhancedTask", className)), spec -> spec
             .details(String.format(
-                "Implementing subclass of ToolExecBase should also implement (a subclass of) EnhancedTask.\n" +
+                "Implementing subclasses of ToolExecBase should also implement (a subclass of) EnhancedTask.\n" +
                     "Not doing so will result in global caches being ignored. Please check your implementations.\n" +
                     "Affected task: %s (%s)", task, task.getClass()))
             .severity(Severity.WARNING)
@@ -205,24 +188,10 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
             .solution("Double check your task implementation."));
     }
 
-    /// Reports an implementation of [EnhancedTask] that does not implement [EnhancedTask#pluginType()]
-    ///
-    /// @param task The affected task
-    public final void reportToolExecNotEnhanced(Class<?> task) {
-        this.getReporter().report(id("enhanced-task-no-plugin", "EnhancedTask doesn't implement #pluginType"), spec -> spec
-            .details(String.format(
-                "Implementation of EnhancedTask must implement #pluginType\n" +
-                    "Affected task type: %s", task))
-            .severity(Severity.ERROR)
-            .stackLocation()
-            .solution("Double check your task implementation."));
-    }
-
-    /// Reports an implementation of [ToolExecBase] that adds arguments without using [ToolExecBase#addArguments()]
-    ///
-    /// @param task The affected task
-    public final void reportToolExecEagerArgs(Task task) {
-        this.getReporter().report(id("tool-exec-eager-args", "ToolExecBase implementation adds arguments without using addArguments()"), spec -> spec
+    final void reportToolExecEagerArgs(Task task) {
+        String className = task.getClass().getSimpleName().replace('.', '-');
+        task.getLogger().warn("WARNING: {} implementation adds arguments without using addArguments()", className);
+        this.getReporter().report(id(String.format("%s-eager-args", className.toLowerCase(Locale.ROOT)), String.format("%s implementation adds arguments without using addArguments()", className)), spec -> spec
             .details(String.format(
                 "A ToolExecBase task is eagerly adding arguments using JavaExec#args without using ToolExecBase#addArguments.\n" +
                     "This may cause implementations or superclasses to have their arguments ignored or missing.\n" +
