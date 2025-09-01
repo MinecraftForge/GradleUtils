@@ -81,7 +81,7 @@ public abstract class EnhancedFlowAction<P extends EnhancedFlowAction.EnhancedFl
     /// @return If the throwable's message contains the string
     protected static boolean contains(Throwable e, String s) {
         for (Throwable cause = e; cause != null; cause = cause.getCause()) {
-            if (StringGroovyMethods.containsIgnoreCase(cause.getMessage(), s))
+            if (StringGroovyMethods.containsIgnoreCase(s, cause.getMessage()))
                 return true;
         }
 
