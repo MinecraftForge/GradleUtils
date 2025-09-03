@@ -13,8 +13,11 @@ import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.initialization.Settings;
 import org.gradle.api.invocation.Gradle;
 import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.plugins.ExtensionAware;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnknownNullability;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -27,8 +30,10 @@ import java.util.Objects;
 public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAdditions {
     private final String name;
     private final String displayName;
+    private final @Nullable String toolsExtName;
 
-    private T target;
+    private @UnknownNullability T target;
+    private ToolsExtensionImpl tools;
     private final EnhancedProblems problemsInternal;
 
     /// The object factory provided by Gradle services.
@@ -67,8 +72,20 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
     /// @param name        The name for this plugin (must be machine-friendly)
     /// @param displayName The display name for this plugin
     protected EnhancedPlugin(String name, String displayName) {
+        this(name, displayName, null);
+    }
+
+    /// This constructor must be called by all subclasses using a public constructor annotated with [Inject]. The name
+    /// and display name passed in are used in a minimal instance of [EnhancedProblems], which is used to set up the
+    /// plugin's [global][#globalCaches()] and [local][#localCaches()] caches. Additionally, the name is used to
+    /// create the cache folders (`minecraftforge/name`).
+    ///
+    /// @param name        The name for this plugin (must be machine-friendly)
+    /// @param displayName The display name for this plugin
+    protected EnhancedPlugin(String name, String displayName, @Nullable String toolsExtName) {
         this.name = name;
         this.displayName = displayName;
+        this.toolsExtName = toolsExtName;
 
         this.problemsInternal = this.getObjects().newInstance(EnhancedProblems.Minimal.class, name, displayName);
     }
@@ -79,6 +96,11 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
     @Override
     public final void apply(T target) {
         this.setup(this.target = target);
+
+        if (this.toolsExtName != null && target instanceof ExtensionAware)
+            this.tools = ((ExtensionAware) target).getExtensions().create(this.toolsExtName, ToolsExtensionImpl.class);
+        else
+            this.tools = this.getObjects().newInstance(ToolsExtensionImpl.class);
     }
 
     /// Called when this plugin is applied to do setup work.
@@ -106,10 +128,9 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
 
     /* TOOLS */
 
-    @SuppressWarnings("deprecation") // deprecation intentional, please use this method
     @Override
-    public Provider<File> getTool(Tool tool) {
-        return tool.get(this.globalCaches(), this.getProviders());
+    public Tool.Resolved getTool(Tool tool) {
+        return ((ToolInternal) tool).get(this.globalCaches(), this.tools);
     }
 
 

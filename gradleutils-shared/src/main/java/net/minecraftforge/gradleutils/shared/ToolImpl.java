@@ -7,21 +7,23 @@ package net.minecraftforge.gradleutils.shared;
 import net.minecraftforge.util.download.DownloadUtils;
 import net.minecraftforge.util.hash.HashStore;
 import org.gradle.api.file.Directory;
+import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
+import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
-import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.provider.ValueSource;
 import org.gradle.api.provider.ValueSourceParameters;
+import org.gradle.jvm.toolchain.JavaLauncher;
 import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 
-class ToolImpl implements Tool {
+class ToolImpl implements ToolInternal {
     private static final long serialVersionUID = -862411638019629688L;
 
     private static final Logger LOGGER = Logging.getLogger(Tool.class);
@@ -67,11 +69,67 @@ class ToolImpl implements Tool {
     }
 
     @Override
-    public Provider<File> get(Provider<? extends Directory> cachesDir, ProviderFactory providers) {
-        return providers.of(Source.class, spec -> spec.parameters(parameters -> {
-            parameters.getInputFile().set(cachesDir.map(d -> d.file("tools/" + this.fileName)));
-            parameters.getDownloadUrl().set(this.downloadUrl);
-        }));
+    public Tool.Resolved get(Provider<? extends Directory> cachesDir, ToolsExtensionImpl toolsExt) {
+        Tool.Definition definition = toolsExt.definitions.maybeCreate(this.name);
+        FileCollection classpath = definition.getClasspath();
+        if (classpath.isEmpty()) {
+            classpath = toolsExt.getObjects().fileCollection().from(
+                toolsExt.getProviders().of(Source.class, spec -> spec.parameters(parameters -> {
+                    parameters.getInputFile().set(cachesDir.map(d -> d.file("tools/" + this.fileName)));
+                    parameters.getDownloadUrl().set(this.downloadUrl);
+                }))
+            );
+        }
+
+        return new ResolvedImpl(
+            toolsExt.getObjects(),
+            classpath,
+            definition.getMainClass().orElse(toolsExt.getProviders().provider(this::getMainClass)),
+            definition.getJavaLauncher().orElse(SharedUtil.launcherForStrictly(toolsExt.getJavaToolchains(), this.getJavaVersion()))
+        );
+    }
+
+    @SuppressWarnings("serial")
+    private class ResolvedImpl implements Tool.Resolved {
+        private final FileCollection classpath;
+        private final Property<String> mainClass;
+        private final Property<JavaLauncher> javaLauncher;
+
+        private ResolvedImpl(ObjectFactory objects, FileCollection classpath, Provider<? extends String> mainClass, Provider<? extends JavaLauncher> javaLauncher) {
+            this.classpath = classpath;
+            this.mainClass = objects.property(String.class).value(mainClass);
+            this.javaLauncher = objects.property(JavaLauncher.class).value(javaLauncher);
+        }
+
+        @Override
+        public FileCollection getClasspath() {
+            return this.classpath;
+        }
+
+        @Override
+        public String getName() {
+            return ToolImpl.this.getName();
+        }
+
+        @Override
+        public String getVersion() {
+            return ToolImpl.this.getVersion();
+        }
+
+        @Override
+        public Property<JavaLauncher> getJavaLauncher() {
+            return this.javaLauncher;
+        }
+
+        @Override
+        public int getJavaVersion() {
+            return this.javaLauncher.get().getMetadata().getLanguageVersion().asInt();
+        }
+
+        @Override
+        public @Nullable String getMainClass() {
+            return this.mainClass.getOrNull();
+        }
     }
 
     static abstract class Source implements ValueSource<File, Source.Parameters> {

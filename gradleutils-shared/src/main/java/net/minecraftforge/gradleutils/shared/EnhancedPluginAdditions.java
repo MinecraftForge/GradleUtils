@@ -17,7 +17,7 @@ public interface EnhancedPluginAdditions {
     ///
     /// @param tool The tool to get
     /// @return A provider for the tool file
-    Provider<File> getTool(Tool tool);
+    Tool.Resolved getTool(Tool tool);
 
     /// Gets the global caches to be used for this plugin. These caches persist between projects and should be used to
     /// eliminate excess work done by projects that request the same data.

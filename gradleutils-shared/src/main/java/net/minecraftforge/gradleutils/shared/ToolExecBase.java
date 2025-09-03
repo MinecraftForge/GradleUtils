@@ -53,28 +53,32 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     protected ToolExecBase(Class<P> problemsType, Tool tool) {
         this.problems = this.getObjectFactory().newInstance(problemsType);
 
+        Tool.Resolved resolved;
         if (this instanceof EnhancedTask) {
+            resolved = ((EnhancedTask) this).getTool(tool);
             this.defaultToolDir = this.getObjectFactory().directoryProperty().value(
                 ((EnhancedTask) this).globalCaches().dir(tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal())
             );
-            this.setClasspath(this.getObjectFactory().fileCollection().from(((EnhancedTask) this).getTool(tool)));
         } else {
             this.getProject().afterEvaluate(project -> this.getProblems().reportToolExecNotEnhanced(this));
+            resolved = ((ToolInternal) tool).get(
+                this.getProjectLayout().getBuildDirectory().dir("minecraftforge/tools/" + tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal()),
+                this.getObjectFactory().newInstance(ToolsExtensionImpl.class)
+            );
 
             this.defaultToolDir = this.getObjectFactory().directoryProperty().value(
                 this.getProjectLayout().getBuildDirectory().dir(String.format("minecraftforge/tools/%s/workDir", tool.getName().toLowerCase(Locale.ENGLISH))).map(this.ensureFileLocationInternal())
             );
-            this.setClasspath(this.getObjectFactory().fileCollection().from(tool.get(
-                this.getProjectLayout().getBuildDirectory().dir("minecraftforge/tools/" + tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal()),
-                this.getProviderFactory()
-            )));
         }
+
+        this.setClasspath(resolved.getClasspath());
 
         this.defaultToolDir.disallowChanges();
         this.defaultToolDir.finalizeValueOnRead();
 
-        this.getMainClass().set(Objects.requireNonNull(tool.getMainClass(), "Tool must have a main class"));
-        this.getJavaLauncher().set(SharedUtil.launcherForStrictly(this.getJavaToolchainService(), tool.getJavaVersion()));
+        if (resolved.hasMainClass())
+            this.getMainClass().set(resolved.getMainClass());
+        this.getJavaLauncher().set(resolved.getJavaLauncher());
 
         this.setStandardOutput(SharedUtil.toLog(this.getLogger()::lifecycle));
         this.setErrorOutput(SharedUtil.toLog(this.getLogger()::error));

@@ -4,10 +4,14 @@
  */
 package net.minecraftforge.gradleutils.shared;
 
+import org.gradle.api.Action;
 import org.gradle.api.Named;
-import org.gradle.api.file.Directory;
+import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.file.FileCollection;
+import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
-import org.gradle.api.provider.ProviderFactory;
+import org.gradle.jvm.toolchain.JavaLauncher;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -64,21 +68,47 @@ public interface Tool extends Named, Serializable {
     /// @return The main class, or `null` if unspecified
     @Nullable String getMainClass();
 
-    /// Gets this tool and returns a provider for the downloaded/cached file.
+    /// If this tool has a strictly defined main class. Can be `false`, but does not necessarily mean that this tools is
+    /// not executable.
     ///
-    /// @param cachesDir The caches directory to store the downloaded tool in
-    /// @param providers The provider factory for creating the provider
-    /// @return The provider to the tool file
-    /// @deprecated Use [EnhancedPlugin#getTool(Tool)]
-    Provider<File> get(Provider<? extends Directory> cachesDir, ProviderFactory providers);
+    /// @return If this tool has a main class
+    default boolean hasMainClass() {
+        return this.getMainClass() != null;
+    }
 
-    /// Gets this tool and returns a provider for the downloaded/cached file.
-    ///
-    /// @param cachesDir The caches directory to store the downloaded tool in
-    /// @param providers The provider factory for creating the provider
-    /// @return The provider to the tool file
-    /// @deprecated Use [EnhancedPlugin#getTool(Tool)]
-    default Provider<File> get(Directory cachesDir, ProviderFactory providers) {
-        return this.get(providers.provider(() -> cachesDir), providers);
+    @ApiStatus.Experimental
+    interface Definition extends Named {
+        /// Gets the classpath to use for the tool. If empty, the static default set by the plugin will be used.
+        ///
+        /// @return The classpath
+        /// @apiNote This is *not* the dependency's classpath. This is the classpath used in
+        /// [org.gradle.process.JavaExecSpec#setClasspath(FileCollection)] to invoke AccessTransformers.
+        ConfigurableFileCollection getClasspath();
+
+        /// Gets the main class to invoke when running AccessTransformers.
+        ///
+        /// @return The property for the main class.
+        /// @apiNote This is *not required* if the [classpath][#getClasspath()] is a single executable jar.
+        Property<String> getMainClass();
+
+        /// Gets the Java launcher used to run AccessTransformers.
+        ///
+        /// This can be easily acquired using [Java toolchains][org.gradle.jvm.toolchain.JavaToolchainService].
+        ///
+        /// @return The property for the Java launcher
+        /// @see org.gradle.jvm.toolchain.JavaToolchainService#launcherFor(Action)
+        Property<JavaLauncher> getJavaLauncher();
+    }
+
+    interface Resolved extends Tool {
+        FileCollection getClasspath();
+
+        /// Gets the Java launcher used to run AccessTransformers.
+        ///
+        /// This can be easily acquired using [Java toolchains][org.gradle.jvm.toolchain.JavaToolchainService].
+        ///
+        /// @return The property for the Java launcher
+        /// @see org.gradle.jvm.toolchain.JavaToolchainService#launcherFor(Action)
+        Property<JavaLauncher> getJavaLauncher();
     }
 }

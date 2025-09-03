@@ -34,7 +34,7 @@ public interface EnhancedTask extends Task, EnhancedPluginAdditions {
     }
 
     @Override
-    default Provider<File> getTool(Tool tool) {
+    default Tool.Resolved getTool(Tool tool) {
         return this.getPlugin().getTool(tool);
     }
 
