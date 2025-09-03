@@ -9,6 +9,7 @@ import org.gradle.api.Action;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
 import org.gradle.api.file.Directory;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.provider.ProviderConvertible;
 
 import java.io.File;
 
@@ -18,6 +19,9 @@ import java.io.File;
 public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProject, GradleUtilsExtensionInternal {
     /// The name for this extension.
     String NAME = "gradleutils";
+
+
+    /* MAVEN REPOSITORIES */
 
     /**
      * A closure for the Forge maven to be passed into
@@ -53,6 +57,9 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
      * </code></pre>
      */
     Action<MavenArtifactRepository> minecraftLibsMaven = GradleUtilsExtensionInternal.minecraftLibsMaven;
+
+
+    /* PUBLISHING */
 
     /// Get a configuring closure to be passed into [org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Closure)] in a
     /// publishing block.
@@ -261,4 +268,15 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// @return The POM utilities
     /// @see PomUtils
     PomUtils getPom();
+
+
+    /* MISCELLANEOUS */
+
+    static <T> T unpack(Provider<T> value) {
+        return value.get();
+    }
+
+    static <T> T unpack(ProviderConvertible<T> value) {
+        return unpack(value.asProvider());
+    }
 }
