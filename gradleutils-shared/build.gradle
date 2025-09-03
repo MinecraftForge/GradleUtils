@@ -19,25 +19,10 @@ base.archivesName = 'gradleutils-shared'
 group = 'net.minecraftforge'
 // version set by gitversion in settings.gradle
 
-println "Version: $version"
-
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(8)
     withSourcesJar()
     withJavadocJar()
-}
-
-configurations {
-    // Applies the "Gradle Plugin API Version" attribute to configuration
-    // This was added in Gradle 7, gives consumers useful errors if they are on an old version
-    def applyGradleVersionAttribute = { Configuration configuration ->
-        configuration.attributes {
-            attribute(GradlePluginApiVersion.GRADLE_PLUGIN_API_VERSION_ATTRIBUTE, objects.named(GradlePluginApiVersion, libs.versions.gradle.asProvider().get()))
-        }
-    }
-
-    named(JavaPlugin.RUNTIME_ELEMENTS_CONFIGURATION_NAME, applyGradleVersionAttribute)
-    named(ShadowJavaPlugin.SHADOW_RUNTIME_ELEMENTS_CONFIGURATION_NAME, applyGradleVersionAttribute)
 }
 
 dependencies {
