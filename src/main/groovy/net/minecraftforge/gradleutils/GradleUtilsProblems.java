@@ -6,9 +6,11 @@ package net.minecraftforge.gradleutils;
 
 import net.minecraftforge.gradleutils.shared.EnhancedProblems;
 import org.gradle.api.problems.Severity;
+import org.gradle.api.tasks.javadoc.Groovydoc;
 
 import javax.inject.Inject;
 import java.io.Serial;
+import java.nio.charset.Charset;
 
 abstract class GradleUtilsProblems extends EnhancedProblems {
     private static final @Serial long serialVersionUID = 3278085642147772954L;
@@ -61,6 +63,20 @@ abstract class GradleUtilsProblems extends EnhancedProblems {
             .stackLocation()
             .solution("Add the JavaDoc Links plugin before GradleUtils (use `apply(false)` if necessary).")
             .solution(HELP_MESSAGE));
+    }
+    //endregion
+
+    //region
+    void reportGroovydocIncorrectCharset(Groovydoc task) {
+        this.getReporter().report(id("groovydoc-incorrect-charset", "Groovydoc charset is incorrect"), spec -> spec
+            .details("""
+                Groovydoc tasks cannot have their charsets manually set, and your default charset is not UTF-8.
+                This may cause problems in the output of your Groovydoc.
+                Affected task: %s
+                Current charset: %s""".formatted(task.getName(), Charset.defaultCharset()))
+            .severity(Severity.WARNING)
+            .stackLocation()
+            .solution("Set the JVM's default charset to UTF-8 using `propName.file.encoding=UTF-8` in your gradle.properties."));
     }
     //endregion
 }

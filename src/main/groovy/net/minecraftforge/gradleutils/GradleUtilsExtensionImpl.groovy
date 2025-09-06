@@ -24,11 +24,20 @@ import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.api.tasks.TaskProvider
+import org.gradle.api.tasks.compile.GroovyCompile
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.tasks.javadoc.Groovydoc
+import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.authentication.http.BasicAuthentication
+import org.gradle.external.javadoc.StandardJavadocDocletOptions
 import org.gradle.initialization.layout.BuildLayout
+import org.gradle.plugins.ide.eclipse.model.EclipseClasspath
+import org.gradle.plugins.ide.idea.model.IdeaModule
 import org.jetbrains.annotations.Nullable
 
 import javax.inject.Inject
+import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
 
 import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
 
@@ -155,6 +164,41 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
             if (this.problems.test('net.minecraftforge.gradleutils.publishing.use-base-archives-name')) {
                 project.extensions.getByType(PublishingExtension).publications.withType(MavenPublication).configureEach {
                     it.artifactId = project.extensions.getByType(BasePluginExtension).archivesName
+                }
+            }
+
+            if (this.problems.test('net.minecraftforge.gradleutils.ide.automatic.sources')) {
+                project.extensions.findByType(IdeaModule)?.tap { downloadSources = downloadJavadoc = true }
+                project.extensions.findByType(EclipseClasspath)?.tap { downloadSources = downloadJavadoc = true }
+            }
+
+            if (this.problems.test('net.minecraftforge.gradleutils.compilation.defaults')) {
+                project.tasks.withType(JavaCompile).configureEach { task ->
+                    task.options.encoding = 'UTF-8'
+                }
+
+                project.tasks.withType(GroovyCompile).configureEach { task ->
+                    task.options.encoding = 'UTF-8'
+                    task.groovyOptions.optimizationOptions.indy = true
+                }
+
+                final windowTitle = "${this.displayName.orElse(this.project.name).get()} ${this.project.version ?: ''}"
+
+                project.tasks.withType(Javadoc).configureEach { task ->
+                    task.options { StandardJavadocDocletOptions options ->
+                        options.encoding = 'UTF-8'
+                        options.windowTitle = windowTitle
+                        options.tags 'apiNote:a:API Note:', 'implNote:a:Implementation Note:', 'implSpec:a:Implementation Requirements:'
+                    }
+                }
+
+                project.tasks.withType(Groovydoc).configureEach { task ->
+                    task.windowTitle = windowTitle
+
+                    if (task.enabled && Charset.defaultCharset() !== StandardCharsets.UTF_8) {
+                        project.logger.warn('WARNING: Current charset is not UTF-8 but {}! This will affect the output of Groovydoc task {}', Charset.defaultCharset(), task.name)
+                        this.problems.reportGroovydocIncorrectCharset(task)
+                    }
                 }
             }
         }
