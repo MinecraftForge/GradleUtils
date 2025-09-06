@@ -16,6 +16,7 @@ import org.gradle.api.flow.FlowScope
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.plugins.ExtensionAware
+import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
@@ -142,6 +143,15 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
         }
 
         private void finish(Project project) {
+            // Removes local Gradle API from compileOnly. This is a workaround for bugged plugins.
+            // Publish Plugin: https://github.com/gradle/plugin-portal-requests/issues/260
+            // Shadow:         https://github.com/GradleUp/shadow/pull/1422
+            if (this.providers.systemProperty('org.gradle.unsafe.suppress-gradle-api').map(Boolean.&parseBoolean).getOrElse(false)) {
+                project.configurations.named(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME) { compileOnly ->
+                    compileOnly.dependencies.remove(project.dependencies.gradleApi())
+                }
+            }
+
             if (this.problems.test('net.minecraftforge.gradleutils.publishing.use-base-archives-name')) {
                 project.extensions.getByType(PublishingExtension).publications.withType(MavenPublication).configureEach {
                     it.artifactId = project.extensions.getByType(BasePluginExtension).archivesName
