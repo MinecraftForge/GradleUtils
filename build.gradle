@@ -23,8 +23,6 @@ base.archivesName = 'gradleutils'
 group = 'net.minecraftforge'
 // version set by gitversion in settings.gradle
 
-println "Version: $version"
-
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(17)
     withSourcesJar()
