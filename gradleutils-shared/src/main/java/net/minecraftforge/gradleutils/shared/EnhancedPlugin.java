@@ -33,7 +33,7 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
     private final @Nullable String toolsExtName;
 
     private @UnknownNullability T target;
-    private ToolsExtensionImpl tools;
+    private ToolsExtensionImpl tools = this.getObjects().newInstance(ToolsExtensionImpl.class);
     private final EnhancedProblems problemsInternal;
 
     /// The object factory provided by Gradle services.
@@ -99,8 +99,6 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
 
         if (this.toolsExtName != null && target instanceof ExtensionAware)
             this.tools = ((ExtensionAware) target).getExtensions().create(this.toolsExtName, ToolsExtensionImpl.class);
-        else
-            this.tools = this.getObjects().newInstance(ToolsExtensionImpl.class);
     }
 
     /// Called when this plugin is applied to do setup work.
