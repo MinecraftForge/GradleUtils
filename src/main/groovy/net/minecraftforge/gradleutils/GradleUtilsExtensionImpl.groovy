@@ -125,12 +125,16 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
 
         private final Project project
 
+        final Property<String> displayName
+
         @Inject
         ForProjectImpl(Project project) {
             super(project)
             this.project = project
 
             this.problems = this.objects.newInstance(GradleUtilsProblems)
+
+            this.displayName = this.objects.property(String)
 
             project.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)
 

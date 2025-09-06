@@ -5,12 +5,21 @@
 package net.minecraftforge.gradleutils;
 
 import org.gradle.api.Action;
+import org.gradle.api.provider.Property;
 import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.tasks.TaskProvider;
 
 /// A subset of [GradleUtilsExtension] that is given to projects. Includes additional convenience methods that only
 /// apply to projects.
 public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtension permits GradleUtilsExtensionInternal.ForProject {
+    /// The display name for the project.
+    ///
+    /// If the relevant properties are enabled, it is used in areas such as the Javadoc window title, among other
+    /// things.
+    ///
+    /// @return The property for the display name
+    Property<String> getDisplayName();
+
     /// Promotes a publication to the <a href="https://files.minecraftforge.net">Forge Files Site</a>.
     ///
     /// Publications that are promoted will automatically have the relevant task added as a finalizer to the

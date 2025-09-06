@@ -26,7 +26,7 @@ abstract class GradleUtilsProblems extends EnhancedProblems {
                 The workflow file will likely be incomplete or be missing details that may cause it to fail.""".formatted(taskName))
             .severity(Severity.WARNING)
             .stackLocation()
-            .solution("Apply the Git Version Plugin (net.minecraftforge.gitversion) to your project.")
+            .solution("Apply the Git Version Gradle plugin (net.minecraftforge.gitversion) to your project.")
             .solution("If the Git Version plugin is applied, double check the Git Version Gradle plugin implementation.")
             .solution("Manually add in the necessary details to the generated workflow file.")
             .solution(HELP_MESSAGE));
@@ -41,7 +41,7 @@ abstract class GradleUtilsProblems extends EnhancedProblems {
                 If the Git Version plugin has not been applied, the URL must be manually specified as the second parameter.""")
             .severity(Severity.ERROR)
             .stackLocation()
-            .solution("Apply the Git Version Plugin (net.minecraftforge.gitversion) to your project.")
+            .solution("Apply the Git Version Gradle plugin (net.minecraftforge.gitversion) to your project.")
             .solution("Manually add the remote URL in `addRemoteDetails`.")
             .solution(HELP_MESSAGE));
     }
