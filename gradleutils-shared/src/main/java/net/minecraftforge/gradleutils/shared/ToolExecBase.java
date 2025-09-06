@@ -37,12 +37,15 @@ import java.util.Objects;
 public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec {
     private final P problems;
     /// The default tool directory (usage is not required).
-    protected final DirectoryProperty defaultToolDir;
+    protected final DirectoryProperty defaultToolDir = this.getObjectFactory().directoryProperty();
+    private final ListProperty<String> additionalArgs = this.getObjectFactory().listProperty(String.class);
 
     /// Additional arguments to use when invoking the tool. Use in configuration instead of [#args].
     ///
     /// @return The list property for the additional arguments
-    abstract @Input @Optional ListProperty<String> getAdditionalArgs();
+    public @Input @Optional ListProperty<String> getAdditionalArgs() {
+        return this.additionalArgs;
+    }
 
     /// The project layout provided by Gradle services.
     ///
@@ -66,7 +69,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
         Tool.Resolved resolved;
         if (this instanceof EnhancedTask) {
             resolved = ((EnhancedTask) this).getTool(tool);
-            this.defaultToolDir = this.getObjectFactory().directoryProperty().value(
+            this.defaultToolDir.value(
                 ((EnhancedTask) this).globalCaches().dir(tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal())
             );
         } else {
@@ -76,15 +79,14 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
                 this.getObjectFactory().newInstance(ToolsExtensionImpl.class)
             );
 
-            this.defaultToolDir = this.getObjectFactory().directoryProperty().value(
+            this.defaultToolDir.value(
                 this.getProjectLayout().getBuildDirectory().dir(String.format("minecraftforge/tools/%s/workDir", tool.getName().toLowerCase(Locale.ENGLISH))).map(this.ensureFileLocationInternal())
             );
         }
 
         this.setClasspath(resolved.getClasspath());
 
-        this.defaultToolDir.disallowChanges();
-        this.defaultToolDir.finalizeValueOnRead();
+        SharedUtil.finalizeProperty(this.defaultToolDir);
 
         if (resolved.hasMainClass())
             this.getMainClass().set(resolved.getMainClass());
@@ -109,7 +111,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     /// arguments added by superclasses, this method [must be invoked by overriders][MustBeInvokedByOverriders].
     @MustBeInvokedByOverriders
     protected void addArguments() {
-        this.args(this.getAdditionalArgs().getOrElse(Collections.emptyList()));
+        this.args(this.getAdditionalArgs().get());
     }
 
     /// @implNote Not invoking this method from an overriding method *will* result in the tool never being executed and
