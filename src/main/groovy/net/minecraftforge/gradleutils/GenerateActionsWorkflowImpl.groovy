@@ -50,7 +50,7 @@ import java.nio.file.Path
         this.projectName.convention(this.providers.provider { this.project.name })
         this.branch.convention(DEFAULT_BRANCH)
         this.localPath.convention(this.providers.provider { getRelativePath(rootDirectory, this.projectLayout.projectDirectory) })
-        this.gradleJavaVersion.convention(this.project.extensions.getByType(JavaPluginExtension).toolchain.languageVersion.map { it.canCompileOrRun(DEFAULT_GRADLE_JAVA) ? it.asInt() : DEFAULT_GRADLE_JAVA })
+        this.gradleJavaVersion.convention(this.project.extensions.findByType(JavaPluginExtension)?.toolchain?.languageVersion?.map { it.canCompileOrRun(DEFAULT_GRADLE_JAVA) ? it.asInt() : DEFAULT_GRADLE_JAVA } ?: providers.provider { DEFAULT_GRADLE_JAVA })
         this.sharedActionsBranch.convention(DEFAULT_SHARED_ACTIONS_BRANCH)
 
         this.outputFile.convention(rootDirectory.dir('.github/workflows').file(this.projectName.map { "publish_${it}.yaml" }))
