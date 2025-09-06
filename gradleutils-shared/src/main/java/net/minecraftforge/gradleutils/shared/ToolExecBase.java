@@ -16,15 +16,14 @@ import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.Optional;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.UnknownNullability;
 
 import javax.inject.Inject;
 import java.io.File;
-import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
+import java.util.Map;
 
 /// This tool execution task is a template on top of [JavaExec] to make executing [tools][Tool] much easier and more
 /// consistent between plugins.
@@ -143,23 +142,52 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     /// @param arg          The flag to use
     /// @param fileProvider The file to add
     protected final void args(String arg, FileSystemLocationProperty<? extends FileSystemLocation> fileProvider) {
-        this.args(arg, fileProvider.getLocationOnly());
+        this.args(arg, fileProvider, false);
+    }
+
+    /// Adds the given argument followed by the given file location to the arguments.
+    ///
+    /// @param arg          The flag to use
+    /// @param fileProvider The file to add
+    protected final void args(String arg, FileSystemLocationProperty<? extends FileSystemLocation> fileProvider, boolean locationOnly) {
+        this.args(arg, locationOnly ? fileProvider.getLocationOnly() : fileProvider);
     }
 
     /// Adds the given argument followed by the given object (may be a file location) to the arguments.
     ///
     /// @param arg      The flag to use
     /// @param provider The object (or file) to add
-    protected final void args(String arg, Provider<?> provider) {
-        Object value = provider.map(it -> it instanceof FileSystemLocation ? ((FileSystemLocation) it).getAsFile() : it).get();
+    protected final void args(String arg, @UnknownNullability Provider<?> provider) {
+        if (provider == null || !provider.isPresent()) return;
 
-        this.args(arg, String.valueOf(value));
+        // NOTE: We don't use File#getAbsoluteFile because path sensitivity should be handled by tasks.
+        Object value = provider.map(it -> it instanceof FileSystemLocation ? ((FileSystemLocation) it).getAsFile() : it).getOrNull();
+        if (value == null) return;
+
+        if (value instanceof Boolean && ((boolean) value))
+            this.args(arg);
+        else
+            this.args(arg, String.valueOf(value));
+    }
+
+    protected final void args(Map<?, ?> args) {
+        for (Map.Entry<?, ?> entry : args.entrySet()) {
+            Object key = entry.getKey();
+            Object value = entry.getValue();
+            this.args(
+                key instanceof Provider ? ((Provider<?>) key).map(Object::toString).get() : this.getProviderFactory().provider(() -> key).map(Object::toString).get(),
+                value instanceof Provider ? (Provider<?>) value : this.getProviderFactory().provider(() -> value)
+            );
+        }
     }
 
     /// Adds the given argument if and only if the given boolean property is [present][Provider#isPresent()] and true.
     ///
     /// @param arg    The argument to add
     /// @param onlyIf The provider to test
+    /// @deprecated Use [#args(String, Provider)].
+    @Deprecated
+    @ApiStatus.ScheduledForRemoval
     protected final void argOnlyIf(String arg, Provider<Boolean> onlyIf) {
         this.argOnlyIf(arg, task -> onlyIf.isPresent() && onlyIf.getOrElse(false));
     }
@@ -168,6 +196,9 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     ///
     /// @param arg    The argument to add
     /// @param onlyIf The spec to test
+    /// @deprecated Use [#args(String, Provider)].
+    @Deprecated
+    @ApiStatus.ScheduledForRemoval
     protected final void argOnlyIf(String arg, Spec<? super ToolExecBase<?>> onlyIf) {
         if (onlyIf.isSatisfiedBy(this))
             this.args(arg);

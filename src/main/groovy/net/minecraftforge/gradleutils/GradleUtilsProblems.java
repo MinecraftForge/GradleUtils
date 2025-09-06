@@ -45,15 +45,6 @@ abstract class GradleUtilsProblems extends EnhancedProblems {
             .solution("Manually add the remote URL in `addRemoteDetails`.")
             .solution(HELP_MESSAGE));
     }
-
-    void reportPomUtilsForgeProjWithoutForgeOrg() {
-        this.getReporter().report(id("pomutils-forge-proj-missing-forge-org", "Detected Forge project is missing Forge organization details"), spec -> spec
-            .details("""
-                This project was autodetected as a MinecraftForge project, but `gradleutils.pom.addForgeDetails` was not used.""")
-            .severity(Severity.ADVICE)
-            .stackLocation()
-            .solution("Consider using `gradleutils.pom.addForgeDetails`."));
-    }
     //endregion
 
     //region JavaDoc Links
