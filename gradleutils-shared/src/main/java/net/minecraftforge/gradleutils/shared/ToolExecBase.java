@@ -16,6 +16,7 @@ import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.Optional;
+import org.gradle.jvm.toolchain.JavaToolchainService;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 import org.jetbrains.annotations.UnknownNullability;
@@ -24,6 +25,7 @@ import javax.inject.Inject;
 import java.io.File;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 /// This tool execution task is a template on top of [JavaExec] to make executing [tools][Tool] much easier and more
 /// consistent between plugins.
@@ -75,7 +77,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
             this.getProject().afterEvaluate(project -> this.getProblems().reportToolExecNotEnhanced(this));
             resolved = ((ToolInternal) tool).get(
                 this.getProjectLayout().getBuildDirectory().dir("minecraftforge/tools/" + tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal()),
-                this.getObjectFactory().newInstance(ToolsExtensionImpl.class)
+                this.getProviderFactory(),
+                this.getObjectFactory().newInstance(ToolsExtensionImpl.class, (Callable<? extends JavaToolchainService>) this::getJavaToolchainService)
             );
 
             this.defaultToolDir.value(

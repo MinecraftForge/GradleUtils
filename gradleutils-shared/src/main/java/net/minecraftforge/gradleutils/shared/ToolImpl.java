@@ -14,6 +14,7 @@ import org.gradle.api.logging.Logging;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.provider.ValueSource;
 import org.gradle.api.provider.ValueSourceParameters;
 import org.gradle.jvm.toolchain.JavaLauncher;
@@ -69,12 +70,12 @@ class ToolImpl implements ToolInternal {
     }
 
     @Override
-    public Tool.Resolved get(Provider<? extends Directory> cachesDir, ToolsExtensionImpl toolsExt) {
+    public Tool.Resolved get(Provider<? extends Directory> cachesDir, ProviderFactory providers, ToolsExtensionImpl toolsExt) {
         Tool.Definition definition = toolsExt.definitions.maybeCreate(this.name);
         FileCollection classpath = definition.getClasspath();
         if (classpath.isEmpty()) {
             classpath = toolsExt.getObjects().fileCollection().from(
-                toolsExt.getProviders().of(Source.class, spec -> spec.parameters(parameters -> {
+                providers.of(Source.class, spec -> spec.parameters(parameters -> {
                     parameters.getInputFile().set(cachesDir.map(d -> d.file("tools/" + this.fileName)));
                     parameters.getDownloadUrl().set(this.downloadUrl);
                 }))
@@ -84,8 +85,8 @@ class ToolImpl implements ToolInternal {
         return new ResolvedImpl(
             toolsExt.getObjects(),
             classpath,
-            definition.getMainClass().orElse(toolsExt.getProviders().provider(this::getMainClass)),
-            definition.getJavaLauncher().orElse(SharedUtil.launcherForStrictly(toolsExt.getJavaToolchains(), this.getJavaVersion()))
+            definition.getMainClass().orElse(providers.provider(this::getMainClass)),
+            definition.getJavaLauncher().orElse(providers.provider(() -> SharedUtil.launcherForStrictly(toolsExt.javaToolchains.call(), this.getJavaVersion()).get()))
         );
     }
 

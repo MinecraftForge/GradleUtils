@@ -9,25 +9,23 @@ import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
-import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.reflect.HasPublicType;
 import org.gradle.api.reflect.TypeOf;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
 
 import javax.inject.Inject;
+import java.util.concurrent.Callable;
 
 abstract class ToolsExtensionImpl implements ToolsExtensionInternal {
+    final Callable<? extends JavaToolchainService> javaToolchains;
     final NamedDomainObjectContainer<? extends Tool.Definition> definitions;
 
     protected abstract @Inject ObjectFactory getObjects();
 
-    protected abstract @Inject ProviderFactory getProviders();
-
-    protected abstract @Inject JavaToolchainService getJavaToolchains();
-
     @Inject
-    public ToolsExtensionImpl() {
+    public ToolsExtensionImpl(Callable<? extends JavaToolchainService> javaToolchains) {
+        this.javaToolchains = javaToolchains;
         this.definitions = this.getObjects().domainObjectContainer(DefinitionImpl.class);
     }
 
