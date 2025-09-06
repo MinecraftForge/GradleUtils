@@ -9,9 +9,13 @@ import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.FileSystemLocation;
 import org.gradle.api.file.FileSystemLocationProperty;
 import org.gradle.api.file.ProjectLayout;
+import org.gradle.api.logging.LogLevel;
+import org.gradle.api.logging.LoggingManager;
 import org.gradle.api.provider.ListProperty;
+import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.specs.Spec;
+import org.gradle.api.tasks.Console;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.JavaExec;
@@ -23,6 +27,7 @@ import org.jetbrains.annotations.UnknownNullability;
 
 import javax.inject.Inject;
 import java.io.File;
+import java.io.OutputStream;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -94,8 +99,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
             this.getMainClass().set(resolved.getMainClass());
         this.getJavaLauncher().set(resolved.getJavaLauncher());
 
-        this.setStandardOutput(SharedUtil.toLog(this.getLogger()::lifecycle));
-        this.setErrorOutput(SharedUtil.toLog(this.getLogger()::error));
+        this.getLogging().captureStandardOutput(LogLevel.LIFECYCLE).captureStandardError(LogLevel.ERROR);
     }
 
     /// The enhanced problems instance to use for this task.
