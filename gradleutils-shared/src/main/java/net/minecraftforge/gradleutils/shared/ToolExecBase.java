@@ -9,15 +9,20 @@ import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.FileSystemLocation;
 import org.gradle.api.file.FileSystemLocationProperty;
 import org.gradle.api.file.ProjectLayout;
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.specs.Spec;
+import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.JavaExec;
+import org.gradle.api.tasks.Optional;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
 import java.io.File;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -33,6 +38,11 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     private final P problems;
     /// The default tool directory (usage is not required).
     protected final DirectoryProperty defaultToolDir;
+
+    /// Additional arguments to use when invoking the tool. Use in configuration instead of [#args].
+    ///
+    /// @return The list property for the additional arguments
+    abstract @Input @Optional ListProperty<String> getAdditionalArgs();
 
     /// The project layout provided by Gradle services.
     ///
@@ -98,16 +108,18 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     /// This method should be overridden by subclasses to add arguments to this task via [JavaExec#args]. To preserve
     /// arguments added by superclasses, this method [must be invoked by overriders][MustBeInvokedByOverriders].
     @MustBeInvokedByOverriders
-    protected void addArguments() { }
+    protected void addArguments() {
+        this.args(this.getAdditionalArgs().getOrElse(Collections.emptyList()));
+    }
 
     /// @implNote Not invoking this method from an overriding method *will* result in the tool never being executed and
     /// [#addArguments()] never being run.
     @Override
     public void exec() {
-        if (this.getArgs().isEmpty())
-            this.addArguments();
-        else
+        if (!this.getArgs().isEmpty())
             this.getProblems().reportToolExecEagerArgs(this);
+
+        this.addArguments();
 
         this.getLogger().info("{} {}", this.getClasspath().getAsPath(), String.join(" ", this.getArgs()));
 

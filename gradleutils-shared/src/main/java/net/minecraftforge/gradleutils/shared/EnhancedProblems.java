@@ -211,7 +211,7 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
         this.getReporter().report(id(String.format("%s-eager-args", className.toLowerCase(Locale.ROOT)), String.format("%s implementation adds arguments without using addArguments()", className)), spec -> spec
             .details(String.format(
                 "A ToolExecBase task is eagerly adding arguments using JavaExec#args without using ToolExecBase#addArguments.\n" +
-                    "This may cause implementations or superclasses to have their arguments ignored or missing.\n" +
+                    "This may cause unintended behavior as the arguemnts given to the tool will contain the arguments in both of these method calls.\n" +
                     "Affected task: %s (%s)", task, task.getClass()))
             .severity(Severity.WARNING)
             .stackLocation()
