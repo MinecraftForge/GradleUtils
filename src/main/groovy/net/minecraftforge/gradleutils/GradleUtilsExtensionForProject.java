@@ -5,7 +5,10 @@
 package net.minecraftforge.gradleutils;
 
 import org.gradle.api.Action;
+import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.provider.Property;
+import org.gradle.api.provider.Provider;
+import org.gradle.api.provider.ProviderConvertible;
 import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.tasks.TaskProvider;
 
@@ -19,6 +22,14 @@ public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtens
     ///
     /// @return The property for the display name
     Property<String> getDisplayName();
+
+    void pluginDevDefaults(ConfigurationContainer configurations, CharSequence gradleVersion);
+
+    void pluginDevDefaults(ConfigurationContainer configurations, Provider<? extends CharSequence> gradleVersion);
+
+    default void pluginDevDefaults(ConfigurationContainer configurations, ProviderConvertible<? extends CharSequence> gradleVersion) {
+        this.pluginDevDefaults(configurations, gradleVersion.asProvider());
+    }
 
     /// Promotes a publication to the <a href="https://files.minecraftforge.net">Forge Files Site</a>.
     ///

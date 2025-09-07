@@ -9,7 +9,10 @@ import groovy.transform.PackageScope
 import org.codehaus.groovy.runtime.InvokerHelper
 import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
+import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+import org.gradle.api.attributes.plugin.GradlePluginApiVersion
 import org.gradle.api.file.Directory
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.flow.FlowProviders
@@ -206,6 +209,25 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                         project.logger.warn('WARNING: Current charset is not UTF-8 but {}! This will affect the output of Groovydoc task {}', Charset.defaultCharset(), task.name)
                         this.problems.reportGroovydocIncorrectCharset(task)
                     }
+                }
+            }
+        }
+
+        @Override
+        void pluginDevDefaults(ConfigurationContainer configurations, CharSequence gradleVersion) {
+            this.pluginDevDefaults(configurations, this.providers.provider { gradleVersion })
+        }
+
+        @Override
+        void pluginDevDefaults(ConfigurationContainer configurations, Provider<? extends CharSequence> gradleVersion) {
+            // Applies the "Gradle Plugin API Version" attribute to configuration
+            // This was added in Gradle 7, gives consumers useful errors if they are on an old version
+            this.project.configurations.named(JavaPlugin.RUNTIME_ELEMENTS_CONFIGURATION_NAME.&containsIgnoreCase as Spec<String>).configureEach { configuration ->
+                configuration.attributes { attributes ->
+                    attributes.attributeProvider(
+                        GradlePluginApiVersion.GRADLE_PLUGIN_API_VERSION_ATTRIBUTE,
+                        gradleVersion.map { this.objects.named(GradlePluginApiVersion, it.toString()) }
+                    )
                 }
             }
         }
