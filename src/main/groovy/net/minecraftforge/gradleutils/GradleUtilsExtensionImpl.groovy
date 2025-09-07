@@ -153,22 +153,20 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
 
             project.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)
 
-            // NOTE: Gradle#projectsEvaluates ensures that this runs after everything else, including other plugins.
-            project.gradle.projectsEvaluated {
-                // Removes local Gradle API from compileOnly. This is a workaround for bugged plugins.
-                // Publish Plugin: https://github.com/gradle/plugin-portal-requests/issues/260
-                // Shadow:         https://github.com/GradleUp/shadow/pull/1422
-                if (this.providers.systemProperty('org.gradle.unsafe.suppress-gradle-api').map(Boolean.&parseBoolean).getOrElse(false)) {
-                    project.configurations.named(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME) { compileOnly ->
-                        compileOnly.dependencies.remove(project.dependencies.gradleApi())
-                    }
-                }
-            }
-
             project.afterEvaluate { this.finish(it) }
         }
 
         private void finish(Project project) {
+            // Removes local Gradle API from compileOnly. This is a workaround for bugged plugins.
+            // Publish Plugin: https://github.com/gradle/plugin-portal-requests/issues/260
+            // Shadow:         https://github.com/GradleUp/shadow/pull/1422
+            if (this.providers.systemProperty('org.gradle.unsafe.suppress-gradle-api').map(Boolean.&parseBoolean).getOrElse(false)) {
+                final gradleApi = project.dependencies.gradleApi()
+                project.configurations.named(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME) { compileOnly ->
+                    compileOnly.withDependencies { it.remove(gradleApi) }
+                }
+            }
+
             if (this.problems.test('net.minecraftforge.gradleutils.publishing.use-base-archives-name')) {
                 project.extensions.getByType(PublishingExtension).publications.withType(MavenPublication).configureEach {
                     it.artifactId = project.extensions.getByType(BasePluginExtension).archivesName
