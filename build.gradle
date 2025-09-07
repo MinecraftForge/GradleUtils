@@ -17,7 +17,7 @@ plugins {
     alias libs.plugins.shadow
 }
 
-final projectDisplayName = 'Forge Gradle Utilities'
+gradleutils.displayName = 'Forge Gradle Utilities'
 description = 'Small collection of utilities for standardizing MinecraftForge gradle scripts'
 base.archivesName = 'gradleutils'
 group = 'net.minecraftforge'
@@ -48,7 +48,7 @@ configurations {
     // This was added in Gradle 7, gives consumers useful errors if they are on an old version
     def applyGradleVersionAttribute = { Configuration configuration ->
         configuration.attributes {
-            attribute(GradlePluginApiVersion.GRADLE_PLUGIN_API_VERSION_ATTRIBUTE, objects.named(GradlePluginApiVersion, libs.versions.gradle.asProvider().get()))
+            attribute(GradlePluginApiVersion.GRADLE_PLUGIN_API_VERSION_ATTRIBUTE, objects.named(GradlePluginApiVersion, gradleutils.unpack(libs.versions.gradle)))
         }
     }
 
@@ -73,15 +73,6 @@ dependencies {
     implementation libs.yaml
 }
 
-// Removes local Gradle API from compileOnly. This is a workaround for bugged plugins.
-// Publish Plugin: https://github.com/gradle/plugin-portal-requests/issues/260
-// Shadow:         https://github.com/GradleUp/shadow/pull/1422
-afterEvaluate { project ->
-    project.configurations.named(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME) { compileOnly ->
-        compileOnly.dependencies.remove(project.dependencies.gradleApi())
-    }
-}
-
 license {
     header = rootProject.file('LICENSE-header.txt')
     newLine = false
@@ -98,17 +89,8 @@ tasks.named('shadowJar', ShadowJar) {
     relocationPrefix = 'net.minecraftforge.gradleutils.shadow'
 }
 
-tasks.withType(GroovyCompile).configureEach {
-    groovyOptions.optimizationOptions.indy = true
-}
-
 tasks.withType(Javadoc).configureEach {
     javadocTool = javaToolchains.javadocToolFor { languageVersion = JavaLanguageVersion.of(24) }
-
-    options { StandardJavadocDocletOptions options ->
-        options.windowTitle = projectDisplayName + project.version
-        options.tags 'apiNote:a:API Note:', 'implNote:a:Implementation Note:', 'implSpec:a:Implementation Requirements:'
-    }
 }
 
 changelog {
@@ -122,7 +104,7 @@ gradlePlugin {
     plugins.register('gradleutils') {
         id = 'net.minecraftforge.gradleutils'
         implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
-        displayName = projectDisplayName
+        displayName = gradleutils.displayName
         description = project.description
         tags = ['minecraftforge']
     }
@@ -138,7 +120,7 @@ publishing {
         gradleutils.promote(it)
 
         pom { pom ->
-            name = projectDisplayName
+            name = gradleutils.displayName
             description = project.description
 
             gradleutils.pom.addRemoteDetails(pom)
@@ -155,6 +137,3 @@ publishing {
         }
     }
 }
-
-idea.module { downloadSources = downloadJavadoc = true }
-eclipse.classpath { downloadSources = downloadJavadoc = true }

@@ -24,6 +24,7 @@ import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
+import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.compile.GroovyCompile
 import org.gradle.api.tasks.compile.JavaCompile
@@ -162,7 +163,7 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
             // Shadow:         https://github.com/GradleUp/shadow/pull/1422
             if (this.providers.systemProperty('org.gradle.unsafe.suppress-gradle-api').map(Boolean.&parseBoolean).getOrElse(false)) {
                 final gradleApi = project.dependencies.gradleApi()
-                project.configurations.named(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME) { compileOnly ->
+                project.configurations.named(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME.&equals as Spec<String>).configureEach { compileOnly ->
                     compileOnly.withDependencies { it.remove(gradleApi) }
                 }
             }

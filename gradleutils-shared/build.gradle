@@ -13,7 +13,7 @@ plugins {
     alias libs.plugins.shadow
 }
 
-final projectDisplayName = 'Minecraft Forge Shared Plugin Base'
+gradleutils.displayName = 'Minecraft Forge Shared Plugin Base'
 description = 'The shared base used by all of Minecraft Forge\'s Gradle plugins'
 base.archivesName = 'gradleutils-shared'
 group = 'net.minecraftforge'
@@ -54,11 +54,6 @@ tasks.named('shadowJar', ShadowJar) {
 
 tasks.withType(Javadoc).configureEach {
     javadocTool = javaToolchains.javadocToolFor { languageVersion = JavaLanguageVersion.of(24) }
-
-    options { StandardJavadocDocletOptions options ->
-        options.windowTitle = projectDisplayName + project.version
-        options.tags 'apiNote:a:API Note:', 'implNote:a:Implementation Note:', 'implSpec:a:Implementation Requirements:'
-    }
 }
 
 // Allows the thin jar to be published, but won't be considered as the java-runtime variant in the module
@@ -78,7 +73,7 @@ publishing {
         gradleutils.promote(it)
 
         pom { pom ->
-            name = projectDisplayName
+            name = gradleutils.displayName
             description = project.description
 
             gradleutils.pom.addRemoteDetails(pom)
@@ -93,6 +88,3 @@ publishing {
         }
     }
 }
-
-idea.module { downloadSources = downloadJavadoc = true }
-eclipse.classpath { downloadSources = downloadJavadoc = true }
