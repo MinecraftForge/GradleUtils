@@ -272,11 +272,11 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
 
     /* MISCELLANEOUS */
 
-    static <T> T unpack(Provider<T> value) {
+    default <T> T unpack(Provider<T> value) {
         return value.get();
     }
 
-    static <T> T unpack(ProviderConvertible<T> value) {
+    default <T> T unpack(ProviderConvertible<T> value) {
         return unpack(value.asProvider());
     }
 }
