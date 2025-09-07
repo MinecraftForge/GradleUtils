@@ -6,6 +6,7 @@ package net.minecraftforge.gradleutils
 
 import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
+import org.codehaus.groovy.runtime.InvokerHelper
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
@@ -73,6 +74,10 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                 parameters.failure.set(this.flowProviders.buildWorkResult.map { it.failure.orElse(null) })
             }
         }
+    }
+
+    def methodMissing(String name, def args) {
+        InvokerHelper.invokeStaticMethod(GradleUtilsProblems, name, args)
     }
 
     @Override
@@ -148,19 +153,22 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
 
             project.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)
 
+            // NOTE: Gradle#projectsEvaluates ensures that this runs after everything else, including other plugins.
+            project.gradle.projectsEvaluated {
+                // Removes local Gradle API from compileOnly. This is a workaround for bugged plugins.
+                // Publish Plugin: https://github.com/gradle/plugin-portal-requests/issues/260
+                // Shadow:         https://github.com/GradleUp/shadow/pull/1422
+                if (this.providers.systemProperty('org.gradle.unsafe.suppress-gradle-api').map(Boolean.&parseBoolean).getOrElse(false)) {
+                    project.configurations.named(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME) { compileOnly ->
+                        compileOnly.dependencies.remove(project.dependencies.gradleApi())
+                    }
+                }
+            }
+
             project.afterEvaluate { this.finish(it) }
         }
 
         private void finish(Project project) {
-            // Removes local Gradle API from compileOnly. This is a workaround for bugged plugins.
-            // Publish Plugin: https://github.com/gradle/plugin-portal-requests/issues/260
-            // Shadow:         https://github.com/GradleUp/shadow/pull/1422
-            if (this.providers.systemProperty('org.gradle.unsafe.suppress-gradle-api').map(Boolean.&parseBoolean).getOrElse(false)) {
-                project.configurations.named(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME) { compileOnly ->
-                    compileOnly.dependencies.remove(project.dependencies.gradleApi())
-                }
-            }
-
             if (this.problems.test('net.minecraftforge.gradleutils.publishing.use-base-archives-name')) {
                 project.extensions.getByType(PublishingExtension).publications.withType(MavenPublication).configureEach {
                     it.artifactId = project.extensions.getByType(BasePluginExtension).archivesName
