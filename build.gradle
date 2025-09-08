@@ -29,31 +29,20 @@ java {
     withJavadocJar()
 }
 
-configurations {
-    // NOTE: If you are making a new Gradle plugin, do not copy this block!
-    configureEach {
-        resolutionStrategy.dependencySubstitution {
-            // NOTE: We build this in this repo, but enforce the module using a dependency substitution
-            //  That way, new plugins can effectively copy this buildscript just without this section
-            //  The "shadowed" attribute is declared here since project dependencies do not read the published module file
-            substitute module('net.minecraftforge:gradleutils-shared') using variant(project(':gradleutils-shared')) {
-                attributes {
-                    attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.SHADOWED))
-                }
-            } because 'Project dependencies do not read the published module file, so the shadowed attribute is manually declared.'
-        }
-    }
+gradleutils.pluginDevDefaults(configurations, libs.versions.gradle)
 
-    // Applies the "Gradle Plugin API Version" attribute to configuration
-    // This was added in Gradle 7, gives consumers useful errors if they are on an old version
-    def applyGradleVersionAttribute = { Configuration configuration ->
-        configuration.attributes {
-            attribute(GradlePluginApiVersion.GRADLE_PLUGIN_API_VERSION_ATTRIBUTE, objects.named(GradlePluginApiVersion, gradleutils.unpack(libs.versions.gradle)))
-        }
+// NOTE: If you are making a new Gradle plugin, do not copy this block!
+configurations.configureEach {
+    resolutionStrategy.dependencySubstitution {
+        // NOTE: We build this in this repo, but enforce the module using a dependency substitution
+        //  That way, new plugins can effectively copy this buildscript just without this section
+        //  The "shadowed" attribute is declared here since project dependencies do not read the published module file
+        substitute module('net.minecraftforge:gradleutils-shared') using variant(project(':gradleutils-shared')) {
+            attributes {
+                attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.SHADOWED))
+            }
+        } because 'Project dependencies do not read the published module file, so the shadowed attribute is manually declared.'
     }
-
-    named(JavaPlugin.RUNTIME_ELEMENTS_CONFIGURATION_NAME, applyGradleVersionAttribute)
-    named(ShadowJavaPlugin.SHADOW_RUNTIME_ELEMENTS_CONFIGURATION_NAME, applyGradleVersionAttribute)
 }
 
 dependencies {

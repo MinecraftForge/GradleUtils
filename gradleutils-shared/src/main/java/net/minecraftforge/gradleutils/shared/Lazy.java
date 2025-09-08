@@ -18,6 +18,7 @@ import java.util.function.Supplier;
 /// [callables][Callable], as the closure API allows chaining via [Closure#compose(Closure)] and
 /// [Closure#andThen(Closure)]. They can still be created using callables.
 /// @see Actionable
+// TODO [Utils] Move this to a different project, i.e. lazy-utils or function-utils
 public class Lazy<T> implements Supplier<T>, Callable<T> {
     /// Creates a simple lazy of the given callable.
     ///
@@ -144,7 +145,7 @@ public class Lazy<T> implements Supplier<T>, Callable<T> {
         ///
         /// @return A new actionable lazy copied from this one
         public Actionable<T> copy() {
-            Actionable<T> ret = new Actionable<>(this.closure);
+            var ret = new Actionable<>(this.closure);
             ret.value = this.value;
             ret.present = this.present;
             ret.modifications = this.modifications;

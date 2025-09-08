@@ -22,7 +22,7 @@ abstract class GradleUtilsProblems extends EnhancedProblems {
 
     //region GitHub Workflow Generation
     void ghWorkflowGitVersionMissing(String taskName) {
-        this.getReporter().report(id("gh-workflow-gitversion-missing", "GitHub Actions workflow is missing critical Git Version details"), spec -> spec
+        this.report("gh-workflow-gitversion-missing", "GitHub Actions workflow is missing critical Git Version details", spec -> spec
             .details("""
                 Task %s is generating a GitHub Actions workflow without critical data from Git Version.
                 The workflow file will likely be incomplete or be missing details that may cause it to fail.""".formatted(taskName))
@@ -37,7 +37,7 @@ abstract class GradleUtilsProblems extends EnhancedProblems {
 
     //region PomUtils
     RuntimeException pomUtilsGitVersionMissing(Exception e) {
-        return this.getReporter().throwing(e, id("pomutils-missing-url", "Cannot add POM remote details without URL"), spec -> spec
+        return this.throwing(e, "pomutils-missing-url", "Cannot add POM remote details without URL", spec -> spec
             .details("""
                 Cannot add POM remote details using `gradleutils.pom.addRemoteDetails` without the URL.
                 If the Git Version plugin has not been applied, the URL must be manually specified as the second parameter.""")
@@ -51,7 +51,7 @@ abstract class GradleUtilsProblems extends EnhancedProblems {
 
     //region JavaDoc Links
     void reportJavadocLinksNotOnClasspath(Throwable e) {
-        this.getReporter().report(id("javadoc-links-plugin-not-found", "JavaDoc Links plugin not in classpath"), spec -> spec
+        this.report("javadoc-links-plugin-not-found", "JavaDoc Links plugin not in classpath", spec -> spec
             .details("""
                 This project is using `resolveJavadocLinks` from FreeFair's JavaDoc Links plugin, but it was not loaded in the classpath!
                 The javadoc links plugin must be loaded in the classpath before GradleUtils, even if it is not applied (i.e. in `settings.gradle`).
@@ -68,7 +68,7 @@ abstract class GradleUtilsProblems extends EnhancedProblems {
 
     //region
     void reportGroovydocIncorrectCharset(Groovydoc task) {
-        this.getReporter().report(id("groovydoc-incorrect-charset", "Groovydoc charset is incorrect"), spec -> spec
+        this.report("groovydoc-incorrect-charset", "Groovydoc charset is incorrect", spec -> spec
             .details("""
                 Groovydoc tasks cannot have their charsets manually set, and your default charset is not UTF-8.
                 This may cause problems in the output of your Groovydoc.

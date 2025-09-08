@@ -80,7 +80,7 @@ public abstract class EnhancedFlowAction<P extends EnhancedFlowAction.EnhancedFl
     /// @param s The string to match for (ignoring case)
     /// @return If the throwable's message contains the string
     protected static boolean contains(Throwable e, String s) {
-        for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+        for (var cause = e; cause != null; cause = cause.getCause()) {
             if (StringGroovyMethods.containsIgnoreCase(s, cause.getMessage()))
                 return true;
         }
@@ -99,7 +99,7 @@ public abstract class EnhancedFlowAction<P extends EnhancedFlowAction.EnhancedFl
             this.run(parameters);
         } catch (Exception e) {
             // wrapping in this exception will prevent gradle from eating the stacktrace
-            throw new RuntimeException(e);
+            throw e instanceof RuntimeException rte ? rte : new RuntimeException(e);
         }
     }
 

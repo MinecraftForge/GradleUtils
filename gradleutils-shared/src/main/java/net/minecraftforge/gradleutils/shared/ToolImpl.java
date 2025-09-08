@@ -6,6 +6,7 @@ package net.minecraftforge.gradleutils.shared;
 
 import net.minecraftforge.util.download.DownloadUtils;
 import net.minecraftforge.util.hash.HashStore;
+import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.RegularFileProperty;
@@ -23,56 +24,22 @@ import org.jetbrains.annotations.Nullable;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.io.Serial;
 
-class ToolImpl implements ToolInternal {
-    private static final long serialVersionUID = -862411638019629688L;
+record ToolImpl(String getName, String getVersion, String fileName, String downloadUrl, int getJavaVersion,
+                @Nullable String getMainClass) implements ToolInternal {
+    private static final @Serial long serialVersionUID = -862411638019629688L;
 
     private static final Logger LOGGER = Logging.getLogger(Tool.class);
-
-    private final String name;
-    private final String version;
-    private final String fileName;
-    private final String downloadUrl;
-    private final int javaVersion;
-    private final @Nullable String mainClass;
-
-    public ToolImpl(String name, String version, String fileName, String downloadUrl, int javaVersion, @Nullable String mainClass) {
-        this.name = name;
-        this.version = version;
-        this.fileName = fileName;
-        this.downloadUrl = downloadUrl;
-        this.javaVersion = javaVersion;
-        this.mainClass = mainClass;
-    }
 
     ToolImpl(String name, String version, String downloadUrl, int javaVersion, @Nullable String mainClass) {
         this(name, version, String.format("%s-%s.jar", name, version), downloadUrl, javaVersion, mainClass);
     }
 
     @Override
-    public String getName() {
-        return this.name;
-    }
-
-    @Override
-    public String getVersion() {
-        return this.version;
-    }
-
-    @Override
-    public int getJavaVersion() {
-        return this.javaVersion;
-    }
-
-    @Override
-    public @Nullable String getMainClass() {
-        return this.mainClass;
-    }
-
-    @Override
     public Tool.Resolved get(Provider<? extends Directory> cachesDir, ProviderFactory providers, ToolsExtensionImpl toolsExt) {
-        Tool.Definition definition = toolsExt.definitions.maybeCreate(this.name);
-        FileCollection classpath = definition.getClasspath();
+        var definition = toolsExt.definitions.maybeCreate(this.getName());
+        var classpath = definition.getClasspath();
         if (classpath.isEmpty()) {
             classpath = toolsExt.getObjects().fileCollection().from(
                 providers.of(Source.class, spec -> spec.parameters(parameters -> {
@@ -90,8 +57,42 @@ class ToolImpl implements ToolInternal {
         );
     }
 
+    static abstract class DefinitionImpl implements Definition {
+        private final String name;
+        private final ConfigurableFileCollection classpath = this.getObjects().fileCollection();
+        private final Property<String> mainClass = this.getObjects().property(String.class);
+        private final Property<JavaLauncher> javaLauncher = this.getObjects().property(JavaLauncher.class);
+
+        protected abstract @Inject ObjectFactory getObjects();
+
+        @Inject
+        public DefinitionImpl(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String getName() {
+            return this.name;
+        }
+
+        @Override
+        public ConfigurableFileCollection getClasspath() {
+            return this.classpath;
+        }
+
+        @Override
+        public Property<String> getMainClass() {
+            return this.mainClass;
+        }
+
+        @Override
+        public Property<JavaLauncher> getJavaLauncher() {
+            return this.javaLauncher;
+        }
+    }
+
     @SuppressWarnings("serial")
-    private class ResolvedImpl implements Tool.Resolved {
+    final class ResolvedImpl implements ToolInternal.Resolved {
         private final FileCollection classpath;
         private final Property<String> mainClass;
         private final Property<JavaLauncher> javaLauncher;
@@ -145,17 +146,17 @@ class ToolImpl implements ToolInternal {
 
         @Override
         public File obtain() {
-            Parameters parameters = this.getParameters();
+            var parameters = this.getParameters();
 
             // inputs
-            String downloadUrl = parameters.getDownloadUrl().get();
+            var downloadUrl = parameters.getDownloadUrl().get();
 
             // outputs
-            File outFile = parameters.getInputFile().get().getAsFile();
-            String name = outFile.getName();
+            var outFile = parameters.getInputFile().get().getAsFile();
+            var name = outFile.getName();
 
             // in-house caching
-            HashStore cache = HashStore.fromFile(outFile).add("url", downloadUrl);
+            var cache = HashStore.fromFile(outFile).add("url", downloadUrl);
 
             if (outFile.exists() && cache.isSame()) {
                 LOGGER.info("Default tool already downloaded: {}", name);

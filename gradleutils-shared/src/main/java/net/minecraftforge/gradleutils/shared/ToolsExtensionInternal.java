@@ -7,7 +7,7 @@ package net.minecraftforge.gradleutils.shared;
 import org.gradle.api.reflect.HasPublicType;
 import org.gradle.api.reflect.TypeOf;
 
-interface ToolsExtensionInternal extends ToolsExtension, HasPublicType {
+non-sealed interface ToolsExtensionInternal extends ToolsExtension, HasPublicType {
     @Override
     default TypeOf<?> getPublicType() {
         return TypeOf.typeOf(ToolsExtension.class);

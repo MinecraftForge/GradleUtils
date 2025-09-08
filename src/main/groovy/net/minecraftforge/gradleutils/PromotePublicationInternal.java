@@ -11,12 +11,7 @@ import org.gradle.api.reflect.HasPublicType;
 import org.gradle.api.reflect.TypeOf;
 import org.gradle.api.tasks.Internal;
 
-non-sealed interface PromotePublicationInternal extends PromotePublication, EnhancedTask, HasPublicType {
-    @Override
-    default Class<? extends EnhancedPlugin<? super Project>> pluginType() {
-        return GradleUtilsPlugin.class;
-    }
-
+non-sealed interface PromotePublicationInternal extends PromotePublication, GradleUtilsTask, HasPublicType {
     @Override
     default @Internal TypeOf<?> getPublicType() {
         return TypeOf.typeOf(PromotePublication.class);

@@ -9,19 +9,18 @@ import org.gradle.api.Named;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.provider.Property;
-import org.gradle.api.provider.Provider;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.io.Serializable;
+import java.util.concurrent.Callable;
 
 /// Tools are definitions of Java libraries (may or may not be executable) that are managed by Gradle using a
 /// [org.gradle.api.provider.ValueSource]. This means that while the downloading and local caching of this file are done
 /// in house, the Gradle-specific caching and file tracking are done by Gradle. This enables the usage of downloading
 /// external files quickly without breaking caches.
-public interface Tool extends Named, Serializable {
+public sealed interface Tool extends Named, Serializable permits ToolInternal, Tool.Resolved {
     /// Creates a new tool with the given information.
     ///
     /// @param name        The name for this tool (will be used in the file name)
@@ -76,8 +75,11 @@ public interface Tool extends Named, Serializable {
         return this.getMainClass() != null;
     }
 
+    /// A definition of how a tool should be resolved and used by the plugin.
+    ///
+    /// @see #getClasspath()
     @ApiStatus.Experimental
-    interface Definition extends Named {
+    sealed interface Definition extends Named permits ToolInternal.Definition {
         /// Gets the classpath to use for the tool. If empty, the static default set by the plugin will be used.
         ///
         /// @return The classpath
@@ -100,7 +102,19 @@ public interface Tool extends Named, Serializable {
         Property<JavaLauncher> getJavaLauncher();
     }
 
-    interface Resolved extends Tool {
+    /// A resolved tool that has a [classpath][#getClasspath()] that can be readily used.
+    ///
+    /// This interface extends {@link Callable}`<`{@link FileCollection}`>` so that it can be used directly in methods
+    /// such as [org.gradle.api.Project#files(Object...)] and [ConfigurableFileCollection#from(Object...)].
+    sealed interface Resolved extends Tool, Callable<FileCollection> permits ToolInternal.Resolved {
+        @Override
+        default FileCollection call() {
+            return this.getClasspath();
+        }
+
+        /// Gets the classpath containing the tool to be used.
+        ///
+        /// @return The classpath of the resolved tool
         FileCollection getClasspath();
 
         /// Gets the Java launcher used to run AccessTransformers.

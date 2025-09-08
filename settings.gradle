@@ -13,7 +13,7 @@ plugins {
     // NOTE: We need to load this into the classpath before GradleUtils for the service to load correctly
     id 'io.freefair.javadoc-links' version '8.14' apply false // https://plugins.gradle.org/plugin/io.freefair.javadoc-links
 
-    id 'net.minecraftforge.gradleutils' version '3.2.23' // https://plugins.gradle.org/plugin/net.minecraftforge.gradleutils
+    id 'net.minecraftforge.gradleutils' version '3.2.25' // https://plugins.gradle.org/plugin/net.minecraftforge.gradleutils
     id 'net.minecraftforge.gitversion'  version '3.0.7'  // https://plugins.gradle.org/plugin/net.minecraftforge.gitversion
 }
 
@@ -58,10 +58,6 @@ dependencyResolutionManagement {
         }
 
         register('sharedLibs') {
-            // Gradle API
-            version 'gradle', '8.13'
-            library 'gradle', 'name.remal.gradle-api', 'gradle-api'  versionRef 'gradle'
-
             // Tools
             library 'utils-hash',     'net.minecraftforge', 'hash-utils'      version '0.1.9' // https://files.minecraftforge.net/net/minecraftforge/hash-utils/index.html
             library 'utils-download', 'net.minecraftforge', 'download-utils'  version '0.3.1' // https://files.minecraftforge.net/net/minecraftforge/download-utils/index.html

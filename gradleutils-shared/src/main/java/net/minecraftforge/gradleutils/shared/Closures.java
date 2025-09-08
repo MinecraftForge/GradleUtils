@@ -11,6 +11,7 @@ import org.codehaus.groovy.runtime.InvokerInvocationException;
 import org.gradle.api.Action;
 import org.jetbrains.annotations.UnknownNullability;
 
+import java.io.Serial;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -61,13 +62,13 @@ public final class Closures {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static <T> @UnknownNullability T invokeInternal(Closure closure, Object... object) {
-        ClassLoader original = Thread.currentThread().getContextClassLoader();
+        var original = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(closure.getClass().getClassLoader());
         try {
-            Object ret = closure.getMaximumNumberOfParameters() == 0 ? closure.call() : closure.call(object);
+            var ret = closure.getMaximumNumberOfParameters() == 0 ? closure.call() : closure.call(object);
             return ret != null ? (T) ret : null;
         } catch (InvokerInvocationException e) {
-            Throwable cause = e.getCause();
+            var cause = e.getCause();
             throw cause instanceof RuntimeException ? (RuntimeException) cause : e;
         } finally {
             Thread.currentThread().setContextClassLoader(original);
@@ -248,7 +249,7 @@ public final class Closures {
     }
 
     private static final class Functional<T, R> extends Closure<R> {
-        private static final long serialVersionUID = -8736820647200105725L;
+        private static final @Serial long serialVersionUID = -8736820647200105725L;
 
         private final Function<? super T, ? extends R> function;
 
@@ -264,7 +265,7 @@ public final class Closures {
     }
 
     private static final class Supplying<R> extends Closure<R> {
-        private static final long serialVersionUID = 1281109313872080614L;
+        private static final @Serial long serialVersionUID = 1281109313872080614L;
 
         private final Callable<? extends R> supplier;
 
@@ -280,7 +281,7 @@ public final class Closures {
     }
 
     private static final class Consuming<T> extends Closure<Void> {
-        private static final long serialVersionUID = 1165200476195312981L;
+        private static final @Serial long serialVersionUID = 1165200476195312981L;
 
         private final Consumer<? super T> consumer;
 
@@ -297,7 +298,7 @@ public final class Closures {
     }
 
     private static final class Running extends Empty {
-        private static final long serialVersionUID = -3453835628821302135L;
+        private static final @Serial long serialVersionUID = -3453835628821302135L;
 
         private final Runnable runnable;
 
@@ -314,7 +315,7 @@ public final class Closures {
     }
 
     private static class Empty extends Closure<Void> {
-        private static final long serialVersionUID = 6072707343050307552L;
+        private static final @Serial long serialVersionUID = 6072707343050307552L;
 
         private Empty(Object owner) {
             super(owner, owner);

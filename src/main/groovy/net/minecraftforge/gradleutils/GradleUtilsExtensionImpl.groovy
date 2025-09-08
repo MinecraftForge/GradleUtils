@@ -80,10 +80,6 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
         }
     }
 
-    def methodMissing(String name, def args) {
-        InvokerHelper.invokeStaticMethod(GradleUtilsProblems, name, args)
-    }
-
     @Override
     Action<MavenArtifactRepository> getPublishingForgeMaven(String fallbackPublishingEndpoint) {
         this.getPublishingForgeMaven(fallbackPublishingEndpoint, this.rootDirectory.dir('repo'))

@@ -10,7 +10,7 @@ import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.reflect.HasPublicType;
 import org.gradle.api.reflect.TypeOf;
 
-interface ToolInternal extends Tool, HasPublicType {
+non-sealed interface ToolInternal extends Tool, HasPublicType {
     @Override
     default TypeOf<?> getPublicType() {
         return TypeOf.typeOf(Tool.class);
@@ -30,5 +30,19 @@ interface ToolInternal extends Tool, HasPublicType {
     /// @return The provider to the tool file
     default Tool.Resolved get(Directory cachesDir, ProviderFactory providers, ToolsExtensionImpl toolsExt) {
         return this.get(providers.provider(() -> cachesDir), providers, toolsExt);
+    }
+
+    non-sealed interface Definition extends Tool.Definition, HasPublicType {
+        @Override
+        default TypeOf<?> getPublicType() {
+            return TypeOf.typeOf(Tool.Definition.class);
+        }
+    }
+
+    non-sealed interface Resolved extends Tool.Resolved, HasPublicType {
+        @Override
+        default TypeOf<?> getPublicType() {
+            return TypeOf.typeOf(Tool.Resolved.class);
+        }
     }
 }

@@ -29,7 +29,7 @@ import java.util.concurrent.Callable;
 /// needing to duplicate code across projects.
 ///
 /// @param <T> The type of target
-public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAdditions {
+public non-sealed abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAdditions {
     private final String name;
     private final String displayName;
     private final @Nullable String toolsExtName;
@@ -87,8 +87,9 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
     /// plugin's [global][#globalCaches()] and [local][#localCaches()] caches. Additionally, the name is used to
     /// create the cache folders (`minecraftforge/name`).
     ///
-    /// @param name        The name for this plugin (must be machine-friendly)
-    /// @param displayName The display name for this plugin
+    /// @param name         The name for this plugin (must be machine-friendly)
+    /// @param displayName  The display name for this plugin
+    /// @param toolsExtName The name for the tools extension to used, or `null` if it should not be created
     protected EnhancedPlugin(String name, String displayName, @Nullable String toolsExtName) {
         this.name = name;
         this.displayName = displayName;
@@ -104,8 +105,8 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
     public final void apply(T target) {
         this.setup(this.target = target);
 
-        if (this.toolsExtName != null && target instanceof ExtensionAware)
-            this.tools = ((ExtensionAware) target).getExtensions().create(this.toolsExtName, ToolsExtensionImpl.class, (Callable<? extends JavaToolchainService>) this::toolchainsForTools);
+        if (this.toolsExtName != null && target instanceof ExtensionAware extensionAware)
+            this.tools = extensionAware.getExtensions().create(this.toolsExtName, ToolsExtensionImpl.class, (Callable<? extends JavaToolchainService>) this::toolchainsForTools);
 //        else
 //            this.tools = this.getObjects().newInstance(ToolsExtensionImpl.class, (Callable<? extends JavaToolchainService>) this::toolchainsForTools);
     }
@@ -164,8 +165,8 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
 
     private DirectoryProperty makeGlobalCaches() {
         try {
-            Gradle gradle = ((Gradle) InvokerHelper.getProperty(this.target, "gradle"));
-            DirectoryProperty gradleUserHomeDir = this.getObjects().directoryProperty().fileValue(gradle.getGradleUserHomeDir());
+            var gradle = ((Gradle) InvokerHelper.getProperty(this.target, "gradle"));
+            var gradleUserHomeDir = this.getObjects().directoryProperty().fileValue(gradle.getGradleUserHomeDir());
 
             return this.getObjects().directoryProperty().convention(
                 gradleUserHomeDir.dir("caches/minecraftforge/" + this.name).map(this.problemsInternal.ensureFileLocation())
@@ -207,6 +208,32 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
         }
     }
 
+    private final Lazy<DirectoryProperty> rootProjectDirectory = Lazy.simple(this::makeRootProjectDirectory);
+
+    @Override
+    public final DirectoryProperty rootProjectDirectory() {
+        return this.rootProjectDirectory.get();
+    }
+
+    private DirectoryProperty makeRootProjectDirectory() {
+        var target = this.getTarget();
+        try {
+            var rootProjectDirectory = this.getObjects().directoryProperty();
+            if (target instanceof Project project) {
+                return rootProjectDirectory.value(project.getRootProject().getLayout().getProjectDirectory());
+            } else if (target instanceof Settings) {
+                return rootProjectDirectory.value(this.getBuildLayout().getRootDirectory());
+            } else {
+                throw new IllegalStateException("Cannot get root project directory with an unsupported type (must be project or settings)");
+            }
+        } catch (Exception e) {
+            throw this.problemsInternal.illegalPluginTarget(
+                new IllegalArgumentException("Failed to get %s root project directory for target: %s".formatted(this.displayName, target), e),
+                Project.class, Settings.class
+            );
+        }
+    }
+
     private final Lazy<DirectoryProperty> workingProjectDirectory = Lazy.simple(this::makeWorkingProjectDirectory);
 
     @Override
@@ -215,18 +242,19 @@ public abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAddi
     }
 
     private DirectoryProperty makeWorkingProjectDirectory() {
+        var target = this.getTarget();
         try {
-            DirectoryProperty workingProjectDirectory = this.getObjects().directoryProperty();
-            if (this.target instanceof Project) {
+            var workingProjectDirectory = this.getObjects().directoryProperty();
+            if (target instanceof Project) {
                 return workingProjectDirectory.value(this.getProjectLayout().getProjectDirectory());
-            } else if (this.target instanceof Settings) {
+            } else if (target instanceof Settings) {
                 return workingProjectDirectory.value(this.getBuildLayout().getRootDirectory());
             } else {
                 throw new IllegalStateException("Cannot get working project directory with an unsupported type (must be project or settings)");
             }
         } catch (Exception e) {
             throw this.problemsInternal.illegalPluginTarget(
-                new IllegalArgumentException(String.format("Failed to get %s working project directory for target: %s", this.displayName, this.getTarget()), e),
+                new IllegalArgumentException("Failed to get %s working project directory for target: %s".formatted(this.displayName, target), e),
                 Project.class, Settings.class
             );
         }

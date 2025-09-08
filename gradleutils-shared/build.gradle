@@ -13,14 +13,14 @@ plugins {
     alias libs.plugins.shadow
 }
 
-gradleutils.displayName = 'Minecraft Forge Shared Plugin Base'
-description = 'The shared base used by all of Minecraft Forge\'s Gradle plugins'
+gradleutils.displayName = 'GradleUtils Shared'
+description = 'The shared base used by all of Forge\'s Gradle plugins.'
 base.archivesName = 'gradleutils-shared'
 group = 'net.minecraftforge'
 // version set by gitversion in settings.gradle
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(8)
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
     withSourcesJar()
     withJavadocJar()
 }
@@ -30,7 +30,7 @@ dependencies {
     compileOnly libs.nulls
 
     // Gradle API
-    compileOnly sharedLibs.gradle
+    compileOnly libs.gradle
 
     // Tools
     implementation sharedLibs.bundles.utils

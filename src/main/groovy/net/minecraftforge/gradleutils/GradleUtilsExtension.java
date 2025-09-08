@@ -107,8 +107,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     Action<MavenArtifactRepository> getPublishingForgeMaven(String fallbackPublishingEndpoint);
 
     /// Get a configuring closure to be passed into [org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Closure)] in a
-    /// publishing block.
-    /// **Important:** The following environment variables must be set for this to work:
+    /// publishing block. **Important:** The following environment variables must be set for this to work:
     /// - `MAVEN_USER`: Containing the username to use for authentication
     /// - `MAVEN_PASSWORD`: Containing the password to use for authentication
     ///
@@ -140,7 +139,8 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// - Please note that since Forge does not have a snapshot repository, snapshot maven publishing via GradleUtils is
     /// no longer supported as of 3.0.0.
     ///
-    /// If the required environment variables are not present, the output Maven will be set to the given default folder.
+    /// If the required environment variables are not present, the output Maven will be set to the given default
+    /// folder.
     ///
     /// If the `MAVEN_URL_RELEASE` variable is not set, the Forge releases repository will be used
     /// (`https://maven.minecraftforge.net/releases`).
@@ -152,8 +152,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     }
 
     /// Get a configuring closure to be passed into [org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Closure)] in a
-    /// publishing block.
-    /// **Important:** The following environment variables must be set for this to work:
+    /// publishing block. **Important:** The following environment variables must be set for this to work:
     /// - `MAVEN_USER`: Containing the username to use for authentication
     /// - `MAVEN_PASSWORD`: Containing the password to use for authentication
     ///
@@ -185,7 +184,8 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// - Please note that since Forge does not have a snapshot repository, snapshot maven publishing via GradleUtils is
     /// no longer supported as of 3.0.0.
     ///
-    /// If the required environment variables are not present, the output Maven will be set to the given default folder.
+    /// If the required environment variables are not present, the output Maven will be set to the given default
+    /// folder.
     ///
     /// If the `MAVEN_URL_RELEASE` variable is not set, the Forge releases repository will be used
     /// (`https://maven.minecraftforge.net/releases`).
@@ -197,8 +197,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     }
 
     /// Get a configuring closure to be passed into [org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Closure)] in a
-    /// publishing block.
-    /// **Important:** The following environment variables must be set for this to work:
+    /// publishing block. **Important:** The following environment variables must be set for this to work:
     /// - `MAVEN_USER`: Containing the username to use for authentication
     /// - `MAVEN_PASSWORD`: Containing the password to use for authentication
     ///
@@ -230,7 +229,8 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// - Please note that since Forge does not have a snapshot repository, snapshot maven publishing via GradleUtils is
     /// no longer supported as of 3.0.0.
     ///
-    /// If the required environment variables are not present, the output Maven will be set to the given default folder.
+    /// If the required environment variables are not present, the output Maven will be set to the given default
+    /// folder.
     ///
     /// If the `MAVEN_URL_RELEASE` variable is not set, the Forge releases repository will be used
     /// (`https://maven.minecraftforge.net/releases`).
@@ -242,8 +242,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     }
 
     /// Get a configuring closure to be passed into [org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Closure)] in a
-    /// publishing block.
-    /// **Important:** The following environment variables must be set for this to work:
+    /// publishing block. **Important:** The following environment variables must be set for this to work:
     /// - `MAVEN_USER`: Containing the username to use for authentication
     /// - `MAVEN_PASSWORD`: Containing the password to use for authentication
     ///
@@ -272,10 +271,32 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
 
     /* MISCELLANEOUS */
 
+    /// Unpacks a provider's value.
+    ///
+    /// Since buildscripts are dynamically compiled, this allows buildscript authors to use this method with version
+    /// catalog entries. On compilation, either this method or [#unpack(ProviderConvertible)] will be used depending on
+    /// what the input is. This prevents the need to arbitrarily call [Provider#get()] on values which could either be a
+    /// [Provider] or [ProviderConvertible] based on circumstance.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    /// @see #unpack(Provider)
     default <T> T unpack(Provider<T> value) {
         return value.get();
     }
 
+    /// Unpacks a provider convertible's provided value.
+    ///
+    /// Since buildscripts are dynamically compiled, this allows buildscript authors to use this method with version
+    /// catalog entries. On compilation, either this method or [#unpack(Provider)] will be used depending on what the
+    /// input is. This prevents the need to arbitrarily call [ProviderConvertible#asProvider()] -> [Provider#get()] on
+    /// values which could either be a [Provider] or [ProviderConvertible] based on circumstance.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    /// @see #unpack(Provider)
     default <T> T unpack(ProviderConvertible<T> value) {
         return unpack(value.asProvider());
     }

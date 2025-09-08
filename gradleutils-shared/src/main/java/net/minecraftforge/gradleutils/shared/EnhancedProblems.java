@@ -27,6 +27,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.util.Collection;
@@ -37,7 +38,7 @@ import java.util.stream.Stream;
 
 /// The enhanced problems contain several base helper members to help reduce duplicate code between Gradle plugins.
 public abstract class EnhancedProblems implements Serializable, Predicate<String> {
-    private static final long serialVersionUID = 2037193772993696096L;
+    private static final @Serial long serialVersionUID = 2037193772993696096L;
 
     /// The common message to send in [ProblemSpec#solution(String)] when reporting problems.
     protected static final String HELP_MESSAGE = "Consult the documentation or ask for help on the Forge Forums, GitHub, or Discord server.";
@@ -70,13 +71,15 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
         try {
             return this.getProblems();
         } catch (Exception e) {
-            return EmptyReporter.AS_PROBLEMS;
+            throw new IllegalStateException("Failed to get Problems instance! This is an unrecoverable error, likely due to the removal of (the service injection of) the incubating Problems API in a Gradle update. Please report this to MinecraftForge.", e);
         }
     }
 
     /// Gets the problem reporter used by the [delegate][#getDelegate()] problems instance.
     ///
     /// @return The problem reporter
+    /// @deprecated Use [#report(String, String, Action)] or [#throwing(Throwable, String, String, Action)].
+    @Deprecated(forRemoval = true, since = "3.2.26")
     protected final ProblemReporter getReporter() {
         return this.getDelegate().getReporter();
     }
@@ -106,12 +109,41 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
         return Logging.getLogger(this.getClass());
     }
 
+    /// Reports an issue using the give name and display name as the [ProblemId] and the given spec to create the
+    /// [Problem].
+    ///
+    /// @param name        The name of the problem
+    /// @param displayName The display name of the problem
+    /// @param spec        The details to use when creating the problem
+    /// @see #throwing(Throwable, String, String, Action)
+    protected final void report(String name, String displayName, Action<? super ProblemSpec> spec) {
+        this.getDelegate().getReporter().report(ProblemId.create(name, displayName, this.getProblemGroup()), spec);
+    }
+
+    /// Reports an issue much like [#report(String, String, Action)], but also returns the given exception to be thrown
+    /// by the calling class.
+    ///
+    /// @param exception   The exception to throw
+    /// @param name        The name of the problem
+    /// @param displayName The display name of the problem
+    /// @param spec        The details to use when creating the problem
+    /// @return The exception to be thrown by the calling class
+    /// @apiNote Due to a bug in Gradle, any exceptions that do not extend [RuntimeException] will be wrapped inside
+    /// one. While this pollutes the stacktrace, it keeps the details of the problem in view for terminal and IDE
+    /// users.
+    /// @see #report(String, String, Action)
+    protected final RuntimeException throwing(Throwable exception, String name, String displayName, Action<? super ProblemSpec> spec) {
+        return this.getDelegate().getReporter().throwing(exception instanceof RuntimeException ? exception : new RuntimeException(exception), ProblemId.create(name, displayName, this.getProblemGroup()), spec);
+    }
+
     /// Creates a problem ID to be used when reporting problems. The name must be unique so as to not potentially
     /// override other reported problems in the report.
     ///
     /// @param name        The name for this problem
     /// @param displayName The display name for this problem
     /// @return The problem ID
+    /// @deprecated Use [#report(String, String, Action)] or [#throwing(Throwable, String, String, Action)].
+    @Deprecated(forRemoval = true, since = "3.2.26")
     protected final ProblemId id(String name, String displayName) {
         return ProblemId.create(name, displayName, this.getProblemGroup());
     }
@@ -155,11 +187,11 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
     //region Enhanced Plugin
     @SuppressWarnings("SameParameterValue")
     final RuntimeException illegalPluginTarget(Exception e, Class<?> firstAllowedTarget, Class<?>... allowedTargets) {
-        return this.getReporter().throwing(e, id("invalid-plugin-target", "Invalid plugin target"), spec -> spec
-            .details(String.format(
-                "Attempted to apply the %s plugin to an invalid target.\n" +
-                    "This plugin can only be applied on the following types:\n" +
-                    "%s", this.displayName, Stream.concat(Stream.of(firstAllowedTarget), Stream.of(allowedTargets)).map(Class::getName).collect(Collectors.joining(", ", "[", "]"))))
+        return this.throwing(e, "invalid-plugin-target", "Invalid plugin target", spec -> spec
+            .details("""
+                Attempted to apply the %s plugin to an invalid target.
+                This plugin can only be applied on the following types:
+                %s""".formatted(this.displayName, Stream.concat(Stream.of(firstAllowedTarget), Stream.of(allowedTargets)).map(Class::getName).collect(Collectors.joining(", ", "[", "]"))))
             .severity(Severity.ERROR)
             .stackLocation()
             .solution("Use a valid plugin target.")
@@ -168,10 +200,10 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
 
     @SuppressWarnings("SameParameterValue")
     final RuntimeException illegalPluginTarget(Exception e, String allowedTargets) {
-        return this.getReporter().throwing(e, id("invalid-plugin-target", "Invalid plugin target"), spec -> spec
-            .details(String.format(
-                "Attempted to apply the %s plugin to an invalid target.\n" +
-                    "This plugin can only be applied on %s.", this.displayName, allowedTargets))
+        return this.throwing(e, "invalid-plugin-target", "Invalid plugin target", spec -> spec
+            .details("""
+                Attempted to apply the %s plugin to an invalid target.
+                This plugin can only be applied on %s.""".formatted(this.displayName, allowedTargets))
             .severity(Severity.ERROR)
             .stackLocation()
             .solution("Use a valid plugin target.")
@@ -179,9 +211,9 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
     }
 
     final RuntimeException pluginNotYetApplied(Exception e) {
-        return this.getReporter().throwing(e, id("plugin-not-yet-applied", String.format("%s is not applied", this.displayName)), spec -> spec
-            .details(String.format(
-                "Attempted to get details from the %s plugin, but it has not yet been applied to the target.", this.displayName))
+        return this.throwing(e, "plugin-not-yet-applied", String.format("%s is not applied", this.displayName), spec -> spec
+            .details("""
+                Attempted to get details from the %s plugin, but it has not yet been applied to the target.""".formatted(this.displayName))
             .severity(Severity.ERROR)
             .stackLocation()
             .solution("Apply the plugin before attempting to use it from the target's plugin manager.")
@@ -195,11 +227,11 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
     final void reportToolExecNotEnhanced(Task task) {
         String className = task.getClass().getSimpleName().replace('.', '-');
         task.getLogger().warn("WARNING: {} doesn't implement EnhancedTask", className);
-        this.getReporter().report(id(String.format("%s-not-enhanced", className.toLowerCase(Locale.ROOT)), String.format("%s doesn't implement EnhancedTask", className)), spec -> spec
-            .details(String.format(
-                "Implementing subclasses of ToolExecBase should also implement (a subclass of) EnhancedTask.\n" +
-                    "Not doing so will result in global caches being ignored. Please check your implementations.\n" +
-                    "Affected task: %s (%s)", task, task.getClass()))
+        this.report(String.format("%s-not-enhanced", className.toLowerCase(Locale.ROOT)), String.format("%s doesn't implement EnhancedTask", className), spec -> spec
+            .details("""
+                Implementing subclasses of ToolExecBase should also implement (a subclass of) EnhancedTask.
+                Not doing so will result in global caches being ignored. Please check your implementations.
+                Affected task: %s (%s)""".formatted(task, task.getClass()))
             .severity(Severity.WARNING)
             .stackLocation()
             .solution("Double check your task implementation."));
@@ -208,11 +240,11 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
     final void reportToolExecEagerArgs(Task task) {
         String className = task.getClass().getSimpleName().replace('.', '-');
         task.getLogger().warn("WARNING: {} implementation adds arguments without using addArguments()", className);
-        this.getReporter().report(id(String.format("%s-eager-args", className.toLowerCase(Locale.ROOT)), String.format("%s implementation adds arguments without using addArguments()", className)), spec -> spec
-            .details(String.format(
-                "A ToolExecBase task is eagerly adding arguments using JavaExec#args without using ToolExecBase#addArguments.\n" +
-                    "This may cause unintended behavior as the arguemnts given to the tool will contain the arguments in both of these method calls.\n" +
-                    "Affected task: %s (%s)", task, task.getClass()))
+        this.report(String.format("%s-eager-args", className.toLowerCase(Locale.ROOT)), String.format("%s implementation adds arguments without using addArguments()", className), spec -> spec
+            .details("""
+                A ToolExecBase task is eagerly adding arguments using JavaExec#args without using ToolExecBase#addArguments.
+                This may cause unintended behavior as the arguemnts given to the tool will contain the arguments in both of these method calls.
+                Affected task: %s (%s)""".formatted(task, task.getClass()))
             .severity(Severity.WARNING)
             .stackLocation()
             .solution("Use ToolExecBase#addArguments"));
@@ -232,11 +264,10 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
             try {
                 Files.createDirectories(dir.toPath());
             } catch (IOException e) {
-                throw this.getReporter().throwing(e, id("cannot-ensure-directory", "Failed to create directory"), spec -> spec
-                    .details(String.format(
-                        "Failed to create a directory required for %s to function.\n" +
-                            "Directory: %s",
-                        this.displayName, dir.getAbsolutePath()))
+                throw this.throwing(e, "cannot-ensure-directory", "Failed to create directory", spec -> spec
+                    .details("""
+                        Failed to create a directory required for %s to function.
+                        Directory: %s""".formatted(this.displayName, dir.getAbsolutePath()))
                     .severity(Severity.ERROR)
                     .stackLocation()
                     .solution("Ensure that the you have write access to the directory that needs to be created.")
@@ -298,7 +329,7 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
     /* MINIMAL */
 
     static abstract class Minimal extends EnhancedProblems implements HasPublicType {
-        private static final long serialVersionUID = -6804792858587052477L;
+        private static final @Serial long serialVersionUID = -6804792858587052477L;
 
         @Inject
         public Minimal(String name, String displayName) {

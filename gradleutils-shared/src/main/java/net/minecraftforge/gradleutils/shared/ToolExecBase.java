@@ -8,26 +8,18 @@ import org.gradle.api.Transformer;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.FileSystemLocation;
 import org.gradle.api.file.FileSystemLocationProperty;
-import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.logging.LogLevel;
-import org.gradle.api.logging.LoggingManager;
 import org.gradle.api.provider.ListProperty;
-import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
-import org.gradle.api.specs.Spec;
-import org.gradle.api.tasks.Console;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.Optional;
-import org.gradle.jvm.toolchain.JavaToolchainService;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 import org.jetbrains.annotations.UnknownNullability;
 
 import javax.inject.Inject;
 import java.io.File;
-import java.io.OutputStream;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -40,8 +32,9 @@ import java.util.concurrent.Callable;
 /// should extend from.
 /// @see JavaExec
 /// @see Tool
-public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec {
+public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec implements EnhancedTask<P> {
     private final P problems;
+
     /// The default tool directory (usage is not required).
     protected final DirectoryProperty defaultToolDir = this.getObjectFactory().directoryProperty();
     private final ListProperty<String> additionalArgs = this.getObjectFactory().listProperty(String.class);
@@ -53,43 +46,21 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
         return this.additionalArgs;
     }
 
-    /// The project layout provided by Gradle services.
-    ///
-    /// @return The project layout
-    /// @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#projectlayout">ProjectLayout
-    /// Service Injection</a>
-    protected abstract @Inject ProjectLayout getProjectLayout();
-
     /// Creates a new task instance using the given types and tool information.
     ///
-    /// @param problemsType The type of problems to use for this task (accessible via [#getProblems()])
-    /// @param tool         The tool to use for this task
+    /// @param tool The tool to use for this task
     /// @implSpec The implementing subclass <strong>must</strong> make their constructor public, annotated with
     /// [Inject], and have only a single parameter for [Tool], passing in static plugin and problems types to this base
     /// constructor. The types must also be manually specified in the class declaration when overriding this class. The
     /// best practice is to make a single `ToolExec` class for the implementing plugin to use, which other tasks can
     /// extend off of.
-    protected ToolExecBase(Class<P> problemsType, Tool tool) {
-        this.problems = this.getObjectFactory().newInstance(problemsType);
+    protected ToolExecBase(Tool tool) {
+        this.problems = this.getObjectFactory().newInstance(this.problemsType());
 
-        Tool.Resolved resolved;
-        if (this instanceof EnhancedTask) {
-            resolved = ((EnhancedTask) this).getTool(tool);
-            this.defaultToolDir.value(
-                ((EnhancedTask) this).globalCaches().dir(tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal())
-            );
-        } else {
-            this.getProject().afterEvaluate(project -> this.getProblems().reportToolExecNotEnhanced(this));
-            resolved = ((ToolInternal) tool).get(
-                this.getProjectLayout().getBuildDirectory().dir("minecraftforge/tools/" + tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal()),
-                this.getProviderFactory(),
-                this.getObjectFactory().newInstance(ToolsExtensionImpl.class, (Callable<? extends JavaToolchainService>) this::getJavaToolchainService)
-            );
-
-            this.defaultToolDir.value(
-                this.getProjectLayout().getBuildDirectory().dir(String.format("minecraftforge/tools/%s/workDir", tool.getName().toLowerCase(Locale.ENGLISH))).map(this.ensureFileLocationInternal())
-            );
-        }
+        var resolved = this.getTool(tool);
+        this.defaultToolDir.value(
+            this.globalCaches().dir(tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal())
+        );
 
         this.setClasspath(resolved.getClasspath());
 
@@ -149,15 +120,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
     /// @param arg          The flag to use
     /// @param fileProvider The file to add
     protected final void args(String arg, FileSystemLocationProperty<? extends FileSystemLocation> fileProvider) {
-        this.args(arg, fileProvider, false);
-    }
-
-    /// Adds the given argument followed by the given file location to the arguments.
-    ///
-    /// @param arg          The flag to use
-    /// @param fileProvider The file to add
-    protected final void args(String arg, FileSystemLocationProperty<? extends FileSystemLocation> fileProvider, boolean locationOnly) {
-        this.args(arg, locationOnly ? fileProvider.getLocationOnly() : fileProvider);
+        this.args(arg, fileProvider.getLocationOnly());
     }
 
     /// Adds the given argument followed by the given object (may be a file location) to the arguments.
@@ -168,7 +131,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
         if (provider == null || !provider.isPresent()) return;
 
         // NOTE: We don't use File#getAbsoluteFile because path sensitivity should be handled by tasks.
-        Object value = provider.map(it -> it instanceof FileSystemLocation ? ((FileSystemLocation) it).getAsFile() : it).getOrNull();
+        var value = provider.map(it -> it instanceof FileSystemLocation ? ((FileSystemLocation) it).getAsFile() : it).getOrNull();
         if (value == null) return;
 
         if (value instanceof Boolean && ((boolean) value))
@@ -177,37 +140,21 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends JavaExec 
             this.args(arg, String.valueOf(value));
     }
 
+    /// Adds the given map of arguments.
+    ///
+    /// [#args(String, Provider)] will be invoked for each entry in the map. If the key and/or value are not of the
+    /// required types, they will be automatically converted using [Object#toString()] and
+    /// [org.gradle.api.provider.ProviderFactory#provider(Callable)].
+    ///
+    /// @param args The args to add
     protected final void args(Map<?, ?> args) {
         for (Map.Entry<?, ?> entry : args.entrySet()) {
-            Object key = entry.getKey();
-            Object value = entry.getValue();
+            var key = entry.getKey();
+            var value = entry.getValue();
             this.args(
-                key instanceof Provider ? ((Provider<?>) key).map(Object::toString).get() : this.getProviderFactory().provider(() -> key).map(Object::toString).get(),
-                value instanceof Provider ? (Provider<?>) value : this.getProviderFactory().provider(() -> value)
+                key instanceof Provider<?> provider ? provider.map(Object::toString).get() : this.getProviderFactory().provider(key::toString).get(),
+                value instanceof Provider<?> provider ? (provider instanceof FileSystemLocationProperty<?> file ? file.getLocationOnly() : provider) : this.getProviderFactory().provider(() -> value)
             );
         }
-    }
-
-    /// Adds the given argument if and only if the given boolean property is [present][Provider#isPresent()] and true.
-    ///
-    /// @param arg    The argument to add
-    /// @param onlyIf The provider to test
-    /// @deprecated Use [#args(String, Provider)].
-    @Deprecated
-    @ApiStatus.ScheduledForRemoval
-    protected final void argOnlyIf(String arg, Provider<Boolean> onlyIf) {
-        this.argOnlyIf(arg, task -> onlyIf.isPresent() && onlyIf.getOrElse(false));
-    }
-
-    /// Adds the given argument if and only if the given spec, using this task, is satisfied.
-    ///
-    /// @param arg    The argument to add
-    /// @param onlyIf The spec to test
-    /// @deprecated Use [#args(String, Provider)].
-    @Deprecated
-    @ApiStatus.ScheduledForRemoval
-    protected final void argOnlyIf(String arg, Spec<? super ToolExecBase<?>> onlyIf) {
-        if (onlyIf.isSatisfiedBy(this))
-            this.args(arg);
     }
 }

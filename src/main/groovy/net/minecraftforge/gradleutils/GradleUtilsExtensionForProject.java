@@ -23,10 +23,40 @@ public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtens
     /// @return The property for the display name
     Property<String> getDisplayName();
 
+    /// Applies known defaults for Minecraft Forge's Gradle plugins.
+    ///
+    /// - For all configurations that
+    /// {@linkplain org.codehaus.groovy.runtime.StringGroovyMethods#containsIgnoreCase(CharSequence, CharSequence)
+    /// contain (ignoring case)} "runtimeElements", the
+    /// [org.gradle.api.attributes.plugin.GradlePluginApiVersion#GRADLE_PLUGIN_API_VERSION_ATTRIBUTE] attribute with
+    /// the value of the given Gradle version.
+    ///
+    /// @param configurations The configurations container to apply defaults to
+    /// @param gradleVersion  The Gradle version to target
     void pluginDevDefaults(ConfigurationContainer configurations, CharSequence gradleVersion);
 
+    /// Applies known defaults for Minecraft Forge's Gradle plugins.
+    ///
+    /// - For all configurations that
+    /// {@linkplain org.codehaus.groovy.runtime.StringGroovyMethods#containsIgnoreCase(CharSequence, CharSequence)
+    /// contain (ignoring case)} "runtimeElements", the
+    /// [org.gradle.api.attributes.plugin.GradlePluginApiVersion#GRADLE_PLUGIN_API_VERSION_ATTRIBUTE] attribute with
+    /// the value of the given Gradle version.
+    ///
+    /// @param configurations The configurations container to apply defaults to
+    /// @param gradleVersion  The Gradle version to target
     void pluginDevDefaults(ConfigurationContainer configurations, Provider<? extends CharSequence> gradleVersion);
 
+    /// Applies known defaults for Minecraft Forge's Gradle plugins.
+    ///
+    /// - For all configurations that
+    /// {@linkplain org.codehaus.groovy.runtime.StringGroovyMethods#containsIgnoreCase(CharSequence, CharSequence)
+    /// contain (ignoring case)} "runtimeElements", the
+    /// [org.gradle.api.attributes.plugin.GradlePluginApiVersion#GRADLE_PLUGIN_API_VERSION_ATTRIBUTE] attribute with
+    /// the value of the given Gradle version.
+    ///
+    /// @param configurations The configurations container to apply defaults to
+    /// @param gradleVersion  The Gradle version to target
     default void pluginDevDefaults(ConfigurationContainer configurations, ProviderConvertible<? extends CharSequence> gradleVersion) {
         this.pluginDevDefaults(configurations, gradleVersion.asProvider());
     }
