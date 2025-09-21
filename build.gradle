@@ -58,6 +58,9 @@ dependencies {
     // JavaDoc Links Plugin
     compileOnly libs.gradle.javadoc.links
 
+    // Versions Plugin
+    compileOnly libs.gradle.versions
+
     // GitHub Actions Workflows
     implementation libs.yaml
 }

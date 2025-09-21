@@ -23,15 +23,17 @@ include 'gradleutils-shared'
 
 dependencyResolutionManagement {
     repositories {
-        //mavenLocal()
         mavenCentral()
+        gradlePluginPortal()
         maven gradleutils.forgeMaven
         maven { url = 'https://maven.moddinglegacy.com' } // Gradle API
+        //mavenLocal()
     }
 
     versionCatalogs {
         register('libs') {
             version 'gradle-javadoc-links', '8.14'
+            version 'gradle-versions', '0.52.0'
 
             plugin 'licenser',       'net.minecraftforge.licenser'  version '1.2.0' // https://plugins.gradle.org/plugin/net.minecraftforge.licenser
             plugin 'changelog',      'net.minecraftforge.changelog' version '3.0.6' // https://plugins.gradle.org/plugin/net.minecraftforge.changelog
@@ -52,6 +54,9 @@ dependencyResolutionManagement {
 
             // JavaDoc Links Plugin
             library 'gradle-javadoc-links', 'io.freefair.javadoc-links', 'io.freefair.javadoc-links.gradle.plugin' versionRef 'gradle-javadoc-links'
+
+            // Versions Plugin
+            library 'gradle-versions', 'com.github.ben-manes.versions', 'com.github.ben-manes.versions.gradle.plugin' versionRef 'gradle-versions'
 
             // GitHub Actions Workflows
             library 'yaml', 'org.yaml', 'snakeyaml' version '2.4'

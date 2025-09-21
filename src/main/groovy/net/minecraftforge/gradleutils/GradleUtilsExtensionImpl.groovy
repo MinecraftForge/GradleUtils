@@ -4,19 +4,22 @@
  */
 package net.minecraftforge.gradleutils
 
+import com.github.benmanes.gradle.versions.reporter.result.Result
+import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
-import org.codehaus.groovy.runtime.InvokerHelper
+import org.codehaus.groovy.runtime.DefaultGroovyMethods
 import org.gradle.api.Action
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationContainer
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.attributes.plugin.GradlePluginApiVersion
 import org.gradle.api.file.Directory
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.ProjectLayout
 import org.gradle.api.flow.FlowProviders
 import org.gradle.api.flow.FlowScope
+import org.gradle.api.logging.LogLevel
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.plugins.ExtensionAware
@@ -73,10 +76,13 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
 
         this.pom = this.objects.newInstance(PomUtilsImpl, target)
 
-        this.flowScope.always(GradleUtilsFlowAction.JavadocLinksClassCheck) {
-            it.parameters { parameters ->
-                parameters.failure.set(this.flowProviders.buildWorkResult.map { it.failure.orElse(null) })
+        try {
+            this.flowScope.always(GradleUtilsFlowAction.JavadocLinksClassCheck) {
+                it.parameters { parameters ->
+                    parameters.failure.set(this.flowProviders.buildWorkResult.map { it.failure.orElse(null) })
+                }
             }
+        } catch (IllegalStateException ignored) {
         }
     }
 
@@ -136,27 +142,79 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
 
     @CompileStatic
     @PackageScope static abstract class ForProjectImpl extends GradleUtilsExtensionImpl implements GradleUtilsExtensionInternal.ForProject {
-        private final GradleUtilsProblems problems
+        private final GradleUtilsProblems problems = this.objects.newInstance(GradleUtilsProblems)
 
         private final Project project
 
-        final Property<String> displayName
+        final Property<String> displayName = this.objects.property(String)
+
+        protected abstract @Inject ProjectLayout getProjectLayout()
 
         @Inject
         ForProjectImpl(Project project) {
             super(project)
             this.project = project
 
-            this.problems = this.objects.newInstance(GradleUtilsProblems)
-
-            this.displayName = this.objects.property(String)
-
             project.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)
+
 
             project.afterEvaluate { this.finish(it) }
         }
 
         private void finish(Project project) {
+            final parallel = project.gradle.startParameter.parallelProjectExecutionEnabled
+            project.pluginManager.withPlugin('com.github.ben-manes.versions') {
+                project.tasks.withType(DependencyUpdatesTask).configureEach { task ->
+                    if (parallel) {
+                        task.doFirst {
+                            throw new IllegalStateException("The gradle-versions-plugin doesn't support parallel execution. Please try again using --no-parllel. If this was fixed, contact Forge.")
+                        }
+                    }
+
+                    if (!task.compatibleWithConfigurationCache)
+                        task.notCompatibleWithConfigurationCache("The gradle-versions-plugin isn't compatible with the configuration cache")
+
+                    if (!project.gradle.startParameter.offline) {
+                        task.logging.captureStandardOutput(LogLevel.LIFECYCLE)
+                        task.logging.captureStandardError(LogLevel.WARN)
+
+                        var formatters = task.outputFormatterName?.split(',')?.toUnique()
+                        if (formatters !== null) {
+                            task.inputs.property('compileClasspathCount', project.configurations.named(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME).map(DefaultGroovyMethods.&size))
+                            task.inputs.property('runtimeClasspathCount', project.configurations.named(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME).map(DefaultGroovyMethods.&size))
+                            task.inputs.property('formatters', formatters)
+                            for (final formatterType in formatters) {
+                                var file = projectLayout.projectDirectory.dir(task.outputDir).file("${task.reportfileName}.txt").asFile
+                                task.outputs.file(file).withPropertyName('textOutput')
+                            }
+
+                            task.outputFormatter = { Result result ->
+                                var textReporter = new EnhancedVersionReporter.PlainTextDependencyReporter(task.project.path, task.revision, task.gradleReleaseChannel)
+                                var enhancedResult = new EnhancedVersionReporter.EnhancedResult(result, task.revision)
+                                var textOutput = new ByteArrayOutputStream().with { outputStream ->
+                                    textReporter.write(outputStream, enhancedResult)
+                                    outputStream.toByteArray()
+                                }
+
+                                println(new String(textOutput, StandardCharsets.UTF_8))
+                                println()
+
+                                for (final formatterType in task.inputs.properties.formatters as String[]) {
+                                    switch (formatterType) {
+                                        case 'text':
+                                            var file = projectLayout.projectDirectory.dir(task.outputDir).file("${task.reportfileName}.txt").asFile
+                                            file.bytes = textOutput
+
+                                            task.logger.lifecycle("Generated report file ${projectLayout.projectDirectory.asFile.toPath().relativize(file.toPath())}")
+                                            break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Removes local Gradle API from compileOnly. This is a workaround for bugged plugins.
             // Publish Plugin: https://github.com/gradle/plugin-portal-requests/issues/260
             // Shadow:         https://github.com/GradleUp/shadow/pull/1422
