@@ -8,6 +8,7 @@ import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.FirstParam;
+import org.gradle.TaskExecutionRequest;
 import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.Transformer;
@@ -19,10 +20,12 @@ import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
+import org.gradle.api.tasks.TaskProvider;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
 import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
 import java.io.BufferedReader;
@@ -31,6 +34,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 /// Shared utilities for Gradle plugins.
@@ -178,6 +183,40 @@ public abstract class SharedUtil {
             action.execute(project);
         else
             project.afterEvaluate(action);
+    }
+
+    /// Ensures that a given task is run first in the task graph for the given project.
+    ///
+    /// This *does not* break the configuration cache as long as the task is always applied using this.
+    ///
+    /// @param project The project
+    /// @param task    The task to run first
+    public static <T extends TaskProvider<?>> T runFirst(Project project, T task) {
+        // copy the requests because the backed list isn't concurrent
+        var requests = new ArrayList<>(project.getGradle().getStartParameter().getTaskRequests());
+
+        // add the task to the front of the list
+        requests.add(0, new TaskExecutionRequest() {
+            @Override
+            public List<String> getArgs() {
+                return List.of(task.get().getPath());
+            }
+
+            @Override
+            public @Nullable String getProjectPath() {
+                return null;
+            }
+
+            @Override
+            public @Nullable File getRootDir() {
+                return null;
+            }
+        });
+
+        // set the new requests
+        project.getLogger().info("Adding task to beginning of task graph! Project: {}, Task: {}", project.getName(), task.getName());
+        project.getGradle().getStartParameter().setTaskRequests(requests);
+        return task;
     }
     //endregion
 
