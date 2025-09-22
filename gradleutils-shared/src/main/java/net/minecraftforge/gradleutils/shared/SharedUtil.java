@@ -15,6 +15,8 @@ import org.gradle.api.Transformer;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.FileCollectionDependency;
 import org.gradle.api.artifacts.ModuleVersionSelector;
+import org.gradle.api.logging.LogLevel;
+import org.gradle.api.logging.Logger;
 import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
@@ -221,6 +223,14 @@ public abstract class SharedUtil {
     //endregion
 
     //region Action Logging
+
+    /// Creates an output stream that logs to the given action.
+    ///
+    /// @param logger The logger to log to
+    /// @return The output stream
+    public static PipedOutputStream toLog(Logger logger, LogLevel level) {
+        return toLog(s -> logger.log(level, s));
+    }
 
     /// Creates an output stream that logs to the given action.
     ///

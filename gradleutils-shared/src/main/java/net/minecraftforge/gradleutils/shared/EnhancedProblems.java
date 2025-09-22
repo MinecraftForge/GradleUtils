@@ -223,34 +223,6 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
     }
     //endregion
 
-    //region ToolExecBase
-    final void reportToolExecNotEnhanced(Task task) {
-        String className = task.getClass().getSimpleName().replace('.', '-');
-        task.getLogger().warn("WARNING: {} doesn't implement EnhancedTask", className);
-        this.report(String.format("%s-not-enhanced", className.toLowerCase(Locale.ROOT)), String.format("%s doesn't implement EnhancedTask", className), spec -> spec
-            .details("""
-                Implementing subclasses of ToolExecBase should also implement (a subclass of) EnhancedTask.
-                Not doing so will result in global caches being ignored. Please check your implementations.
-                Affected task: %s (%s)""".formatted(task, task.getClass()))
-            .severity(Severity.WARNING)
-            .stackLocation()
-            .solution("Double check your task implementation."));
-    }
-
-    final void reportToolExecEagerArgs(Task task) {
-        String className = task.getClass().getSimpleName().replace('.', '-');
-        task.getLogger().warn("WARNING: {} implementation adds arguments without using addArguments()", className);
-        this.report(String.format("%s-eager-args", className.toLowerCase(Locale.ROOT)), String.format("%s implementation adds arguments without using addArguments()", className), spec -> spec
-            .details("""
-                A ToolExecBase task is eagerly adding arguments using JavaExec#args without using ToolExecBase#addArguments.
-                This may cause unintended behavior as the arguemnts given to the tool will contain the arguments in both of these method calls.
-                Affected task: %s (%s)""".formatted(task, task.getClass()))
-            .severity(Severity.WARNING)
-            .stackLocation()
-            .solution("Use ToolExecBase#addArguments"));
-    }
-    //endregion
-
     //region Utilities
 
     /// A utility method to ensure that a [FileSystemLocation] [Provider] has (its parent) directory created. If the
