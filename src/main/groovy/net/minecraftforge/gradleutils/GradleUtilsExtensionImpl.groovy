@@ -11,7 +11,9 @@ import groovy.transform.PackageScope
 import org.codehaus.groovy.runtime.DefaultGroovyMethods
 import org.gradle.api.Action
 import org.gradle.api.Project
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationContainer
+import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.attributes.plugin.GradlePluginApiVersion
 import org.gradle.api.file.Directory
@@ -24,6 +26,7 @@ import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
@@ -31,6 +34,7 @@ import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.api.specs.Spec
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.compile.GroovyCompile
 import org.gradle.api.tasks.compile.JavaCompile
@@ -155,10 +159,20 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
             super(project)
             this.project = project
 
+            this.setup(project)
+            project.afterEvaluate { this.finish(it) }
+        }
+
+        private void setup(Project project) {
             project.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)
 
-
-            project.afterEvaluate { this.finish(it) }
+            project.pluginManager.withPlugin('publishing') {
+                if (this.problems.test('net.minecraftforge.gradleutils.publishing.use-base-archives-name')) {
+                    project.extensions.getByType(PublishingExtension).publications.withType(MavenPublication).configureEach {
+                        it.artifactId = project.extensions.getByType(BasePluginExtension).archivesName
+                    }
+                }
+            }
         }
 
         private void finish(Project project) {
@@ -206,7 +220,7 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                                             file.bytes = textOutput
 
                                             task.logger.lifecycle("Generated report file ${projectLayout.projectDirectory.asFile.toPath().relativize(file.toPath())}")
-                                            break;
+                                            break
                                     }
                                 }
                             }
@@ -215,19 +229,87 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                 }
             }
 
-            // Removes local Gradle API from compileOnly. This is a workaround for bugged plugins.
-            // Publish Plugin: https://github.com/gradle/plugin-portal-requests/issues/260
-            // Shadow:         https://github.com/GradleUp/shadow/pull/1422
-            if (this.providers.systemProperty('org.gradle.unsafe.suppress-gradle-api').map(Boolean.&parseBoolean).getOrElse(false)) {
-                final gradleApi = project.dependencies.gradleApi()
-                project.configurations.named(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME.&equals as Spec<String>).configureEach { compileOnly ->
-                    compileOnly.withDependencies { it.remove(gradleApi) }
-                }
-            }
+            project.pluginManager.withPlugin('java') {
+                // Removes local Gradle API dependencies if we are using external alternatives
+                // Gradle's core plugins often force these when using 'java-gradle-plugin' or others
+                project.extensions.getByType(JavaPluginExtension).sourceSets { SourceSetContainer sourceSets ->
+                    final gradleApi = project.dependencies.gradleApi()
+                    final gradleTestKit = project.dependencies.gradleTestKit()
+                    final localGroovy = project.dependencies.localGroovy()
 
-            if (this.problems.test('net.minecraftforge.gradleutils.publishing.use-base-archives-name')) {
-                project.extensions.getByType(PublishingExtension).publications.withType(MavenPublication).configureEach {
-                    it.artifactId = project.extensions.getByType(BasePluginExtension).archivesName
+                    def hasExternalGradleApi = { @Nullable Configuration... configurations ->
+                        for (var configuration in configurations) {
+                            if (configuration?.allDependencies?.find {
+                                (it.group == 'dev.gradleplugins' || it.group == 'name.remal.gradle-api')
+                                    && it.name == 'gradle-api'
+                            } !== null) { return true }
+                        }
+
+                        return false
+                    }
+
+                    def hasExternalGradleTestKit = { @Nullable Configuration... configurations ->
+                        for (var configuration in configurations) {
+                            if (configuration?.allDependencies?.find {
+                                (it.group == 'dev.gradleplugins' || it.group == 'name.remal.gradle-api')
+                                    && it.name == 'gradle-test-kit'
+                            } !== null) { return true }
+                        }
+
+                        return false
+                    }
+
+                    def hasExternalLocalGroovy = { @Nullable Configuration... configurations ->
+                        for (var configuration in configurations) {
+                            if (configuration?.allDependencies?.find {
+                                it.group == 'name.remal.gradle-api'
+                                    && it.name == 'local-groovy'
+                            } !== null) { return true }
+                        }
+
+                        return false
+                    }
+
+                    def processConfigurations = { @Nullable Configuration... configurations ->
+                        if (hasExternalGradleApi(configurations)) {
+                            for (var configuration in configurations) {
+                                configuration?.withDependencies { dependencies ->
+                                    dependencies.remove(gradleApi)
+                                    dependencies.remove(localGroovy)
+                                }
+                            }
+                        }
+
+                        if (hasExternalGradleTestKit(configurations)) {
+                            for (var configuration in configurations) {
+                                configuration?.withDependencies { dependencies ->
+                                    dependencies.remove(gradleTestKit)
+                                    dependencies.remove(gradleApi)
+                                    dependencies.remove(localGroovy)
+                                }
+                            }
+                        }
+
+                        if (hasExternalLocalGroovy(configurations)) {
+                            for (var configuration in configurations) {
+                                configuration?.withDependencies { dependencies ->
+                                    dependencies.remove(localGroovy)
+                                }
+                            }
+                        }
+
+                    }
+
+                    for (var sourceSet in sourceSets) {
+                        @Nullable var api = project.configurations.findByName(sourceSet.apiConfigurationName)
+                        @Nullable var compileOnlyApi = project.configurations.findByName(sourceSet.compileOnlyApiConfigurationName)
+                        @Nullable var implementation = project.configurations.findByName(sourceSet.implementationConfigurationName)
+                        @Nullable var compileOnly = project.configurations.findByName(sourceSet.compileOnlyConfigurationName)
+                        @Nullable var runtimeOnly = project.configurations.findByName(sourceSet.runtimeOnlyConfigurationName)
+
+                        processConfigurations(api, implementation, runtimeOnly)
+                        processConfigurations(api, compileOnlyApi, implementation, compileOnly)
+                    }
                 }
             }
 
