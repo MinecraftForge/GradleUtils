@@ -50,15 +50,18 @@ import javax.inject.Inject
             // - Project or Gradle contains an extension named 'gitversion'
             //   - Applying Git Version to Settings will add the extension to settings and gradle
             // - The extension contains method '#getUrl()' or property 'url'
+            def url
             try {
-                this.target.extensions.getByName('gitversion').url
+                url = this.target.extensions.getByName('gitversion').url
             } catch (UnknownDomainObjectException e) {
                 try {
-                    this.target.gradle.extensions.getByName('gitversion').url
+                    url = this.target.gradle.extensions.getByName('gitversion').url
                 } catch (Exception suppressed) {
                     throw e.tap { addSuppressed(suppressed) }
                 }
             }
+
+            this.addRemoteDetails(pom, url)
         } catch (Exception e) {
             throw this.problems.pomUtilsGitVersionMissing(e)
         }

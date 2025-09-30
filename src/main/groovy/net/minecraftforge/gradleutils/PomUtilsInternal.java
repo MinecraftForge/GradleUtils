@@ -12,6 +12,7 @@ import org.gradle.api.reflect.HasPublicType;
 import org.gradle.api.reflect.TypeOf;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 
+import java.io.Serial;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,14 +41,14 @@ non-sealed interface PomUtilsInternal extends PomUtils, HasPublicType {
         return makeDevelopers(Map.of(
             "LexManos", makeDev("LexManos", "Lex Manos"),
             "Paint_Ninja", makeDev("Paint_Ninja"),
-            "SizableShrimp", makeDev("SizableShrimp"),
-            "cpw", makeDev("cpw"),
             "Jonathing", makeDev("Jonathing", "me@jonathing.me", "https://jonathing.me", "America/New_York")
         ));
     }
 
     private static Map<String, Action<? super MavenPomDeveloper>> makeDevelopers(Map<String, Action<? super MavenPomDeveloper>> defaults) {
         return new HashMap<>(defaults) {
+            private static final @Serial long serialVersionUID = -9033218614762684158L;
+
             @Override
             public Action<? super MavenPomDeveloper> get(Object key) {
                 this.ensure((String) key);
@@ -69,6 +70,7 @@ non-sealed interface PomUtilsInternal extends PomUtils, HasPublicType {
         return developer -> {
             developer.getId().set(id);
             developer.getName().set(name);
+            developer.getRoles().add("developer");
         };
     }
 
@@ -83,6 +85,7 @@ non-sealed interface PomUtilsInternal extends PomUtils, HasPublicType {
             developer.getEmail().set(email);
             developer.getUrl().set(url);
             developer.getTimezone().set(timezone);
+            developer.getRoles().add("developer");
         };
     }
 
@@ -93,19 +96,19 @@ non-sealed interface PomUtilsInternal extends PomUtils, HasPublicType {
             throw new IllegalArgumentException();
 
         var strippedUrl = stripProtocol(url);
-        var fullURL = "https://" + url;
+        var fullURL = "https://" + strippedUrl;
         pom.getUrl().set(fullURL);
         pom.scm(scm -> {
             scm.getUrl().set(fullURL);
             scm.getConnection().set("scm:git:git://%s.git".formatted(strippedUrl));
-            scm.getDeveloperConnection().set("scm:git:git@%s.git".formatted(strippedUrl));
+            scm.getDeveloperConnection().set("scm:git:git@%s.git".formatted(strippedUrl.replaceFirst("/", ":")));
         });
 
         // the rest is GitHub-exclusive information
         if (!strippedUrl.contains("github.com")) return;
 
         pom.issueManagement(issues -> {
-            issues.getSystem().set(url.split("\\.", 2)[0]);
+            issues.getSystem().set("github");
             issues.getUrl().set(fullURL + "/issues");
         });
         pom.ciManagement(ci -> {
