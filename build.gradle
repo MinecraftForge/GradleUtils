@@ -1,6 +1,4 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import com.github.jengelman.gradle.plugins.shadow.ShadowJavaPlugin
-import org.gradle.api.attributes.plugin.GradlePluginApiVersion
 
 plugins {
     id 'java-gradle-plugin'
@@ -26,7 +24,7 @@ group = 'net.minecraftforge'
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(17)
     withSourcesJar()
-    //withJavadocJar()
+    withJavadocJar()
 }
 
 gradleutils.pluginDevDefaults(configurations, libs.versions.gradle)
