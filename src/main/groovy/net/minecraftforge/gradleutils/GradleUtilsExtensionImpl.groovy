@@ -170,7 +170,7 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                 if (this.problems.test('net.minecraftforge.gradleutils.publishing.use-base-archives-name')) {
                     project.extensions.getByType(PublishingExtension).publications.withType(MavenPublication).configureEach {
                         if (it.artifactId == project.name)
-                            it.artifactId = project.extensions.getByType(BasePluginExtension).archivesName
+                            it.artifactId = project.extensions.getByType(BasePluginExtension).archivesName.get()
                     }
                 }
             }
