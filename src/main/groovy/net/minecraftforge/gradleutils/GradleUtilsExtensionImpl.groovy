@@ -169,7 +169,8 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
             project.pluginManager.withPlugin('publishing') {
                 if (this.problems.test('net.minecraftforge.gradleutils.publishing.use-base-archives-name')) {
                     project.extensions.getByType(PublishingExtension).publications.withType(MavenPublication).configureEach {
-                        it.artifactId = project.extensions.getByType(BasePluginExtension).archivesName
+                        if (it.artifactId == project.name)
+                            it.artifactId = project.extensions.getByType(BasePluginExtension).archivesName
                     }
                 }
             }
