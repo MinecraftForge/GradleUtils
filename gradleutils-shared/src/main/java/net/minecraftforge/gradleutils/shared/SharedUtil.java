@@ -10,8 +10,11 @@ import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.FirstParam;
 import org.gradle.TaskExecutionRequest;
 import org.gradle.api.Action;
+import org.gradle.api.DomainObjectCollection;
 import org.gradle.api.Project;
 import org.gradle.api.Transformer;
+import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.FileCollectionDependency;
 import org.gradle.api.artifacts.ModuleVersionSelector;
@@ -22,6 +25,8 @@ import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
+import org.gradle.api.specs.Spec;
+import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
@@ -38,7 +43,11 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /// Shared utilities for Gradle plugins.
 ///
@@ -219,6 +228,105 @@ public abstract class SharedUtil {
         project.getLogger().info("Adding task to beginning of task graph! Project: {}, Task: {}", project.getName(), task.getName());
         project.getGradle().getStartParameter().setTaskRequests(requests);
         return task;
+    }
+    //endregion
+
+    //region Dependency Handling
+
+    /// Checks if the given dependency is in the given source set.
+    ///
+    /// @param configurations The configuration container to use
+    /// @param sourceSet      The source set to check
+    /// @param transitive     If the source set should be searched transitively (if `false`, for example, this method
+    ///                       will return `false` if the dependency is in the `main` source set but not explicitely
+    ///                       declared in one of the `test` source set's dependency-scope configurations)
+    /// @param dependency     The dependency to find
+    /// @return If the source set contains the dependency
+    public static boolean contains(ConfigurationContainer configurations, SourceSet sourceSet, boolean transitive, Dependency dependency) {
+        return contains(configurations, sourceSet, transitive, dependency::equals);
+    }
+
+    /// Checks if the given dependency is in the given source set.
+    ///
+    /// @param configurations The configuration container to use
+    /// @param sourceSet      The source set to check
+    /// @param transitive     If the source set should be searched transitively (if `false`, for example, this method
+    ///                       will return `false` if the dependency is in the `main` source set but not explicitely
+    ///                       declared in one of the `test` source set's dependency-scope configurations)
+    /// @param dependency     The dependency to find
+    /// @return If the source set contains the dependency
+    public static boolean contains(ConfigurationContainer configurations, SourceSet sourceSet, boolean transitive, Spec<? super Dependency> dependency) {
+        return contains(configurations, sourceSet.getCompileOnlyConfigurationName(), transitive, dependency) ||
+            contains(configurations, sourceSet.getCompileOnlyApiConfigurationName(), transitive, dependency) ||
+            contains(configurations, sourceSet.getCompileClasspathConfigurationName(), transitive, dependency) ||
+            contains(configurations, sourceSet.getAnnotationProcessorConfigurationName(), transitive, dependency) ||
+            contains(configurations, sourceSet.getApiConfigurationName(), transitive, dependency) ||
+            contains(configurations, sourceSet.getImplementationConfigurationName(), transitive, dependency) ||
+            contains(configurations, sourceSet.getApiElementsConfigurationName(), transitive, dependency) ||
+            contains(configurations, sourceSet.getRuntimeOnlyConfigurationName(), transitive, dependency) ||
+            contains(configurations, sourceSet.getRuntimeClasspathConfigurationName(), transitive, dependency) ||
+            contains(configurations, sourceSet.getRuntimeElementsConfigurationName(), transitive, dependency);
+    }
+
+    private static boolean contains(ConfigurationContainer configurations, String configurationName, boolean transitive, Spec<? super Dependency> dependency) {
+        var configuration = configurations.findByName(configurationName);
+        return configuration != null && !(transitive ? configuration.getAllDependencies() : configuration.getDependencies()).matching(dependency).isEmpty();
+    }
+
+    /// Checks if the given dependency is in the given source set.
+    ///
+    /// @param configurations The configuration container to use
+    /// @param sourceSet      The source set to check
+    /// @param transitive     If the source set should be searched transitively (if `false`, for example, this method
+    ///                       will return `false` if the dependency is in the `main` source set but not explicitely
+    ///                       declared in one of the `test` source set's dependency-scope configurations)
+    /// @param dependency     The dependency to find
+    /// @return The set containing the filtered dependencies
+    public static Stream<Dependency> collect(ConfigurationContainer configurations, SourceSet sourceSet, boolean transitive, Predicate<? super Dependency> dependency) {
+        return Stream
+            .of(
+                configurations.findByName(sourceSet.getCompileOnlyConfigurationName()),
+                configurations.findByName(sourceSet.getCompileOnlyApiConfigurationName()),
+                configurations.findByName(sourceSet.getCompileClasspathConfigurationName()),
+                configurations.findByName(sourceSet.getAnnotationProcessorConfigurationName()),
+                configurations.findByName(sourceSet.getApiConfigurationName()),
+                configurations.findByName(sourceSet.getImplementationConfigurationName()),
+                configurations.findByName(sourceSet.getApiElementsConfigurationName()),
+                configurations.findByName(sourceSet.getRuntimeOnlyConfigurationName()),
+                configurations.findByName(sourceSet.getRuntimeClasspathConfigurationName()),
+                configurations.findByName(sourceSet.getRuntimeElementsConfigurationName())
+            )
+            .filter(Objects::nonNull)
+            .flatMap(configuration -> transitive ? configuration.getAllDependencies().stream() : configuration.getDependencies().stream())
+            .distinct()
+            .filter(dependency);
+    }
+
+    private static <T> void guardCheck(T t) { }
+
+    public static void forClasspathConfigurations(ConfigurationContainer configurations, SourceSet sourceSet, Action<? super Configuration> action) {
+        forEach(configurations.named(
+            name -> name.equals(sourceSet.getCompileClasspathConfigurationName())
+                || name.equals(sourceSet.getRuntimeClasspathConfigurationName())
+                || name.equals(sourceSet.getAnnotationProcessorConfigurationName())
+        ), action);
+    }
+    //endregion
+
+    //region Domain Object Handling
+    public static <T> void forEach(DomainObjectCollection<T> collection, Action<? super T> action) {
+        boolean eager = false;
+        try {
+            collection.configureEach(SharedUtil::guardCheck);
+        } catch (IllegalStateException e) {
+            eager = true;
+        }
+
+        if (eager) {
+            collection.forEach(action::execute);
+        } else {
+            collection.configureEach(action);
+        }
     }
     //endregion
 
