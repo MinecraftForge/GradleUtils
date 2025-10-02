@@ -306,11 +306,10 @@ public abstract class SharedUtil {
 
     private static <T> void guardCheck(T t) { }
 
-    public static void forClasspathConfigurations(ConfigurationContainer configurations, SourceSet sourceSet, Action<? super Configuration> action) {
+    public static void forEachClasspath(ConfigurationContainer configurations, SourceSet sourceSet, Action<? super Configuration> action) {
         forEach(configurations.named(
             name -> name.equals(sourceSet.getCompileClasspathConfigurationName())
                 || name.equals(sourceSet.getRuntimeClasspathConfigurationName())
-                || name.equals(sourceSet.getAnnotationProcessorConfigurationName())
         ), action);
     }
     //endregion
