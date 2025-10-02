@@ -47,6 +47,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /// Shared utilities for Gradle plugins.
@@ -282,7 +283,7 @@ public abstract class SharedUtil {
     ///                       declared in one of the `test` source set's dependency-scope configurations)
     /// @param dependency     The dependency to find
     /// @return The set containing the filtered dependencies
-    public static Stream<Dependency> collect(ConfigurationContainer configurations, SourceSet sourceSet, boolean transitive, Predicate<? super Dependency> dependency) {
+    public static Set<Dependency> collect(ConfigurationContainer configurations, SourceSet sourceSet, boolean transitive, Predicate<? super Dependency> dependency) {
         return Stream
             .of(
                 configurations.findByName(sourceSet.getCompileOnlyConfigurationName()),
@@ -299,7 +300,8 @@ public abstract class SharedUtil {
             .filter(Objects::nonNull)
             .flatMap(configuration -> transitive ? configuration.getAllDependencies().stream() : configuration.getDependencies().stream())
             .distinct()
-            .filter(dependency);
+            .filter(dependency)
+            .collect(Collectors.toSet());
     }
 
     private static <T> void guardCheck(T t) { }
