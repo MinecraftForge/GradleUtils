@@ -312,6 +312,13 @@ public abstract class SharedUtil {
                 || name.equals(sourceSet.getRuntimeClasspathConfigurationName())
         ), action);
     }
+
+    public static void forEachClasspathEagerly(ConfigurationContainer configurations, SourceSet sourceSet, Action<? super Configuration> action) {
+        forEachEagerly(configurations.named(
+            name -> name.equals(sourceSet.getCompileClasspathConfigurationName())
+                || name.equals(sourceSet.getRuntimeClasspathConfigurationName())
+        ), action);
+    }
     //endregion
 
     //region Domain Object Handling
@@ -328,6 +335,10 @@ public abstract class SharedUtil {
         } else {
             collection.configureEach(action);
         }
+    }
+
+    public static <T> void forEachEagerly(DomainObjectCollection<T> collection, Action<? super T> action) {
+        List.copyOf(collection).forEach(action::execute);
     }
     //endregion
 
