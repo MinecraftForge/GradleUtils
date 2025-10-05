@@ -7,9 +7,11 @@ plugins {
     id 'idea'
     id 'eclipse'
     id 'maven-publish'
-    //id 'io.freefair.javadoc-links'
-    id 'net.minecraftforge.gradleutils'
+    alias libs.plugins.javadoc.links
+    alias libs.plugins.versions
     alias libs.plugins.licenser
+    alias libs.plugins.gradleutils
+    alias libs.plugins.gitversion
     alias libs.plugins.shadow
 }
 
@@ -17,7 +19,7 @@ gradleutils.displayName = 'GradleUtils Shared'
 description = 'The shared base used by all of Forge\'s Gradle plugins.'
 base.archivesName = 'gradleutils-shared'
 group = 'net.minecraftforge'
-// version set by gitversion in settings.gradle
+version = gitversion.tagOffset
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(17)

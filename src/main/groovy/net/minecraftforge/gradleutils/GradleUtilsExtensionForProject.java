@@ -33,10 +33,21 @@ public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtens
     /// @return The property for the vendor
     Property<String> getVendor();
 
+    /// Sets the default attributes for the given manifest and attaches the given package name as the section name.
+    ///
+    /// @param manifest    The manifest to apply defaults to
+    /// @param packageName The package name to use as the section name
     default void manifestDefaults(Manifest manifest, String packageName) {
         this.manifestDefaults(manifest, packageName, Map.of());
     }
 
+    /// Sets the default attributes for the given manifest and attaches the given package name as the section name.
+    ///
+    /// @param manifest          The manifest to apply defaults to
+    /// @param packageName       The package name to use as the section name
+    /// @param additionalEntries A map of additional entries to add
+    /// @apiNote GradleUtils will automatically attempt to [GradleUtilsExtension#unpack] any [values][Map#values()] in
+    /// the maps.
     void manifestDefaults(Manifest manifest, String packageName, Map<? extends CharSequence, ?> additionalEntries);
 
     /// Applies known defaults for Minecraft Forge's Gradle plugins.
@@ -44,8 +55,8 @@ public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtens
     /// - For all configurations that
     /// {@linkplain org.codehaus.groovy.runtime.StringGroovyMethods#containsIgnoreCase(CharSequence, CharSequence)
     /// contain (ignoring case)} "runtimeElements", the
-    /// [org.gradle.api.attributes.plugin.GradlePluginApiVersion#GRADLE_PLUGIN_API_VERSION_ATTRIBUTE] attribute with
-    /// the value of the given Gradle version.
+    /// [org.gradle.api.attributes.plugin.GradlePluginApiVersion#GRADLE_PLUGIN_API_VERSION_ATTRIBUTE] attribute with the
+    /// value of the given Gradle version.
     ///
     /// @param configurations The configurations container to apply defaults to
     /// @param gradleVersion  The Gradle version to target
@@ -56,8 +67,8 @@ public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtens
     /// - For all configurations that
     /// {@linkplain org.codehaus.groovy.runtime.StringGroovyMethods#containsIgnoreCase(CharSequence, CharSequence)
     /// contain (ignoring case)} "runtimeElements", the
-    /// [org.gradle.api.attributes.plugin.GradlePluginApiVersion#GRADLE_PLUGIN_API_VERSION_ATTRIBUTE] attribute with
-    /// the value of the given Gradle version.
+    /// [org.gradle.api.attributes.plugin.GradlePluginApiVersion#GRADLE_PLUGIN_API_VERSION_ATTRIBUTE] attribute with the
+    /// value of the given Gradle version.
     ///
     /// @param configurations The configurations container to apply defaults to
     /// @param gradleVersion  The Gradle version to target
@@ -68,8 +79,8 @@ public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtens
     /// - For all configurations that
     /// {@linkplain org.codehaus.groovy.runtime.StringGroovyMethods#containsIgnoreCase(CharSequence, CharSequence)
     /// contain (ignoring case)} "runtimeElements", the
-    /// [org.gradle.api.attributes.plugin.GradlePluginApiVersion#GRADLE_PLUGIN_API_VERSION_ATTRIBUTE] attribute with
-    /// the value of the given Gradle version.
+    /// [org.gradle.api.attributes.plugin.GradlePluginApiVersion#GRADLE_PLUGIN_API_VERSION_ATTRIBUTE] attribute with the
+    /// value of the given Gradle version.
     ///
     /// @param configurations The configurations container to apply defaults to
     /// @param gradleVersion  The Gradle version to target

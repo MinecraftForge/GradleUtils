@@ -42,6 +42,7 @@ import java.io.InputStreamReader;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -201,8 +202,10 @@ public abstract class SharedUtil {
     ///
     /// This *does not* break the configuration cache as long as the task is always applied using this.
     ///
+    /// @param <T>     The type of task to be run
     /// @param project The project
-    /// @param task    The task to run first
+    /// @param task    The provider of the task to run first
+    /// @return The task provider
     public static <T extends TaskProvider<?>> T runFirst(Project project, T task) {
         // copy the requests because the backed list isn't concurrent
         var requests = new ArrayList<>(project.getGradle().getStartParameter().getTaskRequests());
@@ -306,6 +309,12 @@ public abstract class SharedUtil {
 
     private static <T> void guardCheck(T t) { }
 
+    /// Iterates through the given source set's classpath configurations using the given action.
+    ///
+    /// @param configurations The configuration container
+    /// @param sourceSet      The source set
+    /// @param action         The action to run
+    /// @see #forEach(DomainObjectCollection, Action)
     public static void forEachClasspath(ConfigurationContainer configurations, SourceSet sourceSet, Action<? super Configuration> action) {
         forEach(configurations.named(
             name -> name.equals(sourceSet.getCompileClasspathConfigurationName())
@@ -313,6 +322,12 @@ public abstract class SharedUtil {
         ), action);
     }
 
+    /// Iterates through the given source set's classpath configurations eagerly using the given action.
+    ///
+    /// @param configurations The configuration container
+    /// @param sourceSet      The source set
+    /// @param action         The action to run
+    /// @see #forEachEagerly(DomainObjectCollection, Action)
     public static void forEachClasspathEagerly(ConfigurationContainer configurations, SourceSet sourceSet, Action<? super Configuration> action) {
         forEachEagerly(configurations.named(
             name -> name.equals(sourceSet.getCompileClasspathConfigurationName())
@@ -322,6 +337,16 @@ public abstract class SharedUtil {
     //endregion
 
     //region Domain Object Handling
+
+    /// Iterates through the given collection using the given action.
+    ///
+    /// This iterator will attempt to use [DomainObjectCollection#configureEach(Action)] if it is in an eager context.
+    /// If it is not, a [copy of][List#copyOf(Collection)] the collection will be iterated through using
+    /// [List#forEach(Consumer)] instead to prevent a [java.util.ConcurrentModificationException].
+    ///
+    /// @param <T>        The type for the collection
+    /// @param collection The collection to iterate through
+    /// @param action     The action to run
     public static <T> void forEach(DomainObjectCollection<T> collection, Action<? super T> action) {
         boolean eager = false;
         try {
@@ -331,12 +356,20 @@ public abstract class SharedUtil {
         }
 
         if (eager) {
-            collection.forEach(action::execute);
+            List.copyOf(collection).forEach(action::execute);
         } else {
             collection.configureEach(action);
         }
     }
 
+    /// Iterates through the given collection eagerly using the given action.
+    ///
+    /// This iterator will iterate over a [copy of][List#copyOf(Collection)] the collection using
+    /// [List#forEach(Consumer)] to prevent a [java.util.ConcurrentModificationException].
+    ///
+    /// @param <T>        The type for the collection
+    /// @param collection The collection to iterate through
+    /// @param action     The action to run
     public static <T> void forEachEagerly(DomainObjectCollection<T> collection, Action<? super T> action) {
         List.copyOf(collection).forEach(action::execute);
     }
@@ -347,6 +380,7 @@ public abstract class SharedUtil {
     /// Creates an output stream that logs to the given action.
     ///
     /// @param logger The logger to log to
+    /// @param level  The log level to log at
     /// @return The output stream
     public static PipedOutputStream toLog(Logger logger, LogLevel level) {
         return toLog(s -> logger.log(level, s));

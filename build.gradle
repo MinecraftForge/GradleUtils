@@ -6,20 +6,22 @@ plugins {
     id 'idea'
     id 'eclipse'
     id 'maven-publish'
-    //id 'io.freefair.javadoc-links'
-    id 'net.minecraftforge.gradleutils'
-    id 'net.minecraftforge.gitversion'
-    alias libs.plugins.changelog
+    alias libs.plugins.javadoc.links
+    alias libs.plugins.versions
     alias libs.plugins.licenser
+    alias libs.plugins.gradleutils
+    alias libs.plugins.gitversion
+    alias libs.plugins.changelog
     alias libs.plugins.plugin.publish
     alias libs.plugins.shadow
 }
 
 gradleutils.displayName = 'Forge Gradle Utilities'
-description = 'Small collection of utilities for standardizing MinecraftForge gradle scripts'
-base.archivesName = 'gradleutils'
+description = "Small collection of utilities for standardizing Forge's buildscripts."
 group = 'net.minecraftforge'
-// version set by gitversion in settings.gradle
+version = gitversion.tagOffset
+
+println "Version: $version"
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(17)
