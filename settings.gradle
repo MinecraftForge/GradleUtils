@@ -33,7 +33,7 @@ dependencyResolutionManagement {
     versionCatalogs {
         register('libs') {
             version 'gradle-javadoc-links', '8.14'
-            version 'gradle-versions', '0.52.0'
+            version 'gradle-versions', '0.53.0'
 
             plugin 'licenser',       'net.minecraftforge.licenser'  version '1.2.0' // https://plugins.gradle.org/plugin/net.minecraftforge.licenser
             plugin 'changelog',      'net.minecraftforge.changelog' version '3.0.6' // https://plugins.gradle.org/plugin/net.minecraftforge.changelog

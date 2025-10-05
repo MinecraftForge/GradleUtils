@@ -185,15 +185,8 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
         private void finish(Project project) {
             this.version.finalizeValue()
 
-            final parallel = project.gradle.startParameter.parallelProjectExecutionEnabled
             project.pluginManager.withPlugin('com.github.ben-manes.versions') {
                 project.tasks.withType(DependencyUpdatesTask).configureEach { task ->
-                    if (parallel) {
-                        task.doFirst {
-                            throw new IllegalStateException("The gradle-versions-plugin doesn't support parallel execution. Please try again using --no-parllel. If this was fixed, contact Forge.")
-                        }
-                    }
-
                     if (!task.compatibleWithConfigurationCache)
                         task.notCompatibleWithConfigurationCache("The gradle-versions-plugin isn't compatible with the configuration cache")
 
