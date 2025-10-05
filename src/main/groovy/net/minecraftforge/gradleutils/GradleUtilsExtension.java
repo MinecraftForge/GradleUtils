@@ -5,6 +5,8 @@
 package net.minecraftforge.gradleutils;
 
 import groovy.lang.Closure;
+import kotlin.jvm.functions.Function0;
+import net.minecraftforge.gradleutils.shared.Closures;
 import org.gradle.api.Action;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
 import org.gradle.api.file.Directory;
@@ -12,6 +14,8 @@ import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderConvertible;
 
 import java.io.File;
+import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 
 /// Contains various utilities for working with Gradle scripts.
 ///
@@ -271,33 +275,95 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
 
     /* MISCELLANEOUS */
 
-    /// Unpacks a provider's value.
-    ///
-    /// Since buildscripts are dynamically compiled, this allows buildscript authors to use this method with version
-    /// catalog entries. On compilation, either this method or [#unpack(ProviderConvertible)] will be used depending on
-    /// what the input is. This prevents the need to arbitrarily call [Provider#get()] on values which could either be a
-    /// [Provider] or [ProviderConvertible] based on circumstance.
+    /// Unpacks a deferred value.
     ///
     /// @param value The value to unpack
     /// @param <T>   The type of value held by the provider
     /// @return The unpacked value
-    /// @see #unpack(Provider)
+    /// @see #unpack(Object)
     default <T> T unpack(Provider<T> value) {
         return value.get();
     }
 
-    /// Unpacks a provider convertible's provided value.
-    ///
-    /// Since buildscripts are dynamically compiled, this allows buildscript authors to use this method with version
-    /// catalog entries. On compilation, either this method or [#unpack(Provider)] will be used depending on what the
-    /// input is. This prevents the need to arbitrarily call [ProviderConvertible#asProvider()] -> [Provider#get()] on
-    /// values which could either be a [Provider] or [ProviderConvertible] based on circumstance.
+    /// Unpacks a deferred value.
     ///
     /// @param value The value to unpack
     /// @param <T>   The type of value held by the provider
     /// @return The unpacked value
-    /// @see #unpack(Provider)
+    /// @see #unpack(Object)
     default <T> T unpack(ProviderConvertible<T> value) {
-        return unpack(value.asProvider());
+        return value.asProvider().get();
+    }
+
+    /// Unpacks a deferred value.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    /// @see #unpack(Object)
+    default <T> T unpack(Closure<T> value) {
+        return Closures.invoke(value);
+    }
+
+    /// Unpacks a deferred value.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    /// @see #unpack(Object)
+    default <T> T unpack(Callable<T> value) {
+        try {
+            return value.call();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /// Unpacks a deferred value.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    /// @see #unpack(Object)
+    default <T> T unpack(Function0<T> value) {
+        return value.invoke();
+    }
+
+    /// Unpacks a deferred value.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    /// @see #unpack(Object)
+    default <T> T unpack(Supplier<T> value) {
+        return value.get();
+    }
+
+    /// Unpacks a deferred value.
+    ///
+    /// Since buildscripts are dynamically compiled, this allows buildscript authors to use this method with version
+    /// catalog entries, other provider-like objects. This prevents the need to arbitrarily call
+    /// [Provider#get()] (or similar) on values which may or may not be deferred based on circumstance.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    @SuppressWarnings("unchecked")
+    default <T> T unpack(Object value) {
+        if (value instanceof ProviderConvertible<?> deferred) {
+            return (T) this.unpack(deferred);
+        } else if (value instanceof Provider<?> deferred) {
+            return (T) this.unpack(deferred);
+        } else if (value instanceof Closure<?> deferred) {
+            return (T) this.unpack(deferred);
+        } else if (value instanceof Callable<?> deferred) {
+            return (T) this.unpack(deferred);
+        } else if (value instanceof Function0<?> deferred) {
+            return (T) this.unpack(deferred);
+        } else if (value instanceof Supplier<?> deferred) {
+            return (T) this.unpack(deferred);
+        } else {
+            return (T) value;
+        }
     }
 }

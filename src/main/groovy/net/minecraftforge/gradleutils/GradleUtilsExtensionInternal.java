@@ -8,6 +8,9 @@ import org.gradle.api.Action;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
 import org.gradle.api.reflect.HasPublicType;
 import org.gradle.api.reflect.TypeOf;
+import org.jetbrains.annotations.UnknownNullability;
+
+import java.util.Objects;
 
 non-sealed interface GradleUtilsExtensionInternal extends GradleUtilsExtension, HasPublicType {
     @Override
@@ -29,6 +32,20 @@ non-sealed interface GradleUtilsExtensionInternal extends GradleUtilsExtension, 
         repo.setName("Minecraft libraries");
         repo.setUrl(Constants.MC_LIBS_MAVEN);
     };
+
+    /// Unpacks a deferred value or returns `null` if the value could not be unpacked or queried.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    /// @see #unpack(Object)
+    default <T> T unpackOrNull(@UnknownNullability Object value) {
+        try {
+            return this.unpack(Objects.requireNonNull(value));
+        } catch (Throwable e) {
+            return null;
+        }
+    }
 
     non-sealed interface ForProject extends GradleUtilsExtensionInternal, GradleUtilsExtensionForProject, HasPublicType {
         @Override
