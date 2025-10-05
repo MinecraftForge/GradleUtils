@@ -238,7 +238,7 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                     final gradleTestKit = project.dependencies.gradleTestKit()
                     final localGroovy = project.dependencies.localGroovy()
 
-                    def hasExternalGradleApi = { @Nullable Configuration... configurations ->
+                    def hasExternalGradleApi = { Set<Configuration> configurations ->
                         for (var configuration in configurations) {
                             if (configuration?.allDependencies?.find {
                                 (it.group == 'dev.gradleplugins' || it.group == 'name.remal.gradle-api')
@@ -249,7 +249,7 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                         return false
                     }
 
-                    def hasExternalGradleTestKit = { @Nullable Configuration... configurations ->
+                    def hasExternalGradleTestKit = { Set<Configuration> configurations ->
                         for (var configuration in configurations) {
                             if (configuration?.allDependencies?.find {
                                 (it.group == 'dev.gradleplugins' || it.group == 'name.remal.gradle-api')
@@ -260,7 +260,7 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                         return false
                     }
 
-                    def hasExternalLocalGroovy = { @Nullable Configuration... configurations ->
+                    def hasExternalLocalGroovy = { Set<Configuration> configurations ->
                         for (var configuration in configurations) {
                             if (configuration?.allDependencies?.find {
                                 it.group == 'name.remal.gradle-api'
@@ -271,7 +271,9 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                         return false
                     }
 
-                    def processConfigurations = { @Nullable Configuration... configurations ->
+                    def processConfigurations = { Set<Configuration> configurations ->
+                        if (configurations === null) return
+
                         if (hasExternalGradleApi(configurations)) {
                             for (var configuration in configurations) {
                                 configuration?.withDependencies { dependencies ->
@@ -302,14 +304,8 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                     }
 
                     for (var sourceSet in sourceSets) {
-                        @Nullable var api = project.configurations.findByName(sourceSet.apiConfigurationName)
-                        @Nullable var compileOnlyApi = project.configurations.findByName(sourceSet.compileOnlyApiConfigurationName)
-                        @Nullable var implementation = project.configurations.findByName(sourceSet.implementationConfigurationName)
-                        @Nullable var compileOnly = project.configurations.findByName(sourceSet.compileOnlyConfigurationName)
-                        @Nullable var runtimeOnly = project.configurations.findByName(sourceSet.runtimeOnlyConfigurationName)
-
-                        processConfigurations(api, implementation, runtimeOnly)
-                        processConfigurations(api, compileOnlyApi, implementation, compileOnly)
+                        processConfigurations(project.configurations.findByName(sourceSet.compileClasspathConfigurationName)?.hierarchy)
+                        processConfigurations(project.configurations.findByName(sourceSet.runtimeClasspathConfigurationName)?.hierarchy)
                     }
                 }
             }
