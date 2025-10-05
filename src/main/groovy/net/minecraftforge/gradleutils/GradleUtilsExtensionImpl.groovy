@@ -21,6 +21,7 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.flow.FlowProviders
 import org.gradle.api.flow.FlowScope
+import org.gradle.api.java.archives.Manifest
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.BasePluginExtension
@@ -151,6 +152,8 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
         private final Project project
 
         final Property<String> displayName = this.objects.property(String)
+        final Property<String> vendor = this.objects.property(String)
+        private final Property<String> version = this.objects.property(String)
 
         protected abstract @Inject ProjectLayout getProjectLayout()
 
@@ -164,6 +167,9 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
         }
 
         private void setup(Project project) {
+            this.vendor.convention(providers.provider { project.group }.map { it.toString().startsWithIgnoreCase('net.minecraftforge') ? 'Forge Development LLC' : null })
+            this.version.set(providers.provider { project.version }.map(Object.&toString))
+
             project.tasks.register(GenerateActionsWorkflow.NAME, GenerateActionsWorkflowImpl)
 
             project.pluginManager.withPlugin('publishing') {
@@ -177,6 +183,8 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
         }
 
         private void finish(Project project) {
+            this.version.finalizeValue()
+
             final parallel = project.gradle.startParameter.parallelProjectExecutionEnabled
             project.pluginManager.withPlugin('com.github.ben-manes.versions') {
                 project.tasks.withType(DependencyUpdatesTask).configureEach { task ->
@@ -344,6 +352,34 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
                     }
                 }
             }
+        }
+
+        @Override
+        void manifestDefaults(Manifest manifest, String packageName, Map<? extends CharSequence, ?> additionalEntries) {
+            var specificationVersion = providers.provider {
+                project.extensions.getByName('gitversion').properties.info?.properties?.tag?.toString()
+            }.orElse(this.version)
+
+            var attributes = ([
+                'Specification-Title'   : this.displayName,
+                'Specification-Vendor'  : this.vendor,
+                'Specification-Version' : specificationVersion,
+                'Implementation-Title'  : this.displayName,
+                'Implementation-Vendor' : this.vendor,
+                'Implementation-Version': this.version
+            ] as Map<? extends CharSequence, ?>).tap { putAll(additionalEntries) }.with {
+                final attributes = new HashMap<String, String>(size())
+
+                forEach { key, value ->
+                    var unpacked = this.unpackOrNull(value)
+                    if (unpacked !== null)
+                        attributes.put(key.toString(), unpacked.toString())
+                }
+
+                return attributes
+            }
+
+            manifest.attributes(attributes, packageName)
         }
 
         @Override

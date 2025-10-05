@@ -6,11 +6,14 @@ package net.minecraftforge.gradleutils;
 
 import org.gradle.api.Action;
 import org.gradle.api.artifacts.ConfigurationContainer;
+import org.gradle.api.java.archives.Manifest;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderConvertible;
 import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.tasks.TaskProvider;
+
+import java.util.Map;
 
 /// A subset of [GradleUtilsExtension] that is given to projects. Includes additional convenience methods that only
 /// apply to projects.
@@ -18,10 +21,23 @@ public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtens
     /// The display name for the project.
     ///
     /// If the relevant properties are enabled, it is used in areas such as the Javadoc window title, among other
-    /// things.
+    /// things. This also is used with [#manifestDefaults] to reduce buildscript boilerplate.
     ///
     /// @return The property for the display name
     Property<String> getDisplayName();
+
+    /// The vendor for the project.
+    ///
+    /// This is used with [#manifestDefaults] to reduce buildscript boilerplate.
+    ///
+    /// @return The property for the vendor
+    Property<String> getVendor();
+
+    default void manifestDefaults(Manifest manifest, String packageName) {
+        this.manifestDefaults(manifest, packageName, Map.of());
+    }
+
+    void manifestDefaults(Manifest manifest, String packageName, Map<? extends CharSequence, ?> additionalEntries);
 
     /// Applies known defaults for Minecraft Forge's Gradle plugins.
     ///
