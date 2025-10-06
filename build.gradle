@@ -71,6 +71,8 @@ tasks.named('javadoc', Javadoc) {
 
 tasks.named('groovydoc', Groovydoc) {
     use = true
+
+    exclude '**/EnhancedVersionReporter.java'
 }
 
 tasks.named('jar', Jar) {
