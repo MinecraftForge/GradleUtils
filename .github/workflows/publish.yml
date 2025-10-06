@@ -2,18 +2,21 @@ name: Publish
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ 'GU_2.6' ]
+    paths-ignore:
+      - '.github/workflows/**'
+      - 'docs/**'
+      - 'README.md'
 
 permissions:
   contents: read
 
 jobs:
   build:
-    uses: MinecraftForge/SharedActions/.github/workflows/gradle.yml@main
+    uses: MinecraftForge/SharedActions/.github/workflows/gradle.yml@v0
     with:
       java: 17
-      gradle_tasks: "publish publishPlugins"
-      artifact_name: "gradleutils"
+      gradle_tasks: 'check publish publishPlugins'
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       PROMOTE_ARTIFACT_WEBHOOK: ${{ secrets.PROMOTE_ARTIFACT_WEBHOOK }}

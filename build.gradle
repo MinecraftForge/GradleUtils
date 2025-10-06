@@ -1,25 +1,35 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
-    id 'dev.gradleplugins.groovy-gradle-plugin'
+    id 'java-gradle-plugin'
+    id 'groovy'
     id 'idea'
     id 'eclipse'
     id 'maven-publish'
+    alias libs.plugins.versions
     alias libs.plugins.licenser
     alias libs.plugins.gradleutils
+    alias libs.plugins.gitversion
+    alias libs.plugins.changelog
     alias libs.plugins.plugin.publish
     alias libs.plugins.shadow
 }
 
-final projectDisplayName = 'Forge Gradle Utilities'
-description = 'Small collection of utilities for standardizing MinecraftForge gradle scripts'
+gradleutils.displayName = 'Forge Gradle Utilities'
+description = "Small collection of utilities for standardizing Forge's buildscripts."
 group = 'net.minecraftforge'
 version = gitversion.tagOffset
 
 println "Version: $version"
 
 // Git Version requires Java 17
-java.toolchain.languageVersion = JavaLanguageVersion.of 17
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+    withSourcesJar()
+    withJavadocJar()
+}
+
+gradleutils.pluginDevDefaults(configurations, libs.versions.gradle)
 
 configurations {
     named(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME) {
@@ -28,14 +38,15 @@ configurations {
     }
 }
 
-repositories {
-    maven { url = 'https://maven.minecraftforge.net' }
-    mavenCentral()
-}
-
 dependencies {
     // Static Analysis
     compileOnly libs.nulls
+
+    // Gradle API
+    compileOnly libs.gradle
+
+    // Versions Plugin
+    compileOnly libs.gradle.versions
 
     // GitHub Actions Workflows
     implementation libs.yaml
@@ -47,20 +58,19 @@ dependencies {
     implementation libs.jgit
 }
 
-// Removes local Gradle API from compileOnly. This is a workaround for bugged plugins.
-// TODO [GradleUtils][GradleAPI] Remove this once they are fixed.
-// Publish Plugin: https://github.com/gradle/plugin-portal-requests/issues/260
-// Shadow:         https://github.com/GradleUp/shadow/pull/1422
-afterEvaluate { project ->
-    project.configurations.named(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME) { compileOnly ->
-        compileOnly.dependencies.remove project.dependencies.gradleApi()
-    }
-}
-
 license {
-    header = rootProject.file 'LICENSE-header.txt'
+    header = rootProject.file('LICENSE-header.txt')
     newLine = false
     exclude '**/*.properties'
+}
+
+tasks.named('javadoc', Javadoc) {
+    // Groovydoc is used instead
+    enabled = false
+}
+
+tasks.named('groovydoc', Groovydoc) {
+    use = true
 }
 
 tasks.named('jar', Jar) {
@@ -68,38 +78,35 @@ tasks.named('jar', Jar) {
 }
 
 tasks.named('shadowJar', ShadowJar) {
-    enableRelocation = true
+    enableAutoRelocation = true
     archiveClassifier = null
     relocationPrefix = 'net.minecraftforge.gradleutils.shadow'
 }
 
-tasks.withType(GroovyCompile).configureEach {
-    groovyOptions.optimizationOptions.indy = true
+// javadocJar is created after evaluation, so we need to configure it here
+afterEvaluate {
+    tasks.named('javadocJar', Jar) {
+        final groovydoc = tasks.named('groovydoc', Groovydoc)
+
+        dependsOn = [groovydoc]
+        archiveClassifier = 'groovydoc'
+        from groovydoc.map(Groovydoc.&getDestinationDir)
+    }
 }
 
 changelog {
     fromBase()
-    publishAll = false
 }
 
 gradlePlugin {
     website.set gitversion.url
     vcsUrl.set gitversion.url + '.git'
 
-    compatibility {
-        minimumGradleVersion = libs.versions.gradle.get()
-    }
-
-    groovy {
-        withSourcesJar()
-        withGroovydocJar()
-    }
-
     plugins {
         register('gradleutils') {
             id = 'net.minecraftforge.gradleutils'
             implementationClass = 'net.minecraftforge.gradleutils.GradleUtilsPlugin'
-            displayName = projectDisplayName
+            displayName = project.gradleutils.displayName.get() // project. before gradleutils otherwise it would reference itself
             description = project.description
             tags = ['minecraftforge']
         }
@@ -114,16 +121,19 @@ gradlePlugin {
 }
 
 publishing {
-    publications.register('pluginMaven', MavenPublication) {
-        artifactId = project.name
+    repositories {
+        maven gradleutils.publishingForgeMaven
+    }
 
-        changelog.publish it
+    publications.register('pluginMaven', MavenPublication) {
+        changelog.publish(it)
+        gradleutils.promote(it)
 
         pom { pom ->
-            name = projectDisplayName
+            name = gradleutils.displayName
             description = project.description
 
-            gradleutils.pom.setGitHubDetails pom
+            gradleutils.pom.addRemoteDetails(pom)
 
             licenses {
                 license gradleutils.pom.licenses.LGPLv2_1
@@ -138,10 +148,4 @@ publishing {
             }
         }
     }
-
-    repositories {
-        maven gradleutils.publishingForgeMaven
-    }
 }
-
-idea.module { downloadSources = downloadJavadoc = true }
