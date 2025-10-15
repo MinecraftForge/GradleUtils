@@ -8,6 +8,7 @@ import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.FirstParam;
+import kotlin.jvm.functions.Function0;
 import org.gradle.TaskExecutionRequest;
 import org.gradle.api.Action;
 import org.gradle.api.DomainObjectCollection;
@@ -24,6 +25,7 @@ import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.provider.ProviderConvertible;
 import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.SourceSet;
@@ -41,13 +43,16 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -444,6 +449,118 @@ public abstract class SharedUtil {
             reason != null ? " (" + reason + ')' : "",
             dependency instanceof FileCollectionDependency ? String.format(" [%s]", String.join(", ", ((FileCollectionDependency) dependency).getFiles().getFiles().stream().map(File::getAbsolutePath).map(CharSequence.class::cast)::iterator)) : ""
         );
+    }
+
+    /// Converts a given dependency to a relative path, accounting for the possible nullable
+    /// {@linkplain Dependency#getGroup() group} and {@linkplain Dependency#getVersion() version}.
+    ///
+    /// @param dependency The dependency to pathify
+    /// @return The pathified dependency
+    public static String pathify(Dependency dependency) {
+        var group = dependency.getGroup();
+        var name = dependency.getName();
+        var version = dependency.getVersion();
+        return MessageFormat.format("{0}{1}/{2}",
+            group == null ? "" : group.replace('.', '/') + '/',
+            name,
+            version == null ? "/" : '/' + version + '/'
+        );
+    }
+
+    //endregion
+
+    //region Deferred Objects
+
+    /// Unpacks a deferred value.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    /// @see #unpack(Object)
+    public static <T> T unpack(Provider<T> value) {
+        return value.get();
+    }
+
+    /// Unpacks a deferred value.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    /// @see #unpack(Object)
+    public static <T> T unpack(ProviderConvertible<T> value) {
+        return value.asProvider().get();
+    }
+
+    /// Unpacks a deferred value.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    /// @see #unpack(Object)
+    public static <T> T unpack(Closure<T> value) {
+        return Closures.invoke(value);
+    }
+
+    /// Unpacks a deferred value.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    /// @see #unpack(Object)
+    public static <T> T unpack(Callable<T> value) {
+        try {
+            return value.call();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /// Unpacks a deferred value.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    /// @see #unpack(Object)
+    public static <T> T unpack(Function0<T> value) {
+        return value.invoke();
+    }
+
+    /// Unpacks a deferred value.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    /// @see #unpack(Object)
+    public static <T> T unpack(Supplier<T> value) {
+        return value.get();
+    }
+
+    /// Unpacks a deferred value.
+    ///
+    /// Since buildscripts are dynamically compiled, this allows buildscript authors to use this method with version
+    /// catalog entries, other provider-like objects. This prevents the need to arbitrarily call [Provider#get()] (or
+    /// similar) on values which may or may not be deferred based on circumstance.
+    ///
+    /// @param value The value to unpack
+    /// @param <T>   The type of value held by the provider
+    /// @return The unpacked value
+    @SuppressWarnings("unchecked")
+    public static <T> T unpack(Object value) {
+        if (value instanceof ProviderConvertible<?> deferred) {
+            return (T) unpack(deferred);
+        } else if (value instanceof Provider<?> deferred) {
+            return (T) unpack(deferred);
+        } else if (value instanceof Closure<?> deferred) {
+            return (T) unpack(deferred);
+        } else if (value instanceof Callable<?> deferred) {
+            return (T) unpack(deferred);
+        } else if (value instanceof Function0<?> deferred) {
+            return (T) unpack(deferred);
+        } else if (value instanceof Supplier<?> deferred) {
+            return (T) unpack(deferred);
+        } else {
+            return (T) value;
+        }
     }
     //endregion
 

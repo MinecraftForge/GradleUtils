@@ -6,7 +6,6 @@ plugins {
     id 'idea'
     id 'eclipse'
     id 'maven-publish'
-    alias libs.plugins.javadoc.links
     alias libs.plugins.versions
     alias libs.plugins.licenser
     alias libs.plugins.gradleutils

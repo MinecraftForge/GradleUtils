@@ -282,7 +282,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// @return The unpacked value
     /// @see #unpack(Object)
     default <T> T unpack(Provider<T> value) {
-        return value.get();
+        return Util.unpack(value);
     }
 
     /// Unpacks a deferred value.
@@ -292,7 +292,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// @return The unpacked value
     /// @see #unpack(Object)
     default <T> T unpack(ProviderConvertible<T> value) {
-        return value.asProvider().get();
+        return Util.unpack(value);
     }
 
     /// Unpacks a deferred value.
@@ -302,7 +302,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// @return The unpacked value
     /// @see #unpack(Object)
     default <T> T unpack(Closure<T> value) {
-        return Closures.invoke(value);
+        return Util.unpack(value);
     }
 
     /// Unpacks a deferred value.
@@ -312,11 +312,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// @return The unpacked value
     /// @see #unpack(Object)
     default <T> T unpack(Callable<T> value) {
-        try {
-            return value.call();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return Util.unpack(value);
     }
 
     /// Unpacks a deferred value.
@@ -326,7 +322,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// @return The unpacked value
     /// @see #unpack(Object)
     default <T> T unpack(Function0<T> value) {
-        return value.invoke();
+        return Util.unpack(value);
     }
 
     /// Unpacks a deferred value.
@@ -336,7 +332,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// @return The unpacked value
     /// @see #unpack(Object)
     default <T> T unpack(Supplier<T> value) {
-        return value.get();
+        return Util.unpack(value);
     }
 
     /// Unpacks a deferred value.
@@ -348,22 +344,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// @param value The value to unpack
     /// @param <T>   The type of value held by the provider
     /// @return The unpacked value
-    @SuppressWarnings("unchecked")
     default <T> T unpack(Object value) {
-        if (value instanceof ProviderConvertible<?> deferred) {
-            return (T) this.unpack(deferred);
-        } else if (value instanceof Provider<?> deferred) {
-            return (T) this.unpack(deferred);
-        } else if (value instanceof Closure<?> deferred) {
-            return (T) this.unpack(deferred);
-        } else if (value instanceof Callable<?> deferred) {
-            return (T) this.unpack(deferred);
-        } else if (value instanceof Function0<?> deferred) {
-            return (T) this.unpack(deferred);
-        } else if (value instanceof Supplier<?> deferred) {
-            return (T) this.unpack(deferred);
-        } else {
-            return (T) value;
-        }
+        return Util.unpack(value);
     }
 }

@@ -22,49 +22,45 @@ gradle.beforeProject { Project project ->
 }
 
 //@formatter:off
-dependencyResolutionManagement {
-    versionCatalogs {
-        register('libs') {
-            version 'gradle-javadoc-links', '8.14'
-            version 'gradle-versions',      '0.53.0'
+dependencyResolutionManagement.versionCatalogs {
+    register('libs') {
+        version 'gradle-versions',      '0.53.0'
 
-            plugin 'javadoc-links',  'io.freefair.javadoc-links'      versionRef 'gradle-javadoc-links'
-            plugin 'versions',       'com.github.ben-manes.versions'  versionRef 'gradle-versions'
-            plugin 'licenser',       'net.minecraftforge.licenser'    version '1.2.0'
-            plugin 'gradleutils',    'net.minecraftforge.gradleutils' version '3.3.16'
-            plugin 'gitversion',     'net.minecraftforge.gitversion'  version '3.1.1'
-            plugin 'changelog',      'net.minecraftforge.changelog'   version '3.1.2'
-            plugin 'plugin-publish', 'com.gradle.plugin-publish'      version '2.0.0'
-            plugin 'shadow',         'com.gradleup.shadow'            version '9.2.2'
+        plugin 'versions',       'com.github.ben-manes.versions'  versionRef 'gradle-versions'
+        plugin 'licenser',       'net.minecraftforge.licenser'    version '1.2.0'
+        plugin 'gradleutils',    'net.minecraftforge.gradleutils' version '3.3.16'
+        plugin 'gitversion',     'net.minecraftforge.gitversion'  version '3.1.1'
+        plugin 'changelog',      'net.minecraftforge.changelog'   version '3.1.2'
+        plugin 'plugin-publish', 'com.gradle.plugin-publish'      version '2.0.0'
+        plugin 'shadow',         'com.gradleup.shadow'            version '9.2.2'
 
-            // Static Analysis
-            library 'nulls',  'org.jetbrains', 'annotations' version '26.0.2'
+        // Static Analysis
+        library 'nulls',  'org.jetbrains', 'annotations' version '26.0.2'
 
-            // Gradle API
-            // Original: https://github.com/remal-gradle-api/packages/packages/760197?version=9.0.0
-            // Mirror:   https://repos.moddinglegacy.com/#/modding-legacy/name/remal/gradle-api/gradle-api/9.0.0
-            version 'gradle', '9.0.0'
-            library 'gradle', 'name.remal.gradle-api', 'gradle-api'  versionRef 'gradle'
+        // Gradle API
+        // Original: https://github.com/remal-gradle-api/packages/packages/760197?version=9.0.0
+        // Mirror:   https://repos.moddinglegacy.com/#/modding-legacy/name/remal/gradle-api/gradle-api/9.0.0
+        version 'gradle', '9.0.0'
+        library 'gradle', 'name.remal.gradle-api', 'gradle-api'  versionRef 'gradle'
 
-            // GradleUtils Shared Base
-            library 'gradleutils-shared', 'net.minecraftforge', 'gradleutils-shared' withoutVersion()
+        // GradleUtils Shared Base
+        library 'gradleutils-shared', 'net.minecraftforge', 'gradleutils-shared' withoutVersion()
 
-            // JavaDoc Links Plugin
-            library 'gradle-javadoc-links', 'io.freefair.javadoc-links', 'io.freefair.javadoc-links.gradle.plugin' versionRef 'gradle-javadoc-links'
+        // JavaDoc Links Plugin
+        library 'gradle-javadoc-links', 'io.freefair.javadoc-links', 'io.freefair.javadoc-links.gradle.plugin' version '8.14'
 
-            // Versions Plugin
-            library 'gradle-versions', 'com.github.ben-manes.versions', 'com.github.ben-manes.versions.gradle.plugin' versionRef 'gradle-versions'
+        // Versions Plugin
+        library 'gradle-versions', 'com.github.ben-manes.versions', 'com.github.ben-manes.versions.gradle.plugin' versionRef 'gradle-versions'
 
-            // GitHub Actions Workflows
-            library 'yaml', 'org.yaml', 'snakeyaml' version '2.4'
-        }
+        // GitHub Actions Workflows
+        library 'yaml', 'org.yaml', 'snakeyaml' version '2.4'
+    }
 
-        register('sharedLibs') {
-            // Tools
-            library 'utils-hash',     'net.minecraftforge', 'hash-utils'      version '0.1.9' // https://files.minecraftforge.net/net/minecraftforge/hash-utils/index.html
-            library 'utils-download', 'net.minecraftforge', 'download-utils'  version '0.3.1' // https://files.minecraftforge.net/net/minecraftforge/download-utils/index.html
-            bundle 'utils', ['utils-hash', 'utils-download']
-        }
+    register('sharedLibs') {
+        // Tools
+        library 'utils-hash',     'net.minecraftforge', 'hash-utils'      version '0.1.9' // https://files.minecraftforge.net/net/minecraftforge/hash-utils/index.html
+        library 'utils-download', 'net.minecraftforge', 'download-utils'  version '0.3.1' // https://files.minecraftforge.net/net/minecraftforge/download-utils/index.html
+        bundle 'utils', ['utils-hash', 'utils-download']
     }
 }
 //@formatter:on
