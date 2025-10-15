@@ -12,10 +12,10 @@ import kotlin.jvm.functions.Function0;
 import org.gradle.TaskExecutionRequest;
 import org.gradle.api.Action;
 import org.gradle.api.DomainObjectCollection;
+import org.gradle.api.NamedDomainObjectSet;
 import org.gradle.api.Project;
 import org.gradle.api.Transformer;
 import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.FileCollectionDependency;
 import org.gradle.api.artifacts.ModuleVersionSelector;
@@ -251,7 +251,7 @@ public abstract class SharedUtil {
     ///                       declared in one of the `test` source set's dependency-scope configurations)
     /// @param dependency     The dependency to find
     /// @return If the source set contains the dependency
-    public static boolean contains(ConfigurationContainer configurations, SourceSet sourceSet, boolean transitive, Dependency dependency) {
+    public static boolean contains(NamedDomainObjectSet<Configuration> configurations, SourceSet sourceSet, boolean transitive, Dependency dependency) {
         return contains(configurations, sourceSet, transitive, dependency::equals);
     }
 
@@ -264,7 +264,7 @@ public abstract class SharedUtil {
     ///                       declared in one of the `test` source set's dependency-scope configurations)
     /// @param dependency     The dependency to find
     /// @return If the source set contains the dependency
-    public static boolean contains(ConfigurationContainer configurations, SourceSet sourceSet, boolean transitive, Spec<? super Dependency> dependency) {
+    public static boolean contains(NamedDomainObjectSet<Configuration> configurations, SourceSet sourceSet, boolean transitive, Spec<? super Dependency> dependency) {
         return contains(configurations, sourceSet.getCompileOnlyConfigurationName(), transitive, dependency) ||
             contains(configurations, sourceSet.getCompileOnlyApiConfigurationName(), transitive, dependency) ||
             contains(configurations, sourceSet.getCompileClasspathConfigurationName(), transitive, dependency) ||
@@ -277,7 +277,7 @@ public abstract class SharedUtil {
             contains(configurations, sourceSet.getRuntimeElementsConfigurationName(), transitive, dependency);
     }
 
-    private static boolean contains(ConfigurationContainer configurations, String configurationName, boolean transitive, Spec<? super Dependency> dependency) {
+    private static boolean contains(NamedDomainObjectSet<Configuration> configurations, String configurationName, boolean transitive, Spec<? super Dependency> dependency) {
         var configuration = configurations.findByName(configurationName);
         return configuration != null && !(transitive ? configuration.getAllDependencies() : configuration.getDependencies()).matching(dependency).isEmpty();
     }
@@ -291,7 +291,7 @@ public abstract class SharedUtil {
     ///                       declared in one of the `test` source set's dependency-scope configurations)
     /// @param dependency     The dependency to find
     /// @return The set containing the filtered dependencies
-    public static Set<Dependency> collect(ConfigurationContainer configurations, SourceSet sourceSet, boolean transitive, Predicate<? super Dependency> dependency) {
+    public static Set<Dependency> collect(NamedDomainObjectSet<Configuration> configurations, SourceSet sourceSet, boolean transitive, Predicate<? super Dependency> dependency) {
         return Stream
             .of(
                 configurations.findByName(sourceSet.getCompileOnlyConfigurationName()),
@@ -320,7 +320,7 @@ public abstract class SharedUtil {
     /// @param sourceSet      The source set
     /// @param action         The action to run
     /// @see #forEach(DomainObjectCollection, Action)
-    public static void forEachClasspath(ConfigurationContainer configurations, SourceSet sourceSet, Action<? super Configuration> action) {
+    public static void forEachClasspath(NamedDomainObjectSet<Configuration> configurations, SourceSet sourceSet, Action<? super Configuration> action) {
         forEach(configurations.named(
             name -> name.equals(sourceSet.getCompileClasspathConfigurationName())
                 || name.equals(sourceSet.getRuntimeClasspathConfigurationName())
@@ -333,7 +333,7 @@ public abstract class SharedUtil {
     /// @param sourceSet      The source set
     /// @param action         The action to run
     /// @see #forEachEagerly(DomainObjectCollection, Action)
-    public static void forEachClasspathEagerly(ConfigurationContainer configurations, SourceSet sourceSet, Action<? super Configuration> action) {
+    public static void forEachClasspathEagerly(NamedDomainObjectSet<Configuration> configurations, SourceSet sourceSet, Action<? super Configuration> action) {
         forEachEagerly(configurations.named(
             name -> name.equals(sourceSet.getCompileClasspathConfigurationName())
                 || name.equals(sourceSet.getRuntimeClasspathConfigurationName())
