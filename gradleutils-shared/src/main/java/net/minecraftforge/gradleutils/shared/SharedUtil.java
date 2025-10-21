@@ -473,70 +473,6 @@ public abstract class SharedUtil {
 
     /// Unpacks a deferred value.
     ///
-    /// @param value The value to unpack
-    /// @param <T>   The type of value held by the provider
-    /// @return The unpacked value
-    /// @see #unpack(Object)
-    public static <T> T unpack(Provider<T> value) {
-        return value.get();
-    }
-
-    /// Unpacks a deferred value.
-    ///
-    /// @param value The value to unpack
-    /// @param <T>   The type of value held by the provider
-    /// @return The unpacked value
-    /// @see #unpack(Object)
-    public static <T> T unpack(ProviderConvertible<T> value) {
-        return value.asProvider().get();
-    }
-
-    /// Unpacks a deferred value.
-    ///
-    /// @param value The value to unpack
-    /// @param <T>   The type of value held by the provider
-    /// @return The unpacked value
-    /// @see #unpack(Object)
-    public static <T> T unpack(Closure<T> value) {
-        return Closures.invoke(value);
-    }
-
-    /// Unpacks a deferred value.
-    ///
-    /// @param value The value to unpack
-    /// @param <T>   The type of value held by the provider
-    /// @return The unpacked value
-    /// @see #unpack(Object)
-    public static <T> T unpack(Callable<T> value) {
-        try {
-            return value.call();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /// Unpacks a deferred value.
-    ///
-    /// @param value The value to unpack
-    /// @param <T>   The type of value held by the provider
-    /// @return The unpacked value
-    /// @see #unpack(Object)
-    public static <T> T unpack(Function0<T> value) {
-        return value.invoke();
-    }
-
-    /// Unpacks a deferred value.
-    ///
-    /// @param value The value to unpack
-    /// @param <T>   The type of value held by the provider
-    /// @return The unpacked value
-    /// @see #unpack(Object)
-    public static <T> T unpack(Supplier<T> value) {
-        return value.get();
-    }
-
-    /// Unpacks a deferred value.
-    ///
     /// Since buildscripts are dynamically compiled, this allows buildscript authors to use this method with version
     /// catalog entries, other provider-like objects. This prevents the need to arbitrarily call [Provider#get()] (or
     /// similar) on values which may or may not be deferred based on circumstance.
@@ -547,17 +483,21 @@ public abstract class SharedUtil {
     @SuppressWarnings("unchecked")
     public static <T> T unpack(Object value) {
         if (value instanceof ProviderConvertible<?> deferred) {
-            return (T) unpack(deferred);
+            return (T) deferred.asProvider().get();
         } else if (value instanceof Provider<?> deferred) {
-            return (T) unpack(deferred);
+            return (T) deferred.get();
         } else if (value instanceof Closure<?> deferred) {
-            return (T) unpack(deferred);
+            return Closures.invoke(deferred);
         } else if (value instanceof Callable<?> deferred) {
-            return (T) unpack(deferred);
+            try {
+                return (T) deferred.call();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         } else if (value instanceof Function0<?> deferred) {
-            return (T) unpack(deferred);
+            return (T) deferred.invoke();
         } else if (value instanceof Supplier<?> deferred) {
-            return (T) unpack(deferred);
+            return (T) deferred.get();
         } else {
             return (T) value;
         }

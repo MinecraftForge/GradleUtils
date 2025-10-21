@@ -277,66 +277,6 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
 
     /// Unpacks a deferred value.
     ///
-    /// @param value The value to unpack
-    /// @param <T>   The type of value held by the provider
-    /// @return The unpacked value
-    /// @see #unpack(Object)
-    default <T> T unpack(Provider<T> value) {
-        return Util.unpack(value);
-    }
-
-    /// Unpacks a deferred value.
-    ///
-    /// @param value The value to unpack
-    /// @param <T>   The type of value held by the provider
-    /// @return The unpacked value
-    /// @see #unpack(Object)
-    default <T> T unpack(ProviderConvertible<T> value) {
-        return Util.unpack(value);
-    }
-
-    /// Unpacks a deferred value.
-    ///
-    /// @param value The value to unpack
-    /// @param <T>   The type of value held by the provider
-    /// @return The unpacked value
-    /// @see #unpack(Object)
-    default <T> T unpack(Closure<T> value) {
-        return Util.unpack(value);
-    }
-
-    /// Unpacks a deferred value.
-    ///
-    /// @param value The value to unpack
-    /// @param <T>   The type of value held by the provider
-    /// @return The unpacked value
-    /// @see #unpack(Object)
-    default <T> T unpack(Callable<T> value) {
-        return Util.unpack(value);
-    }
-
-    /// Unpacks a deferred value.
-    ///
-    /// @param value The value to unpack
-    /// @param <T>   The type of value held by the provider
-    /// @return The unpacked value
-    /// @see #unpack(Object)
-    default <T> T unpack(Function0<T> value) {
-        return Util.unpack(value);
-    }
-
-    /// Unpacks a deferred value.
-    ///
-    /// @param value The value to unpack
-    /// @param <T>   The type of value held by the provider
-    /// @return The unpacked value
-    /// @see #unpack(Object)
-    default <T> T unpack(Supplier<T> value) {
-        return Util.unpack(value);
-    }
-
-    /// Unpacks a deferred value.
-    ///
     /// Since buildscripts are dynamically compiled, this allows buildscript authors to use this method with version
     /// catalog entries, other provider-like objects. This prevents the need to arbitrarily call
     /// [Provider#get()] (or similar) on values which may or may not be deferred based on circumstance.
