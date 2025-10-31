@@ -36,12 +36,13 @@ abstract class GradleUtilsProblems extends EnhancedProblems {
     //endregion
 
     //region PomUtils
-    RuntimeException pomUtilsGitVersionMissing(Exception e) {
-        return this.throwing(e, "pomutils-missing-url", "Cannot add POM remote details without URL", spec -> spec
+    void reportPomUtilsGitVersionMissing(Exception e) {
+        report("pomutils-missing-url", "Cannot add POM remote details without URL", spec -> spec
             .details("""
                 Cannot add POM remote details using `gradleutils.pom.addRemoteDetails` without the URL.
                 If the Git Version plugin has not been applied, the URL must be manually specified as the second parameter.""")
             .severity(Severity.ERROR)
+            .withException(e)
             .stackLocation()
             .solution("Apply the Git Version Gradle plugin (net.minecraftforge.gitversion) to your project.")
             .solution("Manually add the remote URL in `addRemoteDetails`.")

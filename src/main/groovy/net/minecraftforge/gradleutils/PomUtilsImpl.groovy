@@ -7,9 +7,6 @@ package net.minecraftforge.gradleutils
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
-import net.minecraftforge.gradleutils.shared.SharedUtil
-import org.gradle.api.Project
-import org.gradle.api.UnknownDomainObjectException
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.publish.maven.MavenPom
@@ -53,7 +50,7 @@ import javax.inject.Inject
             def url
             try {
                 url = this.target.extensions.getByName('gitversion').url
-            } catch (UnknownDomainObjectException e) {
+            } catch (Exception e) {
                 try {
                     url = this.target.gradle.extensions.getByName('gitversion').url
                 } catch (Exception suppressed) {
@@ -63,7 +60,7 @@ import javax.inject.Inject
 
             this.addRemoteDetails(pom, url)
         } catch (Exception e) {
-            throw this.problems.pomUtilsGitVersionMissing(e)
+            throw this.problems.reportPomUtilsGitVersionMissing(e)
         }
     }
 }
