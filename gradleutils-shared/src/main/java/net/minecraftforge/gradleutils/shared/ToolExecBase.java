@@ -158,6 +158,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
         var stdOutLevel = this.getStandardOutputLogLevel().get();
         var stdErrLevel = this.getStandardErrorLogLevel().get();
         return this.getExecOperations().javaexec(spec -> {
+            spec.setIgnoreExitValue(true);
+
             spec.setClasspath(this.getClasspath());
             spec.getMainClass().set(this.getMainClass());
             spec.setExecutable(this.getJavaLauncher().get().getExecutablePath().getAsFile().getAbsolutePath());
