@@ -14,8 +14,8 @@ import org.gradle.api.file.FileSystemLocationProperty;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.logging.LoggingManager;
 import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.ListProperty;
-import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
@@ -28,7 +28,10 @@ import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.TaskAction;
+import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
+import org.gradle.jvm.toolchain.JavaToolchainService;
+import org.gradle.jvm.toolchain.JavaToolchainSpec;
 import org.gradle.process.ExecOperations;
 import org.gradle.process.ExecResult;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
@@ -42,7 +45,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 
 /// This tool execution task is a template on top of [JavaExec] to make executing [tools][Tool] much easier and more
@@ -73,6 +75,10 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     protected abstract @Input @Optional Property<String> getMainClass();
 
     protected abstract @Nested Property<JavaLauncher> getJavaLauncher();
+
+    protected abstract @Nested Property<JavaLauncher> getToolchainLauncher();
+
+    public abstract @Input @Optional Property<Boolean> getPreferToolchainJvm();
     //endregion
 
     //region Logging
@@ -91,6 +97,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     protected abstract @Inject ProviderFactory getProviders();
 
     protected abstract @Inject ExecOperations getExecOperations();
+
+    protected abstract @Inject JavaToolchainService getJavaToolchains();
 
     /// Creates a new task instance using the given types and tool information.
     ///
@@ -112,6 +120,11 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
             this.getMainClass().set(resolved.getMainClass());
         this.getJavaLauncher().set(resolved.getJavaLauncher());
 
+        this.getToolchainLauncher().convention(getJavaToolchains().launcherFor(spec -> spec.getLanguageVersion().set(JavaLanguageVersion.current())));
+        getProject().getPluginManager().withPlugin("java", javaAppliedPlugin ->
+            this.getToolchainLauncher().set(getJavaToolchains().launcherFor(getProject().getExtensions().getByType(JavaPluginExtension.class).getToolchain()))
+        );
+
         this.getStandardOutputLogLevel().convention(LogLevel.LIFECYCLE);
         this.getStandardErrorLogLevel().convention(LogLevel.ERROR);
     }
@@ -132,7 +145,6 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     @MustBeInvokedByOverriders
     protected void addArguments() { }
 
-    private transient boolean executing = false;
     private transient @Nullable List<Provider<String>> args;
     private transient @Nullable List<Provider<String>> jvmArgs;
     private transient @Nullable Map<String, String> environment;
@@ -142,7 +154,6 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     /// [#addArguments()] never being run.
     @TaskAction
     protected ExecResult exec() {
-        this.executing = true;
         this.args = new ArrayList<>();
         this.jvmArgs = new ArrayList<>();
         this.environment = new HashMap<>();
@@ -157,12 +168,24 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
 
         var stdOutLevel = this.getStandardOutputLogLevel().get();
         var stdErrLevel = this.getStandardErrorLogLevel().get();
+
+        JavaLauncher javaLauncher;
+        if (getPreferToolchainJvm().getOrElse(false)) {
+            var candidateLauncher = getJavaLauncher().get();
+            var toolchainLauncher = getToolchainLauncher().get();
+            javaLauncher = toolchainLauncher.getMetadata().getLanguageVersion().canCompileOrRun(candidateLauncher.getMetadata().getLanguageVersion())
+                ? toolchainLauncher
+                : candidateLauncher;
+        } else {
+            javaLauncher = getJavaLauncher().get();
+        }
+
         return this.getExecOperations().javaexec(spec -> {
             spec.setIgnoreExitValue(true);
 
             spec.setClasspath(this.getClasspath());
             spec.getMainClass().set(this.getMainClass());
-            spec.setExecutable(this.getJavaLauncher().get().getExecutablePath().getAsFile().getAbsolutePath());
+            spec.setExecutable(javaLauncher.getExecutablePath().getAsFile().getAbsolutePath());
             spec.setArgs(args);
             spec.setJvmArgs(jvmArgs);
             spec.setEnvironment(this.environment);
@@ -173,20 +196,22 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
         });
     }
 
+    @SuppressWarnings("DataFlowIssue")
     protected final void args(Object... args) {
         try {
             for (var arg : args) {
-                Objects.requireNonNull(this.args).add(this.getProviders().provider(arg::toString));
+                this.args.add(this.getProviders().provider(arg::toString));
             }
         } catch (NullPointerException e) {
             throw new IllegalStateException("ToolExecBase#jvmArgs can only be called inside of #addArguments()", e);
         }
     }
 
+    @SuppressWarnings("DataFlowIssue")
     protected final void args(Iterable<?> args) {
         try {
             for (var arg : args) {
-                Objects.requireNonNull(this.args).add(this.getProviders().provider(arg::toString));
+                this.args.add(this.getProviders().provider(arg::toString));
             }
         } catch (NullPointerException e) {
             throw new IllegalStateException("ToolExecBase#jvmArgs can only be called inside of #addArguments()", e);
@@ -246,37 +271,41 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
         }
     }
 
+    @SuppressWarnings("DataFlowIssue")
     protected final void jvmArgs(Object... args) {
         try {
             for (var arg : args) {
-                Objects.requireNonNull(this.jvmArgs).add(this.getProviders().provider(arg::toString));
+                this.jvmArgs.add(this.getProviders().provider(arg::toString));
             }
         } catch (NullPointerException e) {
             throw new IllegalStateException("ToolExecBase#jvmArgs can only be called inside of #addArguments()", e);
         }
     }
 
+    @SuppressWarnings("DataFlowIssue")
     protected final void jvmArgs(Iterable<?> args) {
         try {
             for (var arg : args) {
-                Objects.requireNonNull(this.jvmArgs).add(this.getProviders().provider(arg::toString));
+                this.jvmArgs.add(this.getProviders().provider(arg::toString));
             }
         } catch (NullPointerException e) {
             throw new IllegalStateException("ToolExecBase#jvmArgs can only be called inside of #addArguments()", e);
         }
     }
 
+    @SuppressWarnings("DataFlowIssue")
     protected final void environment(String key, String value) {
         try {
-            Objects.requireNonNull(this.environment).put(key, value);
+            this.environment.put(key, value);
         } catch (NullPointerException e) {
             throw new IllegalStateException("ToolExecBase#environment can only be called inside of #addArguments()", e);
         }
     }
 
+    @SuppressWarnings("DataFlowIssue")
     protected final void systemProperty(String key, String value) {
         try {
-            Objects.requireNonNull(this.systemProperties).put(key, value);
+            this.systemProperties.put(key, value);
         } catch (NullPointerException e) {
             throw new IllegalStateException("ToolExecBase#systemProperty can only be called inside of #addArguments()", e);
         }
