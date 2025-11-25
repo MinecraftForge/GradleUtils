@@ -7,7 +7,11 @@ package net.minecraftforge.gradleutils.shared;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Transformer;
-import org.gradle.api.file.*;
+import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.file.FileSystemLocation;
+import org.gradle.api.file.FileSystemLocationProperty;
+import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.logging.LoggingManager;
 import org.gradle.api.model.ObjectFactory;
@@ -16,12 +20,19 @@ import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
-import org.gradle.api.tasks.*;
+import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.Console;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.Internal;
+import org.gradle.api.tasks.JavaExec;
+import org.gradle.api.tasks.Nested;
+import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.TaskAction;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
-import org.gradle.jvm.toolchain.JavaToolchainSpec;
 import org.gradle.process.ExecOperations;
 import org.gradle.process.ExecResult;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
@@ -29,7 +40,10 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
 
 import javax.inject.Inject;
-import java.io.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -84,7 +98,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
 
     protected abstract @Console Property<LogLevel> getStandardErrorLogLevel();
 
-    protected abstract @OutputFile RegularFileProperty getLogFile();
+    protected abstract @Internal RegularFileProperty getLogFile();
     //endregion
 
     protected abstract @Inject ObjectFactory getObjects();
@@ -152,6 +166,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     /// [#addArguments()] never being run.
     @TaskAction
     protected ExecResult exec() throws IOException {
+        var logger = getLogger();
+
         this.args = new ArrayList<>();
         this.jvmArgs = new ArrayList<>();
         this.environment = new HashMap<>();
@@ -162,7 +178,6 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
 
         var args = DefaultGroovyMethods.collect(this.args, Closures.<Provider<String>, String>function(Provider::get));
         var jvmArgs = DefaultGroovyMethods.collect(this.jvmArgs, Closures.<Provider<String>, String>function(Provider::get));
-        this.getLogger().info("{} {}", this.getClasspath().getAsPath(), String.join(" ", args));
 
         var stdOutLevel = this.getStandardOutputLogLevel().get();
         var stdErrLevel = this.getStandardErrorLogLevel().get();
@@ -178,15 +193,13 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
             javaLauncher = getJavaLauncher().get();
         }
 
-        final File workingDirectory = this.getWorkingDir().get().getAsFile();
-        if (!workingDirectory.exists())
-            workingDirectory.mkdirs();
+        var workingDirectory = this.getWorkingDir().map(problems.ensureFileLocation()).get().getAsFile();
 
-        try (PrintWriter log = new PrintWriter(new FileWriter(this.getLogFile().get().getAsFile()), true)) {
-            return this.getExecOperations().javaexec(spec -> {
+        try (var log = new PrintWriter(new FileWriter(this.getLogFile().getAsFile().get()), true)) {
+            return getExecOperations().javaexec(spec -> {
                 spec.setIgnoreExitValue(true);
 
-                spec.setWorkingDir(this.getWorkingDir());
+                spec.setWorkingDir(workingDirectory);
                 spec.setClasspath(this.getClasspath());
                 spec.getMainClass().set(this.getMainClass());
                 spec.setExecutable(javaLauncher.getExecutablePath().getAsFile().getAbsolutePath());
@@ -197,24 +210,25 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
 
                 spec.setStandardOutput(SharedUtil.toLog(
                     line -> {
-                        this.getLogger().log(stdOutLevel, line);
+                        logger.log(stdOutLevel, line);
                         log.println(line);
                     }
                 ));
                 spec.setErrorOutput(SharedUtil.toLog(
                     line -> {
-                        this.getLogger().log(stdErrLevel, line);
+                        logger.log(stdErrLevel, line);
                         log.println(line);
                     }
                 ));
 
                 log.println("Java Launcher: " + spec.getExecutable());
-                log.println("Working directory: " + workingDirectory.getAbsolutePath());
-                log.println("Main class: " + this.getMainClass().get());
-                log.println("Arguments: " + args.stream().collect(Collectors.joining(", ", "'", "'")));
-                log.println("JVM Arguments: " + jvmArgs.stream().collect(Collectors.joining(", ", "'", "'")));
+                log.println("Working directory: " + spec.getWorkingDir().getAbsolutePath());
+                log.println("Main class: " + spec.getMainClass().get());
+                log.println("Arguments: '" + String.join(", ", spec.getArgs()) + '\'');
+                log.println("JVM Arguments: '" + String.join(", ", spec.getAllJvmArgs()) + '\'');
                 log.println("Classpath:");
-                getClasspath().forEach(f -> log.println(" - " + f.getAbsolutePath()));
+                for (var f : getClasspath())
+                    log.println(" - " + f.getAbsolutePath());
                 log.println("====================================");
             });
         }

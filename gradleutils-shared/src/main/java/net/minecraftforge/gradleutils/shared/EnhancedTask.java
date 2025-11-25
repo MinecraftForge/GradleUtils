@@ -74,7 +74,7 @@ public non-sealed interface EnhancedTask<P extends EnhancedProblems> extends Tas
     /// @param ext The extension to use for the file
     /// @return A provider for the file
     default @Internal Provider<RegularFile> getDefaultOutputFile(String ext) {
-        return this.getOutputFile(String.format("output.%s", ext));
+        return this.getOutputFile("output." + ext);
     }
 
     /// The default output log file to use for this task.
