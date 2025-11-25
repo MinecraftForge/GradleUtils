@@ -7,10 +7,7 @@ package net.minecraftforge.gradleutils.shared;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Transformer;
-import org.gradle.api.file.ConfigurableFileCollection;
-import org.gradle.api.file.DirectoryProperty;
-import org.gradle.api.file.FileSystemLocation;
-import org.gradle.api.file.FileSystemLocationProperty;
+import org.gradle.api.file.*;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.logging.LoggingManager;
 import org.gradle.api.model.ObjectFactory;
@@ -19,15 +16,8 @@ import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
-import org.gradle.api.tasks.Classpath;
+import org.gradle.api.tasks.*;
 import org.gradle.api.tasks.Console;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.Internal;
-import org.gradle.api.tasks.JavaExec;
-import org.gradle.api.tasks.Nested;
-import org.gradle.api.tasks.Optional;
-import org.gradle.api.tasks.TaskAction;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
@@ -39,13 +29,14 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
 
 import javax.inject.Inject;
-import java.io.File;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 /// This tool execution task is a template on top of [JavaExec] to make executing [tools][Tool] much easier and more
 /// consistent between plugins.
@@ -79,6 +70,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     protected abstract @Nested Property<JavaLauncher> getToolchainLauncher();
 
     public abstract @Input @Optional Property<Boolean> getPreferToolchainJvm();
+
+    public abstract @Internal DirectoryProperty getWorkingDir();
     //endregion
 
     //region Logging
@@ -90,6 +83,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     protected abstract @Console Property<LogLevel> getStandardOutputLogLevel();
 
     protected abstract @Console Property<LogLevel> getStandardErrorLogLevel();
+
+    protected abstract @OutputFile RegularFileProperty getLogFile();
     //endregion
 
     protected abstract @Inject ObjectFactory getObjects();
@@ -127,6 +122,9 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
 
         this.getStandardOutputLogLevel().convention(LogLevel.LIFECYCLE);
         this.getStandardErrorLogLevel().convention(LogLevel.ERROR);
+
+        this.getWorkingDir().convention(this.getDefaultOutputDirectory());
+        this.getLogFile().convention(this.getDefaultLogFile());
     }
 
     /// The enhanced problems instance to use for this task.
@@ -153,7 +151,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     /// @implNote Not invoking this method from an overriding method *will* result in the tool never being executed and
     /// [#addArguments()] never being run.
     @TaskAction
-    protected ExecResult exec() {
+    protected ExecResult exec() throws IOException {
         this.args = new ArrayList<>();
         this.jvmArgs = new ArrayList<>();
         this.environment = new HashMap<>();
@@ -180,20 +178,46 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
             javaLauncher = getJavaLauncher().get();
         }
 
-        return this.getExecOperations().javaexec(spec -> {
-            spec.setIgnoreExitValue(true);
+        final File workingDirectory = this.getWorkingDir().get().getAsFile();
+        if (!workingDirectory.exists())
+            workingDirectory.mkdirs();
 
-            spec.setClasspath(this.getClasspath());
-            spec.getMainClass().set(this.getMainClass());
-            spec.setExecutable(javaLauncher.getExecutablePath().getAsFile().getAbsolutePath());
-            spec.setArgs(args);
-            spec.setJvmArgs(jvmArgs);
-            spec.setEnvironment(this.environment);
-            spec.setSystemProperties(this.systemProperties);
+        try (PrintWriter log = new PrintWriter(new FileWriter(this.getLogFile().get().getAsFile()), true)) {
+            return this.getExecOperations().javaexec(spec -> {
+                spec.setIgnoreExitValue(true);
 
-            spec.setStandardOutput(SharedUtil.toLog(this.getLogger(), stdOutLevel));
-            spec.setErrorOutput(SharedUtil.toLog(this.getLogger(), stdErrLevel));
-        });
+                spec.setWorkingDir(this.getWorkingDir());
+                spec.setClasspath(this.getClasspath());
+                spec.getMainClass().set(this.getMainClass());
+                spec.setExecutable(javaLauncher.getExecutablePath().getAsFile().getAbsolutePath());
+                spec.setArgs(args);
+                spec.setJvmArgs(jvmArgs);
+                spec.setEnvironment(this.environment);
+                spec.setSystemProperties(this.systemProperties);
+
+                spec.setStandardOutput(SharedUtil.toLog(
+                    line -> {
+                        this.getLogger().log(stdOutLevel, line);
+                        log.println(line);
+                    }
+                ));
+                spec.setErrorOutput(SharedUtil.toLog(
+                    line -> {
+                        this.getLogger().log(stdErrLevel, line);
+                        log.println(line);
+                    }
+                ));
+
+                log.println("Java Launcher: " + spec.getExecutable());
+                log.println("Working directory: " + workingDirectory.getAbsolutePath());
+                log.println("Main class: " + this.getMainClass().get());
+                log.println("Arguments: " + args.stream().collect(Collectors.joining(", ", "'", "'")));
+                log.println("JVM Arguments: " + jvmArgs.stream().collect(Collectors.joining(", ", "'", "'")));
+                log.println("Classpath:");
+                getClasspath().forEach(f -> log.println(" - " + f.getAbsolutePath()));
+                log.println("====================================");
+            });
+        }
     }
 
     @SuppressWarnings("DataFlowIssue")

@@ -73,7 +73,22 @@ public non-sealed interface EnhancedTask<P extends EnhancedProblems> extends Tas
     ///
     /// @param ext The extension to use for the file
     /// @return A provider for the file
-    default Provider<RegularFile> getDefaultOutputFile(String ext) {
-        return this.localCaches().file(String.format("%s/output.%s", this.getName(), ext)).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
+    default @Internal Provider<RegularFile> getDefaultOutputFile(String ext) {
+        return this.getOutputFile(String.format("output.%s", ext));
+    }
+
+    /// The default output log file to use for this task.
+    ///
+    /// @return A provider for the file
+    default @Internal Provider<RegularFile> getDefaultLogFile() {
+        return this.getOutputFile("log.txt");
+    }
+
+    /// A file with the specified name in the default output directory.
+    ///
+    /// @param fileName The name of the output file
+    /// @return A provider for the file
+    default @Internal Provider<RegularFile> getOutputFile(String fileName) {
+        return this.localCaches().file(String.format("%s/%s", this.getName(), fileName)).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
     }
 }
