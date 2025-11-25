@@ -285,10 +285,12 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
         var value = provider.map(it -> it instanceof FileSystemLocation ? ((FileSystemLocation) it).getAsFile() : it).getOrNull();
         if (value == null) return;
 
-        if (value instanceof Boolean && ((boolean) value))
-            this.args(arg);
-        else
+        if (value instanceof Boolean booleanValue) {
+            if (booleanValue)
+                this.args(arg);
+        } else {
             this.args(arg, String.valueOf(value));
+        }
     }
 
     /// Adds the given map of arguments.
