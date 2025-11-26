@@ -145,6 +145,11 @@ import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
         }
     }
 
+    @Override
+    <T> Provider<T> asProvider(Object value) {
+        Util.asProvider(this.providers, value)
+    }
+
     @CompileStatic
     @PackageScope static abstract class ForProjectImpl extends GradleUtilsExtensionImpl implements GradleUtilsExtensionInternal.ForProject {
         private final GradleUtilsProblems problems = this.objects.newInstance(GradleUtilsProblems)

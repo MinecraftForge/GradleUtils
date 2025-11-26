@@ -502,6 +502,25 @@ public abstract class SharedUtil {
             return (T) value;
         }
     }
+
+    @SuppressWarnings("unchecked")
+    public static <T> Provider<T> asProvider(ProviderFactory providers, Object value) {
+        if (value instanceof ProviderConvertible<?> deferred) {
+            return (Provider<T>) deferred.asProvider();
+        } else if (value instanceof Provider<?> deferred) {
+            return (Provider<T>) deferred;
+        } else if (value instanceof Closure<?> deferred) {
+            return providers.provider(() -> Closures.invoke(deferred));
+        } else if (value instanceof Callable<?> deferred) {
+            return providers.provider((Callable<T>) deferred);
+        } else if (value instanceof Function0<?> deferred) {
+            return providers.provider(() -> (T) deferred.invoke());
+        } else if (value instanceof Supplier<?> deferred) {
+            return providers.provider(() -> (T) deferred.get());
+        } else {
+            return providers.provider(() -> (T) value);
+        }
+    }
     //endregion
 
     //region Properties
