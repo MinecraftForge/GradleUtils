@@ -7,6 +7,8 @@ package net.minecraftforge.gradleutils.shared;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Transformer;
+import org.gradle.api.artifacts.Dependency;
+import org.gradle.api.artifacts.dsl.DependencyFactory;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.FileSystemLocation;
@@ -19,6 +21,7 @@ import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.provider.ProviderConvertible;
 import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.Console;
@@ -30,6 +33,7 @@ import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
+import org.gradle.internal.logging.StandardOutputCapture;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
@@ -75,11 +79,11 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     }
 
     //region JavaExec
-    protected abstract @InputFiles @Classpath ConfigurableFileCollection getClasspath();
+    public abstract @InputFiles @Classpath ConfigurableFileCollection getClasspath();
 
-    protected abstract @Input @Optional Property<String> getMainClass();
+    public abstract @Input @Optional Property<String> getMainClass();
 
-    protected abstract @Nested Property<JavaLauncher> getJavaLauncher();
+    public abstract @Nested Property<JavaLauncher> getJavaLauncher();
 
     protected abstract @Nested Property<JavaLauncher> getToolchainLauncher();
 
@@ -106,6 +110,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     protected abstract @Inject ProviderFactory getProviders();
 
     protected abstract @Inject ExecOperations getExecOperations();
+
+    protected abstract @Inject DependencyFactory getDependencies();
 
     protected abstract @Inject JavaToolchainService getJavaToolchains();
 
@@ -139,6 +145,26 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
 
         this.getWorkingDir().convention(this.getDefaultOutputDirectory());
         this.getLogFile().convention(this.getDefaultLogFile());
+    }
+
+    public final void using(CharSequence dependency) {
+        this.using(getDependencies().create(dependency));
+    }
+
+    public final void using(Provider<? extends Dependency> dependency) {
+        this.getClasspath().setFrom(
+            getProject().getConfigurations().detachedConfiguration().withDependencies(d -> d.addLater(dependency))
+        );
+    }
+
+    public final void using(ProviderConvertible<? extends Dependency> dependency) {
+        this.using(dependency.asProvider());
+    }
+
+    public final void using(Dependency dependency) {
+        this.getClasspath().setFrom(
+            getProject().getConfigurations().detachedConfiguration(dependency)
+        );
     }
 
     /// The enhanced problems instance to use for this task.
