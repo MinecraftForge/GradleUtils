@@ -12,6 +12,7 @@ import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
 import org.gradle.api.file.Directory;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderConvertible;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.io.File;
 import java.util.concurrent.Callable;
@@ -27,6 +28,11 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
 
     /* MAVEN REPOSITORIES */
 
+    /// @deprecated Use [#getForgeMaven()]
+    @Deprecated(forRemoval = true, since = "3.3.28")
+    @ApiStatus.ScheduledForRemoval(inVersion = "4.0.0")
+    Action<MavenArtifactRepository> forgeMaven = GradleUtilsExtensionInternal.forgeMaven;
+
     /**
      * A closure for the Forge maven to be passed into
      * {@link org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Closure)}.
@@ -36,7 +42,14 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
      * }
      * </code></pre>
      */
-    Action<MavenArtifactRepository> forgeMaven = GradleUtilsExtensionInternal.forgeMaven;
+    default Action<MavenArtifactRepository> getForgeMaven() {
+        return GradleUtilsExtensionInternal.forgeMaven;
+    }
+
+    /// @deprecated Use [#getForgeReleaseMaven()]
+    @Deprecated(forRemoval = true, since = "3.3.28")
+    @ApiStatus.ScheduledForRemoval(inVersion = "4.0.0")
+    Action<MavenArtifactRepository> forgeReleaseMaven = GradleUtilsExtensionInternal.forgeReleaseMaven;
 
     /**
      * A closure for the Forge releases maven to be passed into
@@ -49,7 +62,14 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
      *
      * @see #forgeMaven
      */
-    Action<MavenArtifactRepository> forgeReleaseMaven = GradleUtilsExtensionInternal.forgeReleaseMaven;
+    default Action<MavenArtifactRepository> getForgeReleaseMaven() {
+        return GradleUtilsExtensionInternal.forgeReleaseMaven;
+    }
+
+    /// @deprecated Use [#getMinecraftLibsMaven()]
+    @Deprecated(forRemoval = true, since = "3.3.28")
+    @ApiStatus.ScheduledForRemoval(inVersion = "4.0.0")
+    Action<MavenArtifactRepository> minecraftLibsMaven = GradleUtilsExtensionInternal.minecraftLibsMaven;
 
     /**
      * A closure for the Minecraft libraries maven to be passed into
@@ -60,7 +80,9 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
      * }
      * </code></pre>
      */
-    Action<MavenArtifactRepository> minecraftLibsMaven = GradleUtilsExtensionInternal.minecraftLibsMaven;
+    default Action<MavenArtifactRepository> getMinecraftLibsMaven() {
+        return GradleUtilsExtensionInternal.minecraftLibsMaven;
+    }
 
 
     /* PUBLISHING */
