@@ -5,10 +5,13 @@
 package net.minecraftforge.gradleutils.shared;
 
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
+import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Transformer;
 import org.gradle.api.artifacts.Dependency;
+import org.gradle.api.artifacts.MinimalExternalModuleDependency;
 import org.gradle.api.artifacts.dsl.DependencyFactory;
+import org.gradle.api.artifacts.dsl.ExternalModuleDependencyVariantSpec;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.FileSystemLocation;
@@ -154,8 +157,16 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
         );
     }
 
+    public final void using(Provider<MinimalExternalModuleDependency> dependency, Action<? super ExternalModuleDependencyVariantSpec> variantSpec) {
+        this.using(getProject().getDependencies().variantOf(dependency, variantSpec));
+    }
+
     public final void using(ProviderConvertible<? extends Dependency> dependency) {
         this.using(dependency.asProvider());
+    }
+
+    public final void using(ProviderConvertible<MinimalExternalModuleDependency> dependency, Action<? super ExternalModuleDependencyVariantSpec> variantSpec) {
+        this.using(getProject().getDependencies().variantOf(dependency, variantSpec));
     }
 
     public final void using(Dependency dependency) {
