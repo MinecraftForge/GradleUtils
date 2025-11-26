@@ -31,9 +31,7 @@ import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.Optional;
-import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
-import org.gradle.internal.logging.StandardOutputCapture;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
@@ -54,7 +52,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 
 /// This tool execution task is a template on top of [JavaExec] to make executing [tools][Tool] much easier and more
 /// consistent between plugins.
@@ -111,7 +108,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
 
     protected abstract @Inject ExecOperations getExecOperations();
 
-    protected abstract @Inject DependencyFactory getDependencies();
+    protected abstract @Inject DependencyFactory getDependencyFactory();
 
     protected abstract @Inject JavaToolchainService getJavaToolchains();
 
@@ -148,7 +145,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     }
 
     public final void using(CharSequence dependency) {
-        this.using(getDependencies().create(dependency));
+        this.using(getDependencyFactory().create(dependency));
     }
 
     public final void using(Provider<? extends Dependency> dependency) {
