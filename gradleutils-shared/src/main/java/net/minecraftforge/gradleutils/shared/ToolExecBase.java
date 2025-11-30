@@ -176,6 +176,16 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
         );
     }
 
+    @Deprecated
+    public final void usingDirectly(CharSequence downloadUrl) {
+        var name = getName();
+        var url = getProviders().provider(downloadUrl::toString);
+        this.getClasspath().setFrom(getProviders().of(ToolImpl.Source.class, spec -> spec.parameters(parameters -> {
+            parameters.getInputFile().set(getProviders().zip(localCaches(), url, (d, s) -> d.file("tools/" + name + '/' + s.substring(s.lastIndexOf('/')))));
+            parameters.getDownloadUrl().set(url);
+        })));
+    }
+
     /// The enhanced problems instance to use for this task.
     ///
     /// @return The enhanced problems
