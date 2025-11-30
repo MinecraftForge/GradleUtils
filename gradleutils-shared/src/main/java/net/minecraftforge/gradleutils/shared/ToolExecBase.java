@@ -50,6 +50,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -268,22 +269,20 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
         }
     }
 
-    @SuppressWarnings("DataFlowIssue")
     protected final void args(Object... args) {
-        try {
-            for (var arg : args) {
-                this.args.add(this.getProviders().provider(arg::toString));
-            }
-        } catch (NullPointerException e) {
-            throw new IllegalStateException("ToolExecBase#jvmArgs can only be called inside of #addArguments()", e);
-        }
+        this.args(Arrays.asList(args));
     }
 
     @SuppressWarnings("DataFlowIssue")
     protected final void args(Iterable<?> args) {
         try {
             for (var arg : args) {
-                this.args.add(this.getProviders().provider(arg::toString));
+                if (arg instanceof ProviderConvertible<?> providerConvertible)
+                    this.args.add(providerConvertible.asProvider().map(Object::toString));
+                if (arg instanceof Provider<?> provider)
+                    this.args.add(provider.map(Object::toString));
+                else
+                    this.args.add(this.getProviders().provider(arg::toString));
             }
         } catch (NullPointerException e) {
             throw new IllegalStateException("ToolExecBase#jvmArgs can only be called inside of #addArguments()", e);
@@ -334,6 +333,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     /// [org.gradle.api.provider.ProviderFactory#provider(Callable)].
     ///
     /// @param args The args to add
+    /// @deprecated Too ambiguous with [#args(String, Provider)]. Prefer that method instead.
+    @Deprecated(forRemoval = true)
     protected final void args(Map<?, ?> args) {
         for (Map.Entry<?, ?> entry : args.entrySet()) {
             var key = entry.getKey();
