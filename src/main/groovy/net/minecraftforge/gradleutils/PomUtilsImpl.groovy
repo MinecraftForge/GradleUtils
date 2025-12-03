@@ -60,7 +60,7 @@ import javax.inject.Inject
 
             this.addRemoteDetails(pom, url)
         } catch (Exception e) {
-            throw this.problems.reportPomUtilsGitVersionMissing(e)
+            this.problems.reportPomUtilsGitVersionMissing(e)
         }
     }
 }
