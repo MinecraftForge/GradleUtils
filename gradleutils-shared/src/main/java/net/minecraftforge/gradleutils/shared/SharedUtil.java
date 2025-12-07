@@ -10,7 +10,6 @@ import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.FirstParam;
 import kotlin.jvm.functions.Function0;
 import org.codehaus.groovy.runtime.DefaultGroovyMethods;
-import org.codehaus.groovy.runtime.InvokerHelper;
 import org.gradle.TaskExecutionRequest;
 import org.gradle.api.Action;
 import org.gradle.api.DomainObjectCollection;
@@ -49,6 +48,7 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -174,6 +174,10 @@ public abstract class SharedUtil {
 
         @Inject
         public ProjectServiceWrapper() { }
+    }
+
+    public static Provider<Map<String, String>> getForkProperties(ProviderFactory providers) {
+        return providers.of(JavaForkProperties.class, spec -> { });
     }
     //endregion
 
@@ -557,7 +561,7 @@ public abstract class SharedUtil {
     }
     //endregion
 
-    //region Properties
+    //region Gradle Properties
 
     /**
      * Makes a returning-self closure that finalizes a given property using {@link #finalizeProperty(Property)}.

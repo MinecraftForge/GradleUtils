@@ -22,6 +22,7 @@ import org.gradle.api.logging.LoggingManager;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.ListProperty;
+import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderConvertible;
@@ -91,6 +92,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     public abstract @Input @Optional Property<Boolean> getPreferToolchainJvm();
 
     public abstract @Internal DirectoryProperty getWorkingDir();
+
+    protected abstract @Internal MapProperty<String, String> getForkProperties();
     //endregion
 
     //region Logging
@@ -140,6 +143,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
         getProject().getPluginManager().withPlugin("java", javaAppliedPlugin ->
             this.getToolchainLauncher().set(getJavaToolchains().launcherFor(getProject().getExtensions().getByType(JavaPluginExtension.class).getToolchain()))
         );
+
+        this.getForkProperties().set(SharedUtil.getForkProperties(getProviders()));
 
         this.getStandardOutputLogLevel().convention(LogLevel.LIFECYCLE);
         this.getStandardErrorLogLevel().convention(LogLevel.ERROR);
@@ -224,6 +229,10 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
         var args = DefaultGroovyMethods.collect(this.args, Closures.<Provider<String>, String>function(Provider::get));
         var jvmArgs = DefaultGroovyMethods.collect(this.jvmArgs, Closures.<Provider<String>, String>function(Provider::get));
 
+        for (var property : this.getForkProperties().get().entrySet()) {
+            this.systemProperties.putIfAbsent(property.getKey(), property.getValue());
+        }
+
         var stdOutLevel = this.getStandardOutputLogLevel().get();
         var stdErrLevel = this.getStandardErrorLogLevel().get();
 
@@ -266,14 +275,27 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
                     }
                 ));
 
-                log.println("Java Launcher: " + spec.getExecutable());
-                log.println("Working directory: " + spec.getWorkingDir().getAbsolutePath());
-                log.println("Main class: " + spec.getMainClass().get());
-                log.println("Arguments: '" + String.join(", ", spec.getArgs()) + '\'');
-                log.println("JVM Arguments: '" + String.join(", ", spec.getAllJvmArgs()) + '\'');
+                log.print("Java Launcher: ");
+                log.println(spec.getExecutable());
+                log.print("Working directory: ");
+                log.println(spec.getWorkingDir().getAbsolutePath());
+                log.print("Main class: ");
+                log.println(spec.getMainClass().get());
+                log.println("Arguments:");
+                for (var s : spec.getArgs()) {
+                    log.print("  ");
+                    log.println(s);
+                }
+                log.println("JVM Arguments:");
+                for (var s : spec.getAllJvmArgs()) {
+                    log.print("  ");
+                    log.println(s);
+                }
                 log.println("Classpath:");
-                for (var f : getClasspath())
-                    log.println(" - " + f.getAbsolutePath());
+                for (var f : getClasspath()) {
+                    log.print("  ");
+                    log.println(f.getAbsolutePath());
+                }
                 log.println("====================================");
             });
         }
