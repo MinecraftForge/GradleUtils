@@ -25,6 +25,7 @@ import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serial;
+import java.nio.file.Files;
 
 record ToolImpl(String getName, String getVersion, String fileName, String downloadUrl, int getJavaVersion,
                 @Nullable String getMainClass) implements ToolInternal {
@@ -161,6 +162,13 @@ record ToolImpl(String getName, String getVersion, String fileName, String downl
             if (outFile.exists() && cache.isSame()) {
                 LOGGER.info("Default tool already downloaded: {}", name);
             } else {
+                try {
+                    LOGGER.info("Deleting out-of-date tool: {}", name);
+                    Files.deleteIfExists(outFile.toPath());
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to delete out-of-date tool: " + name);
+                }
+
                 LOGGER.info("Downloading default tool: {}", name);
                 try {
                     DownloadUtils.downloadFile(outFile, downloadUrl);
