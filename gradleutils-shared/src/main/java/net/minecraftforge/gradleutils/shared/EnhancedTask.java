@@ -4,6 +4,7 @@
  */
 package net.minecraftforge.gradleutils.shared;
 
+import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.file.Directory;
@@ -90,5 +91,13 @@ public non-sealed interface EnhancedTask<P extends EnhancedProblems> extends Tas
     /// @return A provider for the file
     default @Internal Provider<RegularFile> getOutputFile(String fileName) {
         return this.localCaches().file(String.format("%s/%s", this.getName(), fileName)).map(this.getPlugin().getProblemsInternal().ensureFileLocation());
+    }
+
+    default void afterEvaluate(Action<? super Project> action) {
+        try {
+            getProject().afterEvaluate(action);
+        } catch (Exception ignored) {
+            action.execute(getProject());
+        }
     }
 }

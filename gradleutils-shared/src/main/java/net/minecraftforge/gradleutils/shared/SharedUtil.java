@@ -9,6 +9,8 @@ import groovy.lang.DelegatesTo;
 import groovy.transform.stc.ClosureParams;
 import groovy.transform.stc.FirstParam;
 import kotlin.jvm.functions.Function0;
+import org.codehaus.groovy.runtime.DefaultGroovyMethods;
+import org.codehaus.groovy.runtime.InvokerHelper;
 import org.gradle.TaskExecutionRequest;
 import org.gradle.api.Action;
 import org.gradle.api.DomainObjectCollection;
@@ -240,6 +242,38 @@ public abstract class SharedUtil {
     }
     //endregion
 
+    //region Dependency Information
+
+    public static String dependencyToArtifactString(Dependency dependency) {
+        var builder = new StringBuilder();
+
+        builder.append(dependency.getGroup() != null ? dependency.getGroup() + ':' : "");
+        builder.append(dependency.getName());
+        builder.append(dependency.getVersion() != null ? ':' + dependency.getVersion() : "");
+        var classifier = getProperty(dependency, "classifier");
+        builder.append(classifier != null ? ':' + classifier : "");
+        var extension = getProperty(dependency, "extension", "artifactType");
+        builder.append(extension != null ? '@' + extension : "");
+
+        return builder.toString();
+    }
+
+    private static @Nullable String getProperty(Object object, String... property) {
+        for (var name : property) {
+            var p = DefaultGroovyMethods.hasProperty(object, name);
+            if (p == null) continue;
+
+            var o = p.getProperty(object);
+            if (o == null) continue;
+
+            var s = o.toString();
+            return !"null".equals(s) ? s : null;
+        }
+
+        return null;
+    }
+    //endregion
+
     //region Dependency Handling
 
     /// Checks if the given dependency is in the given source set.
@@ -312,7 +346,7 @@ public abstract class SharedUtil {
             .collect(Collectors.toSet());
     }
 
-    private static <T> void guardCheck(T t) { }
+    static <T> void guardCheck(T t) { }
 
     /// Iterates through the given source set's classpath configurations using the given action.
     ///
