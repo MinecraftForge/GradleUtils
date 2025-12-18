@@ -13,6 +13,7 @@ import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 import org.gradle.TaskExecutionRequest;
 import org.gradle.api.Action;
 import org.gradle.api.DomainObjectCollection;
+import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.NamedDomainObjectSet;
 import org.gradle.api.Project;
 import org.gradle.api.Transformer;
@@ -348,6 +349,49 @@ public abstract class SharedUtil {
             .distinct()
             .filter(dependency)
             .collect(Collectors.toSet());
+    }
+
+    public static NamedDomainObjectSet<SourceSet> collect(Project project, boolean transitive, Dependency dependency) {
+        return collect(project, transitive, dependency::equals);
+    }
+
+    public static NamedDomainObjectSet<SourceSet> collect(Project project, boolean transitive, Spec<? super Dependency> dependency) {
+        return collect(
+            project.getExtensions().getByType(JavaPluginExtension.class).getSourceSets(),
+            project.getConfigurations(),
+            transitive,
+            dependency
+        );
+    }
+
+    public static NamedDomainObjectSet<SourceSet> collect(NamedDomainObjectContainer<SourceSet> sourceSets, NamedDomainObjectSet<Configuration> configurations, boolean transitive, Dependency dependency) {
+        return collect(sourceSets, configurations, transitive, dependency::equals);
+    }
+
+    public static NamedDomainObjectSet<SourceSet> collect(NamedDomainObjectContainer<SourceSet> sourceSets, NamedDomainObjectSet<Configuration> configurations, boolean transitive, Spec<? super Dependency> dependency) {
+        return sourceSets.matching(sourceSet -> {
+            var candidates = configurations.named(name ->
+                // Always check these resolvable configurations
+                name.equals(sourceSet.getCompileClasspathConfigurationName())
+                    || name.equals(sourceSet.getRuntimeClasspathConfigurationName())
+                    || name.equals(sourceSet.getAnnotationProcessorConfigurationName())
+
+                    // If not checking transitively, we need to check these declared configurations as well
+                    || (!transitive && (
+                    name.equals(sourceSet.getCompileOnlyConfigurationName())
+                        || name.equals(sourceSet.getCompileOnlyApiConfigurationName())
+                        || name.equals(sourceSet.getRuntimeOnlyConfigurationName())
+                        || name.equals(sourceSet.getImplementationConfigurationName())
+                        || name.equals(sourceSet.getApiConfigurationName())
+                ))
+            );
+
+            // The candidate matches if the dependency set matches our dependency spec
+            return !candidates.matching(configuration -> {
+                var dependencies = transitive ? configuration.getAllDependencies() : configuration.getDependencies();
+                return !dependencies.matching(dependency).isEmpty();
+            }).isEmpty();
+        });
     }
 
     static <T> void guardCheck(T t) { }
