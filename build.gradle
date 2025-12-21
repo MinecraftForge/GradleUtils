@@ -38,7 +38,7 @@ configurations.configureEach {
         //  The "shadowed" attribute is declared here since project dependencies do not read the published module file
         substitute module('net.minecraftforge:gradleutils-shared') using variant(project(':gradleutils-shared')) {
             attributes {
-                attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.SHADOWED))
+                attribute(Bundling.BUNDLING_ATTRIBUTE, named(Bundling, Bundling.SHADOWED))
             }
         } because 'Project dependencies do not read the published module file, so the shadowed attribute is manually declared.'
     }

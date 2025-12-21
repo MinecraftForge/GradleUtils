@@ -426,15 +426,15 @@ public abstract class SharedUtil {
 
     //region Dependency Versioning
 
-    static int versionCompare(String v1, String v2) {
+    public static int versionCompare(String v1, String v2) {
         return StaticVersionComparator.compareNow(v1, v2);
     }
 
-    static Comparator<String> versionComparator() {
+    public static Comparator<String> versionComparator() {
         return StaticVersionComparator.INSTANCE;
     }
 
-    static Class<? extends Comparator<String>> versionComparatorClass() {
+    public static Class<? extends Comparator<String>> versionComparatorClass() {
         return StaticVersionComparator.class;
     }
     //endergion
