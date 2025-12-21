@@ -48,6 +48,7 @@ import java.io.PipedOutputStream;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -422,6 +423,21 @@ public abstract class SharedUtil {
         ), action);
     }
     //endregion
+
+    //region Dependency Versioning
+
+    static int versionCompare(String v1, String v2) {
+        return StaticVersionComparator.compareNow(v1, v2);
+    }
+
+    static Comparator<String> versionComparator() {
+        return StaticVersionComparator.INSTANCE;
+    }
+
+    static Class<? extends Comparator<String>> versionComparatorClass() {
+        return StaticVersionComparator.class;
+    }
+    //endergion
 
     //region Domain Object Handling
 
