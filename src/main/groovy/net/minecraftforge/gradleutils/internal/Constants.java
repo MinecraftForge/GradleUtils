@@ -6,7 +6,7 @@ package net.minecraftforge.gradleutils.internal;
 
 final class Constants {
     static final String FORGE_MAVEN = "https://maven.minecraftforge.net/";
-    static final String FORGE_MAVEN_RELEASE = FORGE_MAVEN + "releases";
+    static final String FORGE_MAVEN_RELEASE = FORGE_MAVEN + "releases/";
     static final String MC_LIBS_MAVEN = "https://libraries.minecraft.net/";
 
     static final String FORGE_ORG_NAME = "Forge Development LLC";
