@@ -2,7 +2,7 @@
  * Copyright (c) Forge Development LLC and contributors
  * SPDX-License-Identifier: LGPL-2.1-only
  */
-package net.minecraftforge.gradleutils;
+package net.minecraftforge.gradleutils.internal;
 
 import com.github.benmanes.gradle.versions.reporter.Reporter;
 import com.github.benmanes.gradle.versions.reporter.result.DependenciesGroup;

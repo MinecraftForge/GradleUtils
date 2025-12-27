@@ -12,12 +12,13 @@ import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderConvertible;
 import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.tasks.TaskProvider;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.Map;
 
 /// A subset of [GradleUtilsExtension] that is given to projects. Includes additional convenience methods that only
 /// apply to projects.
-public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtension permits GradleUtilsExtensionInternal.ForProject {
+public interface GradleUtilsExtensionForProject extends GradleUtilsExtension {
     /// The display name for the project.
     ///
     /// If the relevant properties are enabled, it is used in areas such as the Javadoc window title, among other
@@ -60,6 +61,10 @@ public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtens
     ///
     /// @param configurations The configurations container to apply defaults to
     /// @param gradleVersion  The Gradle version to target
+    /// @deprecated This logic will be superseded by Forge's PluginDev plugin.
+    @ApiStatus.Internal
+    @Deprecated(forRemoval = true)
+    @ApiStatus.ScheduledForRemoval(inVersion = "4.0.0")
     void pluginDevDefaults(ConfigurationContainer configurations, CharSequence gradleVersion);
 
     /// Applies known defaults for Minecraft Forge's Gradle plugins.
@@ -72,6 +77,10 @@ public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtens
     ///
     /// @param configurations The configurations container to apply defaults to
     /// @param gradleVersion  The Gradle version to target
+    /// @deprecated This logic will be superseded by Forge's PluginDev plugin.
+    @ApiStatus.Internal
+    @Deprecated(forRemoval = true)
+    @ApiStatus.ScheduledForRemoval(inVersion = "4.0.0")
     void pluginDevDefaults(ConfigurationContainer configurations, Provider<? extends CharSequence> gradleVersion);
 
     /// Applies known defaults for Minecraft Forge's Gradle plugins.
@@ -84,6 +93,9 @@ public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtens
     ///
     /// @param configurations The configurations container to apply defaults to
     /// @param gradleVersion  The Gradle version to target
+    @ApiStatus.Internal
+    @Deprecated(forRemoval = true)
+    @ApiStatus.ScheduledForRemoval(inVersion = "4.0.0")
     default void pluginDevDefaults(ConfigurationContainer configurations, ProviderConvertible<? extends CharSequence> gradleVersion) {
         this.pluginDevDefaults(configurations, gradleVersion.asProvider());
     }
@@ -97,6 +109,7 @@ public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtens
     ///
     /// @param publication The publication to promote
     /// @return The provider for the promotion task
+    @ApiStatus.Internal
     default TaskProvider<? extends PromotePublication> promote(MavenPublication publication) {
         return this.promote(publication, null);
     }
@@ -111,5 +124,6 @@ public sealed interface GradleUtilsExtensionForProject extends GradleUtilsExtens
     /// @param publication The publication to promote
     /// @param cfg         A configuring action for the task
     /// @return The provider for the promotion task
+    @ApiStatus.Internal
     TaskProvider<? extends PromotePublication> promote(MavenPublication publication, Action<? super PromotePublication> cfg);
 }

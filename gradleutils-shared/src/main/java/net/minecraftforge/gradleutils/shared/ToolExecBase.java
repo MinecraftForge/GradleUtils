@@ -255,7 +255,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
 
                 spec.setWorkingDir(workingDirectory);
                 spec.setClasspath(this.getClasspath());
-                spec.getMainClass().set(this.getMainClass());
+                if (this.getMainClass().isPresent())
+                    spec.getMainClass().set(this.getMainClass());
                 spec.setExecutable(javaLauncher.getExecutablePath().getAsFile().getAbsolutePath());
                 spec.setArgs(args);
                 spec.setJvmArgs(jvmArgs);
@@ -280,7 +281,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
                 log.print("Working directory: ");
                 log.println(spec.getWorkingDir().getAbsolutePath());
                 log.print("Main class: ");
-                log.println(spec.getMainClass().get());
+                log.println(spec.getMainClass().getOrElse("AUTOMATIC"));
                 log.println("Arguments:");
                 for (var s : spec.getArgs()) {
                     log.print("  ");

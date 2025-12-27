@@ -20,6 +20,8 @@ import org.gradle.api.Transformer;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.FileCollectionDependency;
+import org.gradle.api.artifacts.ModuleIdentifier;
+import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.artifacts.ModuleVersionSelector;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.logging.Logger;
@@ -250,6 +252,166 @@ public abstract class SharedUtil {
 
     //region Dependency Information
 
+    public record SimpleModuleIdentifier(String getGroup, String getName) implements ModuleIdentifier {
+        static SimpleModuleIdentifier of(String group, String name) {
+            return new SimpleModuleIdentifier(group, name);
+        }
+
+        static SimpleModuleIdentifier of(String module) {
+            var substring = module.split(":");
+            if (substring.length != 2)
+                throw new IllegalArgumentException("Invalid non-versioned module identifier: " + module);
+
+            return of(substring[0], substring[1]);
+        }
+    }
+
+    public record SimpleModuleVersionIdentifier(ModuleIdentifier getModule, String getVersion,
+                                                @Nullable String classifier,
+                                                String extension) implements ModuleVersionIdentifier {
+        @Override
+        public String getGroup() {
+            return getModule.getGroup();
+        }
+
+        @Override
+        public String getName() {
+            return getModule.getName();
+        }
+
+        public String getDownloadUrl(String prefix) {
+            var builder = new StringBuilder();
+
+            // Use HTTPS by default if protocol not defined
+            if (!prefix.contains("://"))
+                builder.append("https://");
+
+            builder.append(prefix);
+
+            // Account for trailing slash
+            if (!prefix.endsWith("/"))
+                builder.append('/');
+
+            builder.append(getGroup().replace('.', '/'))
+                   .append('/').append(getName())
+                   .append('/').append(getVersion())
+                   .append('/').append(getFileName());
+
+            return builder.toString();
+        }
+
+        public String getFileName() {
+            var builder = new StringBuilder()
+                .append(getName())
+                .append('-')
+                .append(getVersion());
+
+            if (classifier != null)
+                builder.append('-').append(classifier);
+
+            return builder.append('.').append(extension).toString();
+        }
+
+        static SimpleModuleVersionIdentifier of(ModuleIdentifier module, String version) {
+            return of(module, version, null, "jar");
+        }
+
+        static SimpleModuleVersionIdentifier of(ModuleIdentifier module, String version, @Nullable String classifier, String extension) {
+            return new SimpleModuleVersionIdentifier(module, version, classifier, extension);
+        }
+
+        static SimpleModuleVersionIdentifier of(String module, String version) {
+            return of(SimpleModuleIdentifier.of(module), version);
+        }
+
+        static SimpleModuleVersionIdentifier of(String group, String name, String version) {
+            return of(SimpleModuleIdentifier.of(group, name), version);
+        }
+
+        static SimpleModuleVersionIdentifier of(String group, String name, String version, @Nullable String classifier, String extension) {
+            return of(SimpleModuleIdentifier.of(group, name), version, classifier, extension);
+        }
+
+        static SimpleModuleVersionIdentifier of(String artifact) {
+            var split = artifact.split(":", 4);
+            var group = split[0];
+            var name = split[1];
+
+            String version;
+            @Nullable String classifier = null;
+            String extension = "jar";
+
+            // Check if version has @ before :
+            if (split[2].indexOf('@') > 0) {
+                if (split.length > 3)
+                    throw new IllegalArgumentException("Invalid module version identifier (found @ character before another : character): " + artifact);
+
+                var s = split[2].split("@");
+                version = s[0];
+                extension = s[1];
+            } else {
+                version = split[2];
+            }
+
+            // Check if classifier has an @
+            if (split.length > 3) {
+                if (split[3].indexOf('@') > 0) {
+                    var s = split[2].split("@");
+                    classifier = s[0];
+                    extension = s[1];
+                } else {
+                    classifier = split[3];
+                }
+            }
+
+            return of(group, name, version, classifier, extension);
+        }
+
+        public SimpleModuleVersionIdentifier withVersion(String version) {
+            return of(getModule(), version, classifier(), extension());
+        }
+
+        public SimpleModuleVersionIdentifier withClassifier(String classifier) {
+            return of(getModule(), getVersion(), classifier, extension());
+        }
+
+        public SimpleModuleVersionIdentifier withExtension(String extension) {
+            return of(getModule(), getVersion(), classifier(), extension);
+        }
+
+        @Override
+        public String toString() {
+            var builder = new StringBuilder()
+                .append(getGroup())
+                .append(':').append(getName())
+                .append(':').append(getVersion());
+
+            if (classifier != null)
+                builder.append(':').append(classifier);
+
+            if ("jar".equals(extension))
+                builder.append('@').append(extension);
+
+            return builder.toString();
+        }
+    }
+
+    public static SimpleModuleVersionIdentifier moduleOf(String artifact) {
+        return SimpleModuleVersionIdentifier.of(artifact);
+    }
+
+    public static SimpleModuleIdentifier moduleOf(String group, String name) {
+        return SimpleModuleIdentifier.of(group, name);
+    }
+
+    public static SimpleModuleVersionIdentifier moduleOf(String group, String name, String version) {
+        return SimpleModuleVersionIdentifier.of(group, name, version);
+    }
+
+    public static SimpleModuleVersionIdentifier moduleOf(ModuleIdentifier module, String version) {
+        return SimpleModuleVersionIdentifier.of(module, version);
+    }
+
     public static String dependencyToArtifactString(Dependency dependency) {
         var builder = new StringBuilder();
 
@@ -437,7 +599,7 @@ public abstract class SharedUtil {
     public static Class<? extends Comparator<String>> versionComparatorClass() {
         return StaticVersionComparator.class;
     }
-    //endergion
+    //endregion
 
     //region Domain Object Handling
 
