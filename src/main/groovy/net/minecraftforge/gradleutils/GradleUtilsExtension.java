@@ -5,8 +5,6 @@
 package net.minecraftforge.gradleutils;
 
 import groovy.lang.Closure;
-import kotlin.jvm.functions.Function0;
-import net.minecraftforge.gradleutils.shared.Closures;
 import org.gradle.api.Action;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
 import org.gradle.api.file.Directory;
@@ -16,12 +14,11 @@ import org.jetbrains.annotations.ApiStatus;
 
 import java.io.File;
 import java.util.concurrent.Callable;
-import java.util.function.Supplier;
 
 /// Contains various utilities for working with Gradle scripts.
 ///
 /// @see GradleUtilsExtensionForProject
-public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProject, GradleUtilsExtensionInternal {
+public interface GradleUtilsExtension {
     /// The name for this extension.
     String NAME = "gradleutils";
 
@@ -31,7 +28,10 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// @deprecated Use [#getForgeMaven()]
     @Deprecated(forRemoval = true, since = "3.3.28")
     @ApiStatus.ScheduledForRemoval(inVersion = "4.0.0")
-    Action<MavenArtifactRepository> forgeMaven = GradleUtilsExtensionInternal.forgeMaven;
+    Action<MavenArtifactRepository> forgeMaven = repo -> {
+        repo.setName("MinecraftForge");
+        repo.setUrl("https://maven.minecraftforge.net/");
+    };
 
     /**
      * A closure for the Forge maven to be passed into
@@ -42,14 +42,15 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
      * }
      * </code></pre>
      */
-    default Action<MavenArtifactRepository> getForgeMaven() {
-        return GradleUtilsExtensionInternal.forgeMaven;
-    }
+    Action<MavenArtifactRepository> getForgeMaven();
 
     /// @deprecated Use [#getForgeReleaseMaven()]
     @Deprecated(forRemoval = true, since = "3.3.28")
     @ApiStatus.ScheduledForRemoval(inVersion = "4.0.0")
-    Action<MavenArtifactRepository> forgeReleaseMaven = GradleUtilsExtensionInternal.forgeReleaseMaven;
+    Action<MavenArtifactRepository> forgeReleaseMaven = repo -> {
+        repo.setName("MinecraftForge releases");
+        repo.setUrl("https://maven.minecraftforge.net/releases");
+    };
 
     /**
      * A closure for the Forge releases maven to be passed into
@@ -62,14 +63,15 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
      *
      * @see #forgeMaven
      */
-    default Action<MavenArtifactRepository> getForgeReleaseMaven() {
-        return GradleUtilsExtensionInternal.forgeReleaseMaven;
-    }
+    Action<MavenArtifactRepository> getForgeReleaseMaven();
 
     /// @deprecated Use [#getMinecraftLibsMaven()]
     @Deprecated(forRemoval = true, since = "3.3.28")
     @ApiStatus.ScheduledForRemoval(inVersion = "4.0.0")
-    Action<MavenArtifactRepository> minecraftLibsMaven = GradleUtilsExtensionInternal.minecraftLibsMaven;
+    Action<MavenArtifactRepository> minecraftLibsMaven = repo -> {
+        repo.setName("Minecraft libraries");
+        repo.setUrl("https://libraries.minecraft.net/");
+    };
 
     /**
      * A closure for the Minecraft libraries maven to be passed into
@@ -80,9 +82,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
      * }
      * </code></pre>
      */
-    default Action<MavenArtifactRepository> getMinecraftLibsMaven() {
-        return GradleUtilsExtensionInternal.minecraftLibsMaven;
-    }
+    Action<MavenArtifactRepository> getMinecraftLibsMaven();
 
 
     /* PUBLISHING */
@@ -106,9 +106,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// (`https://maven.minecraftforge.net/releases`).
     ///
     /// @return The closure
-    default Action<MavenArtifactRepository> getPublishingForgeMaven() {
-        return getPublishingForgeMaven(Constants.FORGE_MAVEN_RELEASE);
-    }
+    Action<MavenArtifactRepository> getPublishingForgeMaven();
 
     /// Get a configuring closure to be passed into [org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Closure)] in a
     /// publishing block.
@@ -173,9 +171,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     ///
     /// @param defaultFolder The default folder if the required maven information is not set
     /// @return The closure
-    default Action<MavenArtifactRepository> getPublishingForgeMaven(File defaultFolder) {
-        return this.getPublishingForgeMaven(Constants.FORGE_MAVEN_RELEASE, defaultFolder);
-    }
+    Action<MavenArtifactRepository> getPublishingForgeMaven(File defaultFolder);
 
     /// Get a configuring closure to be passed into [org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Closure)] in a
     /// publishing block. **Important:** The following environment variables must be set for this to work:
@@ -218,9 +214,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     ///
     /// @param defaultFolder The default folder if the required maven information is not set
     /// @return The closure
-    default Action<MavenArtifactRepository> getPublishingForgeMaven(Directory defaultFolder) {
-        return this.getPublishingForgeMaven(Constants.FORGE_MAVEN_RELEASE, defaultFolder);
-    }
+    Action<MavenArtifactRepository> getPublishingForgeMaven(Directory defaultFolder);
 
     /// Get a configuring closure to be passed into [org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Closure)] in a
     /// publishing block. **Important:** The following environment variables must be set for this to work:
@@ -263,9 +257,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     ///
     /// @param defaultFolder The default folder if the required maven information is not set
     /// @return The closure
-    default Action<MavenArtifactRepository> getPublishingForgeMaven(Provider<?> defaultFolder) {
-        return this.getPublishingForgeMaven(Constants.FORGE_MAVEN_RELEASE, defaultFolder);
-    }
+    Action<MavenArtifactRepository> getPublishingForgeMaven(Provider<?> defaultFolder);
 
     /// Get a configuring closure to be passed into [org.gradle.api.artifacts.dsl.RepositoryHandler#maven(Closure)] in a
     /// publishing block. **Important:** The following environment variables must be set for this to work:
@@ -306,9 +298,7 @@ public sealed interface GradleUtilsExtension permits GradleUtilsExtensionForProj
     /// @param value The value to unpack
     /// @param <T>   The type of value held by the provider
     /// @return The unpacked value
-    default <T> T unpack(Object value) {
-        return Util.unpack(value);
-    }
+    <T> T unpack(Object value);
 
     /// Packs a (deferred) value as a provider.
     ///

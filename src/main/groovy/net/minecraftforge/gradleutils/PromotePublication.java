@@ -14,7 +14,7 @@ import org.jetbrains.annotations.ApiStatus;
 /// @apiNote This task is [internal][org.jetbrains.annotations.ApiStatus.Internal] as it is meant for use in Forge
 /// projects only.
 @ApiStatus.Internal
-public sealed interface PromotePublication extends Task permits PromotePublicationInternal {
+public interface PromotePublication extends Task {
     /// The publication group to promote.
     ///
     /// By convention, this is [org.gradle.api.Project#getGroup()], but the set value is
