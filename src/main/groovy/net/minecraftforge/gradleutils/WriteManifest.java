@@ -4,7 +4,9 @@
  */
 package net.minecraftforge.gradleutils;
 
+import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
+import org.gradle.api.Project;
 import org.gradle.api.file.DuplicatesStrategy;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.file.RegularFileProperty;
@@ -27,7 +29,7 @@ import java.nio.file.Files;
 
 @ApiStatus.Internal
 @ApiStatus.Experimental
-public abstract class WriteManifest extends DefaultTask implements GradleUtilsTask {
+public abstract class WriteManifest extends DefaultTask {
     protected abstract @Input Property<byte[]> getInputBytes();
     protected abstract @OutputFile RegularFileProperty getOutput();
 
@@ -49,7 +51,7 @@ public abstract class WriteManifest extends DefaultTask implements GradleUtilsTa
             });
         });
 
-        afterEvaluate(project -> {
+        Action<? super Project> afterEvaluate = project -> {
             try (var os = new ByteArrayOutputStream()) {
                 // RATIONALE: ManifestInternal has not changed since Gradle 2.14
                 // Due to the hacky nature of needing the proper manifest in the resources, this is the only good way of doing this
@@ -60,7 +62,13 @@ public abstract class WriteManifest extends DefaultTask implements GradleUtilsTa
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        });
+        };
+
+        try {
+            getProject().afterEvaluate(afterEvaluate);
+        } catch (Exception ignored) {
+            afterEvaluate.execute(getProject());
+        }
     }
 
     @TaskAction

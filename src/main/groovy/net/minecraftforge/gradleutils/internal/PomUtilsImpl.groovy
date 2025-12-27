@@ -2,7 +2,7 @@
  * Copyright (c) Forge Development LLC and contributors
  * SPDX-License-Identifier: LGPL-2.1-only
  */
-package net.minecraftforge.gradleutils
+package net.minecraftforge.gradleutils.internal
 
 import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
@@ -26,10 +26,10 @@ import javax.inject.Inject
         this.problems = this.objects.newInstance(GradleUtilsProblems)
     }
 
-    final Licenses licenses = this.objects.newInstance(Licenses)
+    final Licenses licenses = this.objects.newInstance(LicensesImpl)
 
     @CompileStatic
-    @PackageScope static abstract class Licenses implements PomUtilsInternal.Licenses {
+    @PackageScope static abstract class LicensesImpl implements Licenses {
         @Inject
         Licenses() { }
     }

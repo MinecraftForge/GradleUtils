@@ -35,7 +35,7 @@ public non-sealed abstract class EnhancedPlugin<T> implements Plugin<T>, Enhance
     private final @Nullable String toolsExtName;
 
     private @UnknownNullability T target;
-    private ToolsExtensionImpl tools = this.getObjects().newInstance(ToolsExtensionImpl.class, (Callable<? extends JavaToolchainService>) this::toolchainsForTools);
+    private @Nullable ToolsExtensionImpl tools;
     private final EnhancedProblems problemsInternal;
 
     /// The object factory provided by Gradle services.
@@ -65,11 +65,6 @@ public non-sealed abstract class EnhancedPlugin<T> implements Plugin<T>, Enhance
     /// @see <a href="https://docs.gradle.org/current/userguide/service_injection.html#providerfactory">ProviderFactory
     /// Service Injection</a>
     protected abstract @Inject ProviderFactory getProviders();
-
-    /// The Java toolchain service provided by Gradle services.
-    ///
-    /// @return The Java toolchain service
-    protected abstract @Inject JavaToolchainService getJavaToolchains();
 
     /// This constructor must be called by all subclasses using a public constructor annotated with [Inject]. The name
     /// and display name passed in are used in a minimal instance of [EnhancedProblems], which is used to set up the
@@ -103,12 +98,20 @@ public non-sealed abstract class EnhancedPlugin<T> implements Plugin<T>, Enhance
     /// @param target The target for this plugin
     @Override
     public final void apply(T target) {
-        this.setup(this.target = target);
+        if (this.toolsExtName != null && target instanceof ExtensionAware extensionAware) {
+            this.tools = (ToolsExtensionImpl) extensionAware.getExtensions().create(ToolsExtension.class, this.toolsExtName, ToolsExtensionImpl.class);
 
-        if (this.toolsExtName != null && target instanceof ExtensionAware extensionAware)
-            this.tools = extensionAware.getExtensions().create(this.toolsExtName, ToolsExtensionImpl.class, (Callable<? extends JavaToolchainService>) this::toolchainsForTools);
-//        else
-//            this.tools = this.getObjects().newInstance(ToolsExtensionImpl.class, (Callable<? extends JavaToolchainService>) this::toolchainsForTools);
+            try {
+                var gradle = (Gradle) InvokerHelper.getProperty(this.target, "gradle");
+                var tools = (ToolsExtensionImpl) gradle.getExtensions().findByName(this.toolsExtName);
+                if (tools != null)
+                    this.tools.definitions.addAll(tools.definitions);
+            } catch (Exception ignored) { }
+        } else {
+            this.tools = this.getObjects().newInstance(ToolsExtensionImpl.class);
+        }
+
+        this.setup(this.target = target);
     }
 
     /// Called when this plugin is applied to do setup work.
@@ -138,6 +141,9 @@ public non-sealed abstract class EnhancedPlugin<T> implements Plugin<T>, Enhance
 
     @Override
     public Tool.Resolved getTool(Tool tool) {
+        if (this.tools == null)
+            throw new IllegalStateException("Plugin has not yet been applied");
+
         ProviderFactory providers;
         try {
             providers = this.target instanceof Project ? this.getProviders() : ((Gradle) InvokerHelper.getProperty(this.target, "gradle")).getRootProject().getProviders();
@@ -146,11 +152,6 @@ public non-sealed abstract class EnhancedPlugin<T> implements Plugin<T>, Enhance
         }
 
         return ((ToolInternal) tool).get(this.globalCaches(), providers, this.tools);
-    }
-
-    // NOTE: Use this in Tool implementations. Enhanced plugins do not enforce application on projects.
-    JavaToolchainService toolchainsForTools() {
-        return this.target instanceof Project ? this.getJavaToolchains() : ((Gradle) InvokerHelper.getProperty(this.target, "gradle")).getRootProject().getExtensions().getByType(JavaToolchainService.class);
     }
 
 
