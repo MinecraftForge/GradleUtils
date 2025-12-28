@@ -27,11 +27,11 @@ public sealed interface Tool extends Named, Serializable permits ToolInternal, T
     /// @param name        The name for this tool, used to reference it in configuration and for the file name
     /// @param artifact    The artifact for this tool, used to get the download URL
     /// @param mavenUrl    The maven URL this tool is hosted on (if protocol is omitted, prepends `https://`, and
-    ///                    appends adds trailing slash if missing) (default: `https://maven.minecraftforge.net/`)
+    ///                    appends adds trailing slash if missing)
     /// @param javaVersion The Java version this tool was built with, or should run on
     /// @param mainClass   The main class to use when executing this tool (optional)
     /// @return The tool
-    static Tool of(String name, String artifact, String mavenUrl, int javaVersion, String mainClass) {
+    static Tool of(String name, String artifact, String mavenUrl, int javaVersion, @Nullable String mainClass) {
         return new ToolImpl(name, artifact, mavenUrl, javaVersion, mainClass);
     }
 
@@ -39,19 +39,8 @@ public sealed interface Tool extends Named, Serializable permits ToolInternal, T
     ///
     /// @param name        The name for this tool, used to reference it in configuration and for the file name
     /// @param artifact    The artifact for this tool, used to get the download URL
-    /// @param javaVersion The Java version this tool was built with, or should run on
-    /// @param mainClass   The main class to use when executing this tool (optional)
-    /// @return The tool
-    static Tool of(String name, String artifact, int javaVersion, String mainClass) {
-        return new ToolImpl(name, artifact, null, javaVersion, mainClass);
-    }
-
-    /// Creates a new tool with the given information.
-    ///
-    /// @param name        The name for this tool, used to reference it in configuration and for the file name
-    /// @param artifact    The artifact for this tool, used to get the download URL
     /// @param mavenUrl    The maven URL this tool is hosted on (if protocol is omitted, prepends `https://`, and
-    ///                    appends adds trailing slash if missing) (default: `https://maven.minecraftforge.net/`)
+    ///                    appends adds trailing slash if missing)
     /// @param javaVersion The Java version this tool was built with, or should run on
     /// @return The tool
     static Tool of(String name, String artifact, String mavenUrl, int javaVersion) {
@@ -63,9 +52,20 @@ public sealed interface Tool extends Named, Serializable permits ToolInternal, T
     /// @param name        The name for this tool, used to reference it in configuration and for the file name
     /// @param artifact    The artifact for this tool, used to get the download URL
     /// @param javaVersion The Java version this tool was built with, or should run on
+    /// @param mainClass   The main class to use when executing this tool (optional)
     /// @return The tool
-    static Tool of(String name, String artifact, int javaVersion) {
-        return new ToolImpl(name, artifact, null, javaVersion, null);
+    static Tool ofForge(String name, String artifact, int javaVersion, String mainClass) {
+        return new ToolImpl(name, artifact, "https://maven.minecraftforge.net/", javaVersion, mainClass);
+    }
+
+    /// Creates a new tool with the given information.
+    ///
+    /// @param name        The name for this tool, used to reference it in configuration and for the file name
+    /// @param artifact    The artifact for this tool, used to get the download URL
+    /// @param javaVersion The Java version this tool was built with, or should run on
+    /// @return The tool
+    static Tool ofForge(String name, String artifact, int javaVersion) {
+        return new ToolImpl(name, artifact, "https://maven.minecraftforge.net/", javaVersion, null);
     }
 
     /// The module for this tool.

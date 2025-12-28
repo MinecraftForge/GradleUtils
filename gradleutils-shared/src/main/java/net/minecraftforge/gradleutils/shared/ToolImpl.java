@@ -35,17 +35,17 @@ record ToolImpl(String getName, ModuleVersionIdentifier getModule, String artifa
 
     private static final Logger LOGGER = Logging.getLogger(Tool.class);
 
-    ToolImpl(String name, String artifact, @Nullable String mavenUrl, int javaVersion, @Nullable String mainClass) {
+    ToolImpl(String name, String artifact, String mavenUrl, int javaVersion, @Nullable String mainClass) {
         this(name, SharedUtil.moduleOf(artifact), artifact, mavenUrl, javaVersion, mainClass);
     }
 
-    ToolImpl(String name, SharedUtil.SimpleModuleVersionIdentifier module, String artifact, @Nullable String mavenUrl, int javaVersion, @Nullable String mainClass) {
+    ToolImpl(String name, SharedUtil.SimpleModuleVersionIdentifier module, String artifact, String mavenUrl, int javaVersion, @Nullable String mainClass) {
         this(
             name,
             module,
             artifact,
             String.format("%s-%s.jar", name, module.getVersion()),
-            module.getDownloadUrl(mavenUrl != null ? mavenUrl : "https://maven.minecraftforge.net/"),
+            module.getDownloadUrl(mavenUrl),
             javaVersion,
             mainClass
         );
