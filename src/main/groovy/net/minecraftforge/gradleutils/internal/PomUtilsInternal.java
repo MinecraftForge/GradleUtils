@@ -2,8 +2,9 @@
  * Copyright (c) Forge Development LLC and contributors
  * SPDX-License-Identifier: LGPL-2.1-only
  */
-package net.minecraftforge.gradleutils;
+package net.minecraftforge.gradleutils.internal;
 
+import net.minecraftforge.gradleutils.PomUtils;
 import org.gradle.api.Action;
 import org.gradle.api.publish.maven.MavenPom;
 import org.gradle.api.publish.maven.MavenPomDeveloper;
@@ -16,17 +17,10 @@ import java.io.Serial;
 import java.util.HashMap;
 import java.util.Map;
 
-non-sealed interface PomUtilsInternal extends PomUtils, HasPublicType {
+interface PomUtilsInternal extends PomUtils, HasPublicType {
     @Override
     default TypeOf<?> getPublicType() {
         return TypeOf.typeOf(PomUtils.class);
-    }
-
-    non-sealed interface Licenses extends PomUtils.Licenses, HasPublicType {
-        @Override
-        default TypeOf<?> getPublicType() {
-            return TypeOf.typeOf(PomUtils.Licenses.class);
-        }
     }
 
     static Action<MavenPomLicense> makeLicense(String name, String url) {
