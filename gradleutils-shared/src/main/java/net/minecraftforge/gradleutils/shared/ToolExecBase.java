@@ -14,6 +14,7 @@ import org.gradle.api.artifacts.dsl.DependencyFactory;
 import org.gradle.api.artifacts.dsl.ExternalModuleDependencyVariantSpec;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileSystemLocation;
 import org.gradle.api.file.FileSystemLocationProperty;
 import org.gradle.api.file.RegularFileProperty;
@@ -57,6 +58,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.jar.JarFile;
 
 /// This tool execution task is a template on top of [JavaExec] to make executing [tools][Tool] much easier and more
 /// consistent between plugins.
@@ -136,7 +138,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
         this.getClasspath().setFrom(resolved.getClasspath());
 
         if (resolved.hasMainClass())
-            this.getMainClass().set(resolved.getMainClass());
+            this.getMainClass().convention(getProviders().provider(resolved::getMainClass).orElse(getProviders().provider(this::findMainClass)));
         this.getJavaLauncher().set(resolved.getJavaLauncher());
 
         this.getToolchainLauncher().convention(getJavaToolchains().launcherFor(spec -> spec.getLanguageVersion().set(JavaLanguageVersion.current())));
@@ -298,6 +300,29 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
                 }
                 log.println("====================================");
             });
+        }
+    }
+
+    private String findMainClass() {
+        File tool;
+        try {
+            tool = this.getClasspath().getSingleFile();
+        } catch (IllegalStateException exception) {
+            throw problems.toolExecNoMainClass(exception, this);
+        }
+
+        try (var jar = new JarFile(tool)) {
+            var manifest = jar.getManifest();
+            if (manifest == null)
+                throw problems.toolExecNoMainClass(new IllegalStateException("Tool jar does not have manifest: " + tool.getAbsolutePath()), this);
+
+            var mainClass = manifest.getMainAttributes().getValue("Main-Class");
+            if (mainClass == null)
+                throw problems.toolExecNoMainClass(new IllegalStateException("Tool jar does not have Main-Class entry in its Manifest: " + tool.getAbsolutePath()), this);
+
+            return mainClass;
+        } catch (IOException e) {
+            throw problems.toolExecNoMainClass(new IllegalStateException("Tool jar does not have Main-Class entry in its Manifest: " + tool.getAbsolutePath(), e), this);
         }
     }
 

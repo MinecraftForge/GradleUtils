@@ -31,7 +31,6 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.util.Collection;
-import java.util.Locale;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -213,13 +212,28 @@ public abstract class EnhancedProblems implements Serializable, Predicate<String
     final RuntimeException pluginNotYetApplied(Exception e) {
         return this.throwing(e, "plugin-not-yet-applied", String.format("%s is not applied", this.displayName), spec -> spec
             .details("""
-                Attempted to get details from the %s plugin, but it has not yet been applied to the target.""".formatted(this.displayName))
+                Attempted to get details from the %s plugin, but it has not yet been applied to the target."""
+                .formatted(this.displayName))
             .severity(Severity.ERROR)
             .stackLocation()
             .solution("Apply the plugin before attempting to use it from the target's plugin manager.")
             .solution("Apply the plugin before attempting to register any of its tasks, especially those that require in-house caching or tools.")
             .solution(HELP_MESSAGE)
         );
+    }
+    //endregion
+
+    //region ToolExec
+    final RuntimeException toolExecNoMainClass(Exception e, Task task) {
+        getLogger().error("ERROR: Failed to find Main-Class for tool task: {}", task.getName());
+        return throwing(e, "toolexec-missing-main-class", "Renamer tool not executable jar", spec -> spec
+            .details("""
+                When using a tool execution task, the classpath must be a single executable jar with no transitive dependencies.
+                If this is not the case, then you must specify the main class using %s.mainClass = 'some.class'"""
+                .formatted(task.getName()))
+            .severity(Severity.ERROR)
+            .solution("Specify the main class for task '" + task.getName() + "'.")
+            .solution(HELP_MESSAGE));
     }
     //endregion
 
