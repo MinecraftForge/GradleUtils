@@ -17,8 +17,6 @@ import org.jetbrains.annotations.ApiStatus;
 ///
 /// If the project is also using the Git Version plugin (currently auto-applied by GradleUtils), it will respect any
 /// declared subprojects.
-///
-/// @implNote See [GenerateActionsWorkflowImpl]
 @ApiStatus.Internal
 public interface GenerateActionsWorkflow extends Task {
     /// The name for this task.

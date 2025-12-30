@@ -54,7 +54,7 @@ import javax.inject.Inject
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 
-import static GradleUtilsPlugin.LOGGER
+import static net.minecraftforge.gradleutils.internal.GradleUtilsPlugin.LOGGER
 
 @CompileStatic
 @PackageScope abstract class GradleUtilsExtensionImpl implements GradleUtilsExtensionInternal {
