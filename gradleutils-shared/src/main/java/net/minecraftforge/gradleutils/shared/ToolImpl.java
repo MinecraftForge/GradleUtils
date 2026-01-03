@@ -6,6 +6,8 @@ package net.minecraftforge.gradleutils.shared;
 
 import net.minecraftforge.util.download.DownloadUtils;
 import net.minecraftforge.util.hash.HashStore;
+import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.FileCollection;
@@ -27,22 +29,40 @@ import java.io.IOException;
 import java.io.Serial;
 import java.nio.file.Files;
 
-record ToolImpl(String getName, String getVersion, String fileName, String downloadUrl, int getJavaVersion,
+record ToolImpl(String getName, ModuleVersionIdentifier getModule, String artifact, String fileName, String downloadUrl, int getJavaVersion,
                 @Nullable String getMainClass) implements ToolInternal {
     private static final @Serial long serialVersionUID = -862411638019629688L;
 
     private static final Logger LOGGER = Logging.getLogger(Tool.class);
 
-    ToolImpl(String name, String version, String downloadUrl, int javaVersion, @Nullable String mainClass) {
-        this(name, version, String.format("%s-%s.jar", name, version), downloadUrl, javaVersion, mainClass);
+    ToolImpl(String name, String artifact, String mavenUrl, int javaVersion, @Nullable String mainClass) {
+        this(name, SharedUtil.moduleOf(artifact), artifact, mavenUrl, javaVersion, mainClass);
+    }
+
+    ToolImpl(String name, SharedUtil.SimpleModuleVersionIdentifier module, String artifact, String mavenUrl, int javaVersion, @Nullable String mainClass) {
+        this(
+            name,
+            module,
+            artifact,
+            String.format("%s-%s.jar", name, module.getVersion()),
+            module.getDownloadUrl(mavenUrl),
+            javaVersion,
+            mainClass
+        );
     }
 
     @Override
     public Tool.Resolved get(Provider<? extends Directory> cachesDir, ProviderFactory providers, ToolsExtensionImpl toolsExt) {
         var definition = toolsExt.definitions.maybeCreate(this.getName());
-        var classpath = definition.getClasspath();
-        if (classpath.isEmpty()) {
-            classpath = toolsExt.getObjects().fileCollection().from(
+
+        FileCollection classpathFromGradle = toolsExt.getObjects().fileCollection();
+        var classpathFromDownload = definition.getClasspath();
+
+        if (classpathFromDownload.isEmpty()) {
+            classpathFromGradle = toolsExt.getProject().getConfigurations().detachedConfiguration(
+                toolsExt.getDependencies().create(artifact)
+            );
+            classpathFromDownload = toolsExt.getObjects().fileCollection().from(
                 providers.of(Source.class, spec -> spec.parameters(parameters -> {
                     parameters.getInputFile().set(cachesDir.map(d -> d.file("tools/" + this.fileName)));
                     parameters.getDownloadUrl().set(this.downloadUrl);
@@ -52,9 +72,10 @@ record ToolImpl(String getName, String getVersion, String fileName, String downl
 
         return new ResolvedImpl(
             toolsExt.getObjects(),
-            classpath,
+            classpathFromGradle,
+            classpathFromDownload,
             definition.getMainClass().orElse(providers.provider(this::getMainClass)),
-            definition.getJavaLauncher().orElse(providers.provider(() -> SharedUtil.launcherForStrictly(toolsExt.javaToolchains.call(), this.getJavaVersion()).get()))
+            definition.getJavaLauncher().orElse(providers.provider(() -> SharedUtil.launcherForStrictly(toolsExt.getJavaToolchains(), this.getJavaVersion()).get()))
         );
     }
 
@@ -94,19 +115,31 @@ record ToolImpl(String getName, String getVersion, String fileName, String downl
 
     @SuppressWarnings("serial")
     final class ResolvedImpl implements ToolInternal.Resolved {
-        private final FileCollection classpath;
+        private final FileCollection classpathFromGradle;
+        private final FileCollection classpathFromDownload;
         private final Property<String> mainClass;
         private final Property<JavaLauncher> javaLauncher;
 
-        private ResolvedImpl(ObjectFactory objects, FileCollection classpath, Provider<? extends String> mainClass, Provider<? extends JavaLauncher> javaLauncher) {
-            this.classpath = classpath;
+        private @Nullable Boolean useGradle = null;
+
+        private ResolvedImpl(ObjectFactory objects, FileCollection classpathFromGradle, FileCollection classpathFromDownload, Provider<? extends String> mainClass, Provider<? extends JavaLauncher> javaLauncher) {
+            this.classpathFromGradle = classpathFromGradle;
+            this.classpathFromDownload = classpathFromDownload;
             this.mainClass = objects.property(String.class).value(mainClass);
             this.javaLauncher = objects.property(JavaLauncher.class).value(javaLauncher);
         }
 
         @Override
         public FileCollection getClasspath() {
-            return this.classpath;
+            if (useGradle == null) {
+                try {
+                    useGradle = !classpathFromGradle.getFiles().isEmpty();
+                } catch (Exception e) {
+                    useGradle = false;
+                }
+            }
+
+            return useGradle ? classpathFromGradle : classpathFromDownload;
         }
 
         @Override
@@ -115,8 +148,8 @@ record ToolImpl(String getName, String getVersion, String fileName, String downl
         }
 
         @Override
-        public String getVersion() {
-            return ToolImpl.this.getVersion();
+        public ModuleVersionIdentifier getModule() {
+            return ToolImpl.this.getModule();
         }
 
         @Override

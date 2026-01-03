@@ -2,18 +2,20 @@
  * Copyright (c) Forge Development LLC and contributors
  * SPDX-License-Identifier: LGPL-2.1-only
  */
-package net.minecraftforge.gradleutils
+package net.minecraftforge.gradleutils.internal
 
 import com.github.benmanes.gradle.versions.reporter.result.Result
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
+import net.minecraftforge.gradleutils.GenerateActionsWorkflow
+import net.minecraftforge.gradleutils.PomUtils
+import net.minecraftforge.gradleutils.PromotePublication
 import org.codehaus.groovy.runtime.DefaultGroovyMethods
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.ConfigurationContainer
-import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.attributes.plugin.GradlePluginApiVersion
 import org.gradle.api.file.Directory
@@ -52,7 +54,7 @@ import javax.inject.Inject
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 
-import static net.minecraftforge.gradleutils.GradleUtilsPlugin.LOGGER
+import static net.minecraftforge.gradleutils.internal.GradleUtilsPlugin.LOGGER
 
 @CompileStatic
 @PackageScope abstract class GradleUtilsExtensionImpl implements GradleUtilsExtensionInternal {
