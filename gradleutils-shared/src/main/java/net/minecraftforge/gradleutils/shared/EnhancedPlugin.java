@@ -29,7 +29,7 @@ import java.util.concurrent.Callable;
 /// needing to duplicate code across projects.
 ///
 /// @param <T> The type of target
-public non-sealed abstract class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAdditions {
+public abstract non-sealed class EnhancedPlugin<T> implements Plugin<T>, EnhancedPluginAdditions {
     private final String name;
     private final String displayName;
     private final @Nullable String toolsExtName;
