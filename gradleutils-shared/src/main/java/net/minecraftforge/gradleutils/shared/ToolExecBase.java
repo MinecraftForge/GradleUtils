@@ -119,6 +119,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
 
     protected abstract @Inject JavaToolchainService getJavaToolchains();
 
+    private final String toolName;
+
     /// Creates a new task instance using the given types and tool information.
     ///
     /// @param tool The tool to use for this task
@@ -129,6 +131,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     /// extend off of.
     protected ToolExecBase(Tool tool) {
         var resolved = this.getTool(tool);
+        this.toolName = resolved.getName();
         SharedUtil.finalizeProperty(this.defaultToolDir.value(
             this.globalCaches().dir(tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal())
         ));
@@ -183,10 +186,9 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
 
     @Deprecated
     public final void usingDirectly(CharSequence downloadUrl) {
-        var name = getName();
         var url = getProviders().provider(downloadUrl::toString);
         this.getClasspath().setFrom(getProviders().of(ToolImpl.Source.class, spec -> spec.parameters(parameters -> {
-            parameters.getInputFile().set(getProviders().zip(localCaches(), url, (d, s) -> d.file("tools/" + name + '/' + s.substring(s.lastIndexOf('/')))));
+            parameters.getInputFile().set(getProviders().zip(localCaches(), url, (d, s) -> d.file("tools/" + toolName + '/' + s.substring(s.lastIndexOf('/')))));
             parameters.getDownloadUrl().set(url);
         })));
     }
