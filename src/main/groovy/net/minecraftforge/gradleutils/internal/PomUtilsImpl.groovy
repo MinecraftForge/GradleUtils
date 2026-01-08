@@ -31,7 +31,7 @@ import javax.inject.Inject
     @CompileStatic
     @PackageScope static abstract class LicensesImpl implements Licenses {
         @Inject
-        Licenses() { }
+        LicensesImpl() { }
     }
 
     @Override
