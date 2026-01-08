@@ -8,7 +8,7 @@ import org.gradle.api.file.DirectoryProperty;
 
 /// This interface defines the additional methods added by [EnhancedPlugin]. They are additionally accessible in tasks
 /// that implement [EnhancedTask].
-public sealed interface EnhancedPluginAdditions permits EnhancedPlugin, EnhancedTask {
+public sealed interface EnhancedPluginAdditions permits EnhancedPlugin, EnhancedTask, EnhancedTaskAdditions {
     /// Gets a provider to the file for a [Tool] to be used. The tool's state is managed by Gradle through the
     /// [org.gradle.api.provider.ValueSource] API and will not cause caching issues.
     ///
