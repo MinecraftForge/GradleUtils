@@ -80,20 +80,30 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
         return this.additionalArgs;
     }
 
+    protected final @Nested ToolExecSpec getSpec() {
+        return this.spec;
+    }
+
     //region JavaExec
-    public abstract @InputFiles @Classpath ConfigurableFileCollection getClasspath();
+    public @Internal ConfigurableFileCollection getClasspath() {
+        return this.spec.getClasspath();
+    }
 
-    public abstract @Input @Optional Property<String> getMainClass();
+    public @Internal Property<String> getMainClass() {
+        return this.spec.getMainClass();
+    }
 
-    public abstract @Nested Property<JavaLauncher> getJavaLauncher();
+    public @Internal Property<JavaLauncher> getJavaLauncher() {
+        return this.spec.getJavaLauncher();
+    }
 
-    protected abstract @Nested Property<JavaLauncher> getToolchainLauncher();
+    public @Internal Property<Boolean> getPreferToolchainJvm() {
+        return this.spec.getPreferToolchainJvm();
+    }
 
-    public abstract @Input @Optional Property<Boolean> getPreferToolchainJvm();
-
-    public abstract @Internal DirectoryProperty getWorkingDir();
-
-    protected abstract @Internal MapProperty<String, String> getForkProperties();
+    public @Internal DirectoryProperty getWorkingDir() {
+        return this.spec.getWorkingDir();
+    }
     //endregion
 
     //region Logging
@@ -102,22 +112,22 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
         return super.getLogging();
     }
 
-    protected abstract @Console Property<LogLevel> getStandardOutputLogLevel();
+    protected @Console Property<LogLevel> getStandardOutputLogLevel() {
+        return this.spec.getStandardOutputLogLevel();
+    }
 
-    protected abstract @Console Property<LogLevel> getStandardErrorLogLevel();
+    protected @Console Property<LogLevel> getStandardErrorLogLevel() {
+        return this.spec.getStandardErrorLogLevel();
+    }
 
-    protected abstract @Internal RegularFileProperty getLogFile();
+    protected @Internal RegularFileProperty getLogFile() {
+        return this.spec.getLogFile();
+    }
     //endregion
 
     protected abstract @Inject ObjectFactory getObjects();
 
-    protected abstract @Inject ProviderFactory getProviders();
-
-    protected abstract @Inject ExecOperations getExecOperations();
-
-    protected abstract @Inject DependencyFactory getDependencyFactory();
-
-    protected abstract @Inject JavaToolchainService getJavaToolchains();
+    private final ToolExecSpec spec;
 
     /// Creates a new task instance using the given types and tool information.
     ///
@@ -128,78 +138,36 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     /// best practice is to make a single `ToolExec` class for the implementing plugin to use, which other tasks can
     /// extend off of.
     protected ToolExecBase(Tool tool) {
-        var resolved = this.getTool(tool);
-        SharedUtil.finalizeProperty(this.defaultToolDir.value(
-            this.globalCaches().dir(tool.getName().toLowerCase(Locale.ENGLISH)).map(this.ensureFileLocationInternal())
-        ));
-
-        this.getClasspath().setFrom(resolved.getClasspath());
-
-        if (resolved.hasMainClass())
-            this.getMainClass().set(resolved.getMainClass());
-        this.getJavaLauncher().set(resolved.getJavaLauncher());
-
-        this.getToolchainLauncher().convention(getJavaToolchains().launcherFor(spec -> spec.getLanguageVersion().set(JavaLanguageVersion.current())));
-        getProject().getPluginManager().withPlugin("java", javaAppliedPlugin ->
-            this.getToolchainLauncher().set(getJavaToolchains().launcherFor(getProject().getExtensions().getByType(JavaPluginExtension.class).getToolchain()))
-        );
-
-        this.getForkProperties().set(SharedUtil.getForkProperties(getProviders()));
-
-        this.getStandardOutputLogLevel().convention(LogLevel.LIFECYCLE);
-        this.getStandardErrorLogLevel().convention(LogLevel.ERROR);
-
-        this.getWorkingDir().convention(this.getDefaultOutputDirectory());
-        this.getLogFile().convention(this.getDefaultLogFile());
+        this.spec = getObjects().newInstance(ToolExecSpec.class, this.plugin(), this.getTool(tool));
     }
 
     public final void using(CharSequence dependency) {
-        this.using(getDependencyFactory().create(dependency));
+        this.spec.using(dependency);
     }
 
     public final void using(Provider<? extends Dependency> dependency) {
-        this.getClasspath().setFrom(
-            getProject().getConfigurations().detachedConfiguration().withDependencies(d -> d.addLater(dependency))
-        );
+        this.spec.using(dependency);
     }
 
     public final void using(Provider<MinimalExternalModuleDependency> dependency, Action<? super ExternalModuleDependencyVariantSpec> variantSpec) {
-        this.using(getProject().getDependencies().variantOf(dependency, variantSpec));
+        this.spec.using(dependency, variantSpec);
     }
 
     public final void using(ProviderConvertible<? extends Dependency> dependency) {
-        this.using(dependency.asProvider());
+        this.spec.using(dependency);
     }
 
     public final void using(ProviderConvertible<MinimalExternalModuleDependency> dependency, Action<? super ExternalModuleDependencyVariantSpec> variantSpec) {
-        this.using(getProject().getDependencies().variantOf(dependency, variantSpec));
+        this.spec.using(dependency, variantSpec);
     }
 
     public final void using(Dependency dependency) {
-        this.getClasspath().setFrom(
-            getProject().getConfigurations().detachedConfiguration(dependency)
-        );
+        this.spec.using(dependency);
     }
 
     @Deprecated
     public final void usingDirectly(CharSequence downloadUrl) {
-        var name = getName();
-        var url = getProviders().provider(downloadUrl::toString);
-        this.getClasspath().setFrom(getProviders().of(ToolImpl.Source.class, spec -> spec.parameters(parameters -> {
-            parameters.getInputFile().set(getProviders().zip(localCaches(), url, (d, s) -> d.file("tools/" + name + '/' + s.substring(s.lastIndexOf('/')))));
-            parameters.getDownloadUrl().set(url);
-        })));
-    }
-
-    /// The enhanced problems instance to use for this task.
-    ///
-    /// @return The enhanced problems
-    protected final @Internal P getProblems() {
-        return this.problems;
-    }
-
-    private <T extends FileSystemLocation> Transformer<T, T> ensureFileLocationInternal() {
-        return t -> this.getProblems().<T>ensureFileLocation().transform(t);
+        this.spec.usingDirectly(downloadUrl);
     }
 
     /// This method should be overridden by subclasses to add arguments to this task via [JavaExec#args]. To preserve
@@ -207,119 +175,19 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     @MustBeInvokedByOverriders
     protected void addArguments() { }
 
-    private transient @Nullable List<Provider<String>> args;
-    private transient @Nullable List<Provider<String>> jvmArgs;
-    private transient @Nullable Map<String, String> environment;
-    private transient @Nullable Map<String, String> systemProperties;
-
     /// @implNote Not invoking this method from an overriding method *will* result in the tool never being executed and
     /// [#addArguments()] never being run.
     @TaskAction
     protected ExecResult exec() throws IOException {
-        var logger = getLogger();
-
-        this.args = new ArrayList<>();
-        this.jvmArgs = new ArrayList<>();
-        this.environment = new HashMap<>();
-        this.systemProperties = new HashMap<>();
-
-        this.addArguments();
-        this.args(this.getAdditionalArgs().get());
-
-        var args = DefaultGroovyMethods.collect(this.args, Closures.<Provider<String>, String>function(Provider::get));
-        var jvmArgs = DefaultGroovyMethods.collect(this.jvmArgs, Closures.<Provider<String>, String>function(Provider::get));
-
-        for (var property : this.getForkProperties().get().entrySet()) {
-            this.systemProperties.putIfAbsent(property.getKey(), property.getValue());
-        }
-
-        var stdOutLevel = this.getStandardOutputLogLevel().get();
-        var stdErrLevel = this.getStandardErrorLogLevel().get();
-
-        JavaLauncher javaLauncher;
-        if (getPreferToolchainJvm().getOrElse(false)) {
-            var candidateLauncher = getJavaLauncher().get();
-            var toolchainLauncher = getToolchainLauncher().get();
-            javaLauncher = toolchainLauncher.getMetadata().getLanguageVersion().canCompileOrRun(candidateLauncher.getMetadata().getLanguageVersion())
-                ? toolchainLauncher
-                : candidateLauncher;
-        } else {
-            javaLauncher = getJavaLauncher().get();
-        }
-
-        var workingDirectory = this.getWorkingDir().map(problems.ensureFileLocation()).get().getAsFile();
-
-        try (var log = new PrintWriter(new FileWriter(this.getLogFile().getAsFile().get()), true)) {
-            return getExecOperations().javaexec(spec -> {
-                spec.setIgnoreExitValue(true);
-
-                spec.setWorkingDir(workingDirectory);
-                spec.setClasspath(this.getClasspath());
-                if (this.getMainClass().isPresent())
-                    spec.getMainClass().set(this.getMainClass());
-                spec.setExecutable(javaLauncher.getExecutablePath().getAsFile().getAbsolutePath());
-                spec.setArgs(args);
-                spec.setJvmArgs(jvmArgs);
-                spec.setEnvironment(this.environment);
-                spec.setSystemProperties(this.systemProperties);
-
-                spec.setStandardOutput(SharedUtil.toLog(
-                    line -> {
-                        logger.log(stdOutLevel, line);
-                        log.println(line);
-                    }
-                ));
-                spec.setErrorOutput(SharedUtil.toLog(
-                    line -> {
-                        logger.log(stdErrLevel, line);
-                        log.println(line);
-                    }
-                ));
-
-                log.print("Java Launcher: ");
-                log.println(spec.getExecutable());
-                log.print("Working directory: ");
-                log.println(spec.getWorkingDir().getAbsolutePath());
-                log.print("Main class: ");
-                log.println(spec.getMainClass().getOrElse("AUTOMATIC"));
-                log.println("Arguments:");
-                for (var s : spec.getArgs()) {
-                    log.print("  ");
-                    log.println(s);
-                }
-                log.println("JVM Arguments:");
-                for (var s : spec.getAllJvmArgs()) {
-                    log.print("  ");
-                    log.println(s);
-                }
-                log.println("Classpath:");
-                for (var f : getClasspath()) {
-                    log.print("  ");
-                    log.println(f.getAbsolutePath());
-                }
-                log.println("====================================");
-            });
-        }
+        return this.spec.exec();
     }
 
     protected final void args(Object... args) {
-        this.args(Arrays.asList(args));
+        this.spec.args(args);
     }
 
-    @SuppressWarnings("DataFlowIssue")
     protected final void args(Iterable<?> args) {
-        try {
-            for (var arg : args) {
-                if (arg instanceof ProviderConvertible<?> providerConvertible)
-                    this.args.add(providerConvertible.asProvider().map(Object::toString));
-                if (arg instanceof Provider<?> provider)
-                    this.args.add(provider.map(Object::toString));
-                else
-                    this.args.add(this.getProviders().provider(arg::toString));
-            }
-        } catch (NullPointerException e) {
-            throw new IllegalStateException("ToolExecBase#jvmArgs can only be called inside of #addArguments()", e);
-        }
+        this.spec.args(args);
     }
 
     /// Adds each file to the arguments preceded by the given argument. Designed to work well with
@@ -328,8 +196,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     /// @param arg   The flag to use for each file
     /// @param files The files to add
     protected final void args(String arg, Iterable<? extends File> files) {
-        for (File file : files)
-            this.args(arg, file);
+        this.spec.args(arg, files);
     }
 
     /// Adds the given argument followed by the given file location to the arguments.
@@ -337,7 +204,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     /// @param arg          The flag to use
     /// @param fileProvider The file to add
     protected final void args(String arg, FileSystemLocationProperty<? extends FileSystemLocation> fileProvider) {
-        this.args(arg, fileProvider.getLocationOnly());
+        this.spec.args(arg, fileProvider);
     }
 
     /// Adds the given argument followed by the given object (may be a file location) to the arguments.
@@ -345,18 +212,7 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     /// @param arg      The flag to use
     /// @param provider The object (or file) to add
     protected final void args(String arg, @UnknownNullability Provider<?> provider) {
-        if (provider == null || !provider.isPresent()) return;
-
-        // NOTE: We don't use File#getAbsoluteFile because path sensitivity should be handled by tasks.
-        var value = provider.map(it -> it instanceof FileSystemLocation ? ((FileSystemLocation) it).getAsFile() : it).getOrNull();
-        if (value == null) return;
-
-        if (value instanceof Boolean booleanValue) {
-            if (booleanValue)
-                this.args(arg);
-        } else {
-            this.args(arg, String.valueOf(value));
-        }
+        this.spec.args(arg, provider);
     }
 
     /// Adds the given map of arguments.
@@ -369,53 +225,22 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
     /// @deprecated Too ambiguous with [#args(String, Provider)]. Prefer that method instead.
     @Deprecated(forRemoval = true)
     protected final void args(Map<?, ?> args) {
-        for (Map.Entry<?, ?> entry : args.entrySet()) {
-            var key = entry.getKey();
-            var value = entry.getValue();
-            this.args(
-                key instanceof Provider<?> provider ? provider.map(Object::toString).get() : this.getProviders().provider(key::toString).get(),
-                value instanceof Provider<?> provider ? (provider instanceof FileSystemLocationProperty<?> file ? file.getLocationOnly() : provider) : this.getProviders().provider(() -> value)
-            );
-        }
+        this.spec.args(args);
     }
 
-    @SuppressWarnings("DataFlowIssue")
     protected final void jvmArgs(Object... args) {
-        try {
-            for (var arg : args) {
-                this.jvmArgs.add(this.getProviders().provider(arg::toString));
-            }
-        } catch (NullPointerException e) {
-            throw new IllegalStateException("ToolExecBase#jvmArgs can only be called inside of #addArguments()", e);
-        }
+        this.spec.jvmArgs(args);
     }
 
-    @SuppressWarnings("DataFlowIssue")
     protected final void jvmArgs(Iterable<?> args) {
-        try {
-            for (var arg : args) {
-                this.jvmArgs.add(this.getProviders().provider(arg::toString));
-            }
-        } catch (NullPointerException e) {
-            throw new IllegalStateException("ToolExecBase#jvmArgs can only be called inside of #addArguments()", e);
-        }
+        this.spec.jvmArgs(args);
     }
 
-    @SuppressWarnings("DataFlowIssue")
     protected final void environment(String key, String value) {
-        try {
-            this.environment.put(key, value);
-        } catch (NullPointerException e) {
-            throw new IllegalStateException("ToolExecBase#environment can only be called inside of #addArguments()", e);
-        }
+        this.environment(key, value);
     }
 
-    @SuppressWarnings("DataFlowIssue")
     protected final void systemProperty(String key, String value) {
-        try {
-            this.systemProperties.put(key, value);
-        } catch (NullPointerException e) {
-            throw new IllegalStateException("ToolExecBase#systemProperty can only be called inside of #addArguments()", e);
-        }
+        this.spec.systemProperty(key, value);
     }
 }
