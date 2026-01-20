@@ -31,6 +31,7 @@ import org.gradle.api.provider.ProviderConvertible;
 import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.Console;
+import org.gradle.api.tasks.Exec;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Internal;
@@ -111,10 +112,11 @@ public abstract non-sealed class ToolExecSpec implements EnhancedTaskAdditions {
 
     protected abstract @Inject JavaToolchainService getJavaToolchains();
 
+    private final String name;
     private final transient EnhancedPlugin<?> plugin;
     private final String toolName;
 
-    //private Closure<Void> javaexecAction = Closures.<JavaExecSpec>consumer(it -> { });
+    private Closure<Void> javaexecAction = Closures.<JavaExecSpec>consumer(it -> { });
 
     private transient @Nullable List<Provider<String>> overflowArgs;
     private transient @Nullable List<Provider<String>> overflowJvmArgs;
@@ -178,7 +180,8 @@ public abstract non-sealed class ToolExecSpec implements EnhancedTaskAdditions {
     }
 
     @Inject
-    public ToolExecSpec(EnhancedPlugin<?> plugin, Tool.Resolved resolved) {
+    public ToolExecSpec(String name, EnhancedPlugin<?> plugin, Tool.Resolved resolved) {
+        this.name = name;
         this.plugin = plugin;
         this.toolName = resolved.getName();
         this.getClasspath().convention(resolved.getClasspath());
@@ -204,6 +207,11 @@ public abstract non-sealed class ToolExecSpec implements EnhancedTaskAdditions {
 
         this.getWorkingDir().convention(this.getDefaultOutputDirectory());
         this.getLogFile().convention(this.getDefaultLogFile());
+    }
+
+    @Override
+    public String baseName() {
+        return this.name;
     }
 
     public final void using(CharSequence dependency) {
@@ -247,7 +255,18 @@ public abstract non-sealed class ToolExecSpec implements EnhancedTaskAdditions {
         return t -> this.plugin.getProblemsInternal().<T>ensureFileLocation().transform(t);
     }
 
-    protected ExecResult exec() throws IOException {
+    public void configure(Action<? super JavaExecSpec> action) {
+        this.javaexecAction = this.javaexecAction.compose(Closures.<JavaExecSpec>unaryOperator(spec -> {
+            action.execute(spec);
+            return spec;
+        }));
+    }
+
+    public ExecResult exec() {
+        return this.exec(getExecOperations());
+    }
+
+    public ExecResult exec(ExecOperations execOperations) {
         var args = this.getArgs().getOrElse(List.of());
         if (this.overflowArgs != null)
             args.addAll(DefaultGroovyMethods.collect(this.overflowArgs, Closures.<Provider<String>, String>function(Provider::get)));
@@ -283,7 +302,7 @@ public abstract non-sealed class ToolExecSpec implements EnhancedTaskAdditions {
         var workingDirectory = this.getWorkingDir().map(ensureFileLocationInternal()).get().getAsFile();
 
         try (var log = new PrintWriter(new FileWriter(this.getLogFile().getAsFile().get()), true)) {
-            return getExecOperations().javaexec(spec -> {
+            return execOperations.javaexec(spec -> {
                 spec.setIgnoreExitValue(true);
 
                 spec.setWorkingDir(workingDirectory);
@@ -309,6 +328,8 @@ public abstract non-sealed class ToolExecSpec implements EnhancedTaskAdditions {
                     }
                 ));
 
+                javaexecAction.call(spec);
+
                 log.print("Java Launcher: ");
                 log.println(spec.getExecutable());
                 log.print("Working directory: ");
@@ -332,6 +353,8 @@ public abstract non-sealed class ToolExecSpec implements EnhancedTaskAdditions {
                 }
                 log.println("====================================");
             });
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to open log file", e);
         }
     }
 

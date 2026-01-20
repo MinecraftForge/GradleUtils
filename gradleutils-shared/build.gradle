@@ -18,7 +18,8 @@ gradleutils.displayName = 'GradleUtils Shared'
 description = 'The shared base used by all of Forge\'s Gradle plugins.'
 base.archivesName = 'gradleutils-shared'
 group = 'net.minecraftforge'
-version = gitversion.tagOffset
+//version = gitversion.tagOffset
+version = '3.5.0'
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(17)
