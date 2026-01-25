@@ -403,18 +403,21 @@ import static net.minecraftforge.gradleutils.internal.GradleUtilsPlugin.LOGGER
 
         @Override
         TaskProvider<? extends PromotePublication> promote(MavenPublication publication, @Nullable Action<? super PromotePublication> cfg) {
-            this.project.tasks.register("promote${publication.name.capitalize()}Publication", PromotePublicationImpl, publication).tap { promote ->
+            var publicationName = publication.name
+            project.tasks.register("promote${publicationName.capitalize()}Publication", PromotePublicationImpl, publication).tap { promote ->
                 if (cfg !== null)
                     promote.configure { cfg.execute(it) }
 
-                this.project.tasks.withType(PublishToMavenRepository).configureEach { publish ->
-                    // if the publish task's publication isn't this one and the repo name isn't 'forge', skip
-                    // the name being 'forge' is enforced by gradle utils
-                    if (publish.publication !== publication || publish.repository.name != 'forge')
-                        return
+                project.afterEvaluate {
+                    it.tasks.withType(PublishToMavenRepository).configureEach { publish ->
+                        // if the publish task's publication isn't this one and the repo name isn't 'forge', skip
+                        // the name being 'forge' is enforced by gradle utils
+                        if (publish.publication === null || publicationName != publish.publication.name || publish.repository.name != 'forge')
+                            return
 
-                    publish.finalizedBy(promote)
-                    promote.get().mustRunAfter(publish)
+                        publish.finalizedBy(promote)
+                        promote.get().mustRunAfter(publish)
+                    }
                 }
             }
         }
