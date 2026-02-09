@@ -4,7 +4,6 @@
  */
 package net.minecraftforge.gradleutils.shared;
 
-import org.gradle.api.Action;
 import org.gradle.api.Named;
 import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.file.ConfigurableFileCollection;

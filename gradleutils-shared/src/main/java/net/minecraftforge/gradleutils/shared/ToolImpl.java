@@ -6,7 +6,6 @@ package net.minecraftforge.gradleutils.shared;
 
 import net.minecraftforge.util.download.DownloadUtils;
 import net.minecraftforge.util.hash.HashStore;
-import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.Directory;
@@ -88,12 +87,13 @@ record ToolImpl(
 
         FileCollection classpathFromGradle = toolsExt.getObjects().fileCollection();
         var classpathFromDownload = definition.getClasspath();
+        var mainClass = definition.getMainClass().orElse(providers.provider(this::getMainClass)).getOrNull();
 
         if (classpathFromDownload.isEmpty()) {
             var overrides = fillOverrides(definition);
             classpathFromGradle = toolsExt.getProject().getConfigurations().detachedConfiguration(
                 toolsExt.getDependencies().create(overrides.artifact)
-            );
+            ).setTransitive(mainClass != null);
             classpathFromDownload = toolsExt.getObjects().fileCollection().from(
                 providers.of(Source.class, spec -> spec.parameters(parameters -> {
                     parameters.getInputFile().set(cachesDir.map(d -> d.file("tools/" + overrides.fileName)));
@@ -106,7 +106,7 @@ record ToolImpl(
             toolsExt.getObjects(),
             classpathFromGradle,
             classpathFromDownload,
-            definition.getMainClass().orElse(providers.provider(this::getMainClass)),
+            mainClass,
             definition.getJavaLauncher().orElse(providers.provider(() -> SharedUtil.launcherForStrictly(toolsExt.getJavaToolchains(), this.getJavaVersion()).get()))
         );
     }
@@ -161,15 +161,15 @@ record ToolImpl(
     final class ResolvedImpl implements ToolInternal.Resolved {
         private final FileCollection classpathFromGradle;
         private final FileCollection classpathFromDownload;
-        private final Property<String> mainClass;
+        private final @Nullable String mainClass;
         private final Property<JavaLauncher> javaLauncher;
 
         private @Nullable Boolean useGradle = null;
 
-        private ResolvedImpl(ObjectFactory objects, FileCollection classpathFromGradle, FileCollection classpathFromDownload, Provider<? extends String> mainClass, Provider<? extends JavaLauncher> javaLauncher) {
+        private ResolvedImpl(ObjectFactory objects, FileCollection classpathFromGradle, FileCollection classpathFromDownload, @Nullable String mainClass, Provider<? extends JavaLauncher> javaLauncher) {
             this.classpathFromGradle = classpathFromGradle;
             this.classpathFromDownload = classpathFromDownload;
-            this.mainClass = objects.property(String.class).value(mainClass);
+            this.mainClass = mainClass;
             this.javaLauncher = objects.property(JavaLauncher.class).value(javaLauncher);
         }
 
@@ -208,7 +208,7 @@ record ToolImpl(
 
         @Override
         public @Nullable String getMainClass() {
-            return this.mainClass.getOrNull();
+            return this.mainClass;
         }
     }
 

@@ -66,6 +66,7 @@ import java.util.concurrent.Callable;
 /// should extend from.
 /// @see JavaExec
 /// @see Tool
+@SuppressWarnings("unused") // Imports for javadocs
 public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTask implements EnhancedTask<P> {
     private final P problems = this.getObjects().newInstance(this.problemsType());
 
@@ -282,16 +283,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
                 log.println(spec.getWorkingDir().getAbsolutePath());
                 log.print("Main class: ");
                 log.println(spec.getMainClass().getOrElse("AUTOMATIC"));
-                log.println("Arguments:");
-                for (var s : spec.getArgs()) {
-                    log.print("  ");
-                    log.println(s);
-                }
-                log.println("JVM Arguments:");
-                for (var s : spec.getAllJvmArgs()) {
-                    log.print("  ");
-                    log.println(s);
-                }
+                logArgs(log, "Arguments: ", spec.getArgs());
+                logArgs(log, "JVM Arguments: ", spec.getAllJvmArgs());
                 log.println("Classpath:");
                 for (var f : getClasspath()) {
                     log.print("  ");
@@ -299,6 +292,21 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
                 }
                 log.println("====================================");
             });
+        }
+    }
+
+    private static void logArgs(PrintWriter log, String prefix, List<String> args) {
+        var padding = " ".repeat(prefix.length());
+        for (int x = 0; x < args.size(); x++) {
+            log.print(x == 0 ? prefix : padding);
+            var current = args.get(x);
+            var next = args.size() > x + 1 ? args.get(x + 1) : null;
+            var line = current;
+            if (current.startsWith("--") && next != null && !next.startsWith("--")) {
+                x++;
+                line += ' ' + next;
+            }
+            log.println(line);
         }
     }
 
