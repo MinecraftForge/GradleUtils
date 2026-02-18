@@ -389,7 +389,7 @@ public abstract class SharedUtil {
             if (classifier != null)
                 builder.append(':').append(classifier);
 
-            if ("jar".equals(extension))
+            if (!"jar".equals(extension))
                 builder.append('@').append(extension);
 
             return builder.toString();
