@@ -88,9 +88,12 @@ record ToolImpl(
         FileCollection classpathFromGradle = toolsExt.getObjects().fileCollection();
         var classpathFromDownload = definition.getClasspath();
         var mainClass = definition.getMainClass().orElse(providers.provider(this::getMainClass)).getOrNull();
+        var module = this.getModule();
 
         if (classpathFromDownload.isEmpty()) {
             var overrides = fillOverrides(definition);
+            module = SharedUtil.moduleOf(overrides.artifact); // Update the module if needed
+
             classpathFromGradle = toolsExt.getProject().getConfigurations().detachedConfiguration(
                 toolsExt.getDependencies().create(overrides.artifact)
             ).setTransitive(mainClass != null);
@@ -104,6 +107,8 @@ record ToolImpl(
 
         return new ResolvedImpl(
             toolsExt.getObjects(),
+            this.getName(),
+            module,
             classpathFromGradle,
             classpathFromDownload,
             mainClass,
@@ -158,7 +163,9 @@ record ToolImpl(
     }
 
     @SuppressWarnings("serial")
-    final class ResolvedImpl implements ToolInternal.Resolved {
+    static final class ResolvedImpl implements ToolInternal.Resolved {
+        private final String name;
+        private final ModuleVersionIdentifier module;
         private final FileCollection classpathFromGradle;
         private final FileCollection classpathFromDownload;
         private final @Nullable String mainClass;
@@ -166,7 +173,9 @@ record ToolImpl(
 
         private @Nullable Boolean useGradle = null;
 
-        private ResolvedImpl(ObjectFactory objects, FileCollection classpathFromGradle, FileCollection classpathFromDownload, @Nullable String mainClass, Provider<? extends JavaLauncher> javaLauncher) {
+        private ResolvedImpl(ObjectFactory objects, String name, ModuleVersionIdentifier module, FileCollection classpathFromGradle, FileCollection classpathFromDownload, @Nullable String mainClass, Provider<? extends JavaLauncher> javaLauncher) {
+            this.name = name;
+            this.module = module;
             this.classpathFromGradle = classpathFromGradle;
             this.classpathFromDownload = classpathFromDownload;
             this.mainClass = mainClass;
@@ -188,12 +197,12 @@ record ToolImpl(
 
         @Override
         public String getName() {
-            return ToolImpl.this.getName();
+            return this.name;
         }
 
         @Override
         public ModuleVersionIdentifier getModule() {
-            return ToolImpl.this.getModule();
+            return this.module;
         }
 
         @Override
