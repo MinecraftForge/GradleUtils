@@ -221,7 +221,7 @@ public non-sealed abstract class EnhancedPlugin<T> implements Plugin<T>, Enhance
         try {
             var rootProjectDirectory = this.getObjects().directoryProperty();
             if (target instanceof Project project) {
-                return rootProjectDirectory.value(project.getRootProject().getLayout().getProjectDirectory());
+                return rootProjectDirectory.value(project.getIsolated().getRootProject().getProjectDirectory());
             } else if (target instanceof Settings) {
                 return rootProjectDirectory.value(this.getBuildLayout().getRootDirectory());
             } else {
