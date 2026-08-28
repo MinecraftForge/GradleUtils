@@ -38,10 +38,12 @@ public sealed interface EnhancedPluginAdditions permits EnhancedPlugin, Enhanced
 
     /// Gets the root project directory to be used for this plugin.
     ///
-    /// This directory is either the [org.gradle.api.file.ProjectLayout#getProjectDirectory()] of
-    /// [org.gradle.api.Project#getRootProject()] or the [org.gradle.api.file.BuildLayout#getRootDirectory()] of the
-    /// [org.gradle.api.initialization.Settings]. Attempting to call this when the plugin target is neither type will
-    /// throw an exception.
+    /// This directory is either the root project's [org.gradle.api.project.IsolatedProject#getProjectDirectory()]
+    /// (via [org.gradle.api.Project#getIsolated()]) or the [org.gradle.api.file.BuildLayout#getRootDirectory()] of the
+    /// [org.gradle.api.initialization.Settings]. The isolated view is used instead of
+    /// [org.gradle.api.Project#getRootProject()] so this remains compatible with Isolated Projects without treating the
+    /// settings directory as the root project directory. Attempting to call this when the plugin target is neither type
+    /// will throw an exception.
     ///
     /// @return The root project directory
     /// @throws RuntimeException If this plugin cannot access the root project directory (i.e. the target is not
