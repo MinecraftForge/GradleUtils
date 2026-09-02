@@ -58,6 +58,12 @@ import javax.inject.Inject
                 }
             }
 
+            try {
+                url = url.get()
+            } catch (Exception e) {
+                // no-op. Checking for Git Version Gradle 4.0+ behavior
+            }
+
             this.addRemoteDetails(pom, url)
         } catch (Exception e) {
             this.problems.reportPomUtilsGitVersionMissing(e)
