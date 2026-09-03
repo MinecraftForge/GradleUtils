@@ -6,6 +6,7 @@ package net.minecraftforge.gradleutils;
 
 import net.minecraftforge.gradleutils.internal.PomUtilsInternalProxy;
 import org.gradle.api.Action;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.publish.maven.MavenPom;
 import org.gradle.api.publish.maven.MavenPomDeveloper;
 import org.gradle.api.publish.maven.MavenPomLicense;
@@ -64,4 +65,16 @@ public interface PomUtils {
      * {@link #addRemoteDetails(MavenPom)} to use the URL discovered by Git Version instead of specifying it manually.
      */
     void addRemoteDetails(MavenPom pom, String url);
+
+    /**
+     * Adds details from the given remote URL to the given POM.
+     *
+     * @param pom The pom to add details to
+     * @param url The URL of the repository
+     * @apiNote If you are using the {@code net.minecraftforge.gitversion} plugin, you can use
+     * {@link #addRemoteDetails(MavenPom)} to use the URL discovered by Git Version instead of specifying it manually.
+     */
+    default void addRemoteDetails(MavenPom pom, Provider<String> url) {
+        addRemoteDetails(pom, url.get());
+    }
 }
