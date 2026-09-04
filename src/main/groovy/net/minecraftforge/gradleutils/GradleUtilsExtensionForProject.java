@@ -34,6 +34,16 @@ public interface GradleUtilsExtensionForProject extends GradleUtilsExtension {
     /// @return The property for the vendor
     Property<String> getVendor();
 
+    /// The version for the project.
+    ///
+    /// This is used with [#manifestDefaults] to reduce buildscript boilerplate.
+    ///
+    /// Defaults to `project.version`, exposed to allow manifest version to differ from published version.
+    /// Typical use case is having the `project.version` contain the Minecraft version, and the manifest being project specific
+    ///
+    /// @return The property for the version
+    Property<String> getVersion();
+
     /// Sets the default attributes for the given manifest and attaches the given package name as the section name.
     ///
     /// @param manifest    The manifest to apply defaults to

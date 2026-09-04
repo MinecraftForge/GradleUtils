@@ -160,7 +160,7 @@ import static net.minecraftforge.gradleutils.internal.GradleUtilsPlugin.LOGGER
 
         final Property<String> displayName = this.objects.property(String)
         final Property<String> vendor = this.objects.property(String)
-        private final Property<String> version = this.objects.property(String)
+        final Property<String> version = this.objects.property(String)
 
         protected abstract @Inject ProjectLayout getProjectLayout()
 
