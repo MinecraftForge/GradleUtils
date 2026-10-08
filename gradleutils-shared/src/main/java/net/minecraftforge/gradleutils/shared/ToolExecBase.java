@@ -86,6 +86,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
 
     public abstract @Input @Optional Property<String> getMainClass();
 
+    public abstract @Input @Optional Property<String> getMainModule();
+
     public abstract @Nested Property<JavaLauncher> getJavaLauncher();
 
     protected abstract @Nested Property<JavaLauncher> getToolchainLauncher();
@@ -138,6 +140,8 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
 
         if (resolved.hasMainClass())
             this.getMainClass().set(resolved.getMainClass());
+        if (resolved.hasMainModule())
+            this.getMainModule().set(resolved.getMainModule());
         this.getJavaLauncher().set(resolved.getJavaLauncher());
 
         this.getToolchainLauncher().convention(getJavaToolchains().launcherFor(spec -> spec.getLanguageVersion().set(JavaLanguageVersion.current())));
@@ -258,6 +262,10 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
                 spec.setClasspath(this.getClasspath());
                 if (this.getMainClass().isPresent())
                     spec.getMainClass().set(this.getMainClass());
+                if (this.getMainModule().isPresent()) {
+                    spec.getMainModule().set(this.getMainModule());
+                    spec.getModularity().getInferModulePath().set(true);
+                }
                 spec.setExecutable(javaLauncher.getExecutablePath().getAsFile().getAbsolutePath());
                 spec.setArgs(args);
                 spec.setJvmArgs(jvmArgs);
@@ -283,6 +291,11 @@ public abstract class ToolExecBase<P extends EnhancedProblems> extends DefaultTa
                 log.println(spec.getWorkingDir().getAbsolutePath());
                 log.print("Main class: ");
                 log.println(spec.getMainClass().getOrElse("AUTOMATIC"));
+                if (this.getMainModule().isPresent()) {
+                    log.print("Main Module: ");
+                    log.println(spec.getMainModule().getOrNull());
+                }
+
                 logArgs(log, "Arguments: ", spec.getArgs());
                 logArgs(log, "JVM Arguments: ", spec.getAllJvmArgs());
                 log.println("Classpath:");

@@ -4,10 +4,12 @@
  */
 package net.minecraftforge.gradleutils.shared;
 
+import org.gradle.api.Action;
 import org.gradle.api.Named;
 import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCollection;
+import org.gradle.api.jvm.ModularitySpec;
 import org.gradle.api.provider.Property;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.jetbrains.annotations.ApiStatus;
@@ -28,10 +30,24 @@ public sealed interface Tool extends Named, Serializable permits ToolInternal, T
     /// @param mavenUrl    The maven URL this tool is hosted on (if protocol is omitted, prepends `https://`, and
     ///                    appends adds trailing slash if missing)
     /// @param javaVersion The Java version this tool was built with, or should run on
+    /// @param mainClass   The main class to use when executing this tool
+    /// @param mainModule  The main module to use when executing this tool
+    /// @return The tool
+    static Tool of(String name, String artifact, String mavenUrl, int javaVersion, String mainClass, String mainModule) {
+        return new ToolImpl(name, artifact, mavenUrl, javaVersion, mainClass, mainModule);
+    }
+
+    /// Creates a new tool with the given information.
+    ///
+    /// @param name        The name for this tool, used to reference it in configuration and for the file name
+    /// @param artifact    The artifact for this tool, used to get the download URL
+    /// @param mavenUrl    The maven URL this tool is hosted on (if protocol is omitted, prepends `https://`, and
+    ///                    appends adds trailing slash if missing)
+    /// @param javaVersion The Java version this tool was built with, or should run on
     /// @param mainClass   The main class to use when executing this tool (optional)
     /// @return The tool
     static Tool of(String name, String artifact, String mavenUrl, int javaVersion, @Nullable String mainClass) {
-        return new ToolImpl(name, artifact, mavenUrl, javaVersion, mainClass);
+        return new ToolImpl(name, artifact, mavenUrl, javaVersion, mainClass, null);
     }
 
     /// Creates a new tool with the given information.
@@ -43,7 +59,19 @@ public sealed interface Tool extends Named, Serializable permits ToolInternal, T
     /// @param javaVersion The Java version this tool was built with, or should run on
     /// @return The tool
     static Tool of(String name, String artifact, String mavenUrl, int javaVersion) {
-        return new ToolImpl(name, artifact, mavenUrl, javaVersion, null);
+        return new ToolImpl(name, artifact, mavenUrl, javaVersion, null, null);
+    }
+
+    /// Creates a new tool with the given information.
+    ///
+    /// @param name        The name for this tool, used to reference it in configuration and for the file name
+    /// @param artifact    The artifact for this tool, used to get the download URL
+    /// @param javaVersion The Java version this tool was built with, or should run on
+    /// @param mainClass   The main class to use when executing this tool
+    /// @param mainModule  The main module to use when executing this tool
+    /// @return The tool
+    static Tool ofForge(String name, String artifact, int javaVersion, String mainClass, String mainModule) {
+        return new ToolImpl(name, artifact, "https://maven.minecraftforge.net/", javaVersion, mainClass, mainModule);
     }
 
     /// Creates a new tool with the given information.
@@ -54,7 +82,7 @@ public sealed interface Tool extends Named, Serializable permits ToolInternal, T
     /// @param mainClass   The main class to use when executing this tool (optional)
     /// @return The tool
     static Tool ofForge(String name, String artifact, int javaVersion, String mainClass) {
-        return new ToolImpl(name, artifact, "https://maven.minecraftforge.net/", javaVersion, mainClass);
+        return new ToolImpl(name, artifact, "https://maven.minecraftforge.net/", javaVersion, mainClass, null);
     }
 
     /// Creates a new tool with the given information.
@@ -64,7 +92,7 @@ public sealed interface Tool extends Named, Serializable permits ToolInternal, T
     /// @param javaVersion The Java version this tool was built with, or should run on
     /// @return The tool
     static Tool ofForge(String name, String artifact, int javaVersion) {
-        return new ToolImpl(name, artifact, "https://maven.minecraftforge.net/", javaVersion, null);
+        return new ToolImpl(name, artifact, "https://maven.minecraftforge.net/", javaVersion, null, null);
     }
 
     /// The module for this tool.
@@ -98,6 +126,22 @@ public sealed interface Tool extends Named, Serializable permits ToolInternal, T
         return this.getMainClass() != null;
     }
 
+    /// The main module to use when executing this tool. Can be `null`, but does not necessarily mean that the tool is
+    /// not executable. When set, this will enable the module path when executing this tool. Using [ModularitySpec#getInferModulePath()]
+    ///
+    /// @return The main module, or `null` if unspecified
+    @Nullable String getMainModule();
+
+    /// If this tool has a strictly defined main module. Can be `false`, but does not necessarily mean that this tools is
+    /// not executable.
+    ///
+    /// If this returns true, then [ToolExecBase] will set the [ModularitySpec#getInferModulePath()] to true.
+    ///
+    /// @return If this tool has a main module defined.
+    default boolean hasMainModule() {
+        return this.getMainModule() != null;
+    }
+
     /// A definition of how a tool should be resolved and used by the plugin.
     ///
     /// @see #getClasspath()
@@ -128,6 +172,13 @@ public sealed interface Tool extends Named, Serializable permits ToolInternal, T
         /// @return The property for the main class.
         /// @apiNote This is *not required* if the [classpath][#getClasspath()] is a single executable jar.
         Property<String> getMainClass();
+
+        /// Gets the main module to invoke when running this tool.
+        /// Setting this will enable the module-path when executing the jar,
+        ///
+        /// @return The property for the main module.
+        /// @apiNote This is *not required* if the [classpath][#getClasspath()] is a single executable jar.
+        Property<String> getMainModule();
 
         /// Gets the Java launcher used to run this tool.
         ///

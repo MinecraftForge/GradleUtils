@@ -36,17 +36,18 @@ record ToolImpl(
     String downloadUrl,
     int getJavaVersion,
     @Nullable String getMainClass,
+    @Nullable String getMainModule,
     String mavenUrl
 ) implements ToolInternal {
     private static final @Serial long serialVersionUID = -862411638019629688L;
 
     private static final Logger LOGGER = Logging.getLogger(Tool.class);
 
-    ToolImpl(String name, String artifact, String mavenUrl, int javaVersion, @Nullable String mainClass) {
-        this(name, SharedUtil.moduleOf(artifact), artifact, mavenUrl, javaVersion, mainClass);
+    ToolImpl(String name, String artifact, String mavenUrl, int javaVersion, @Nullable String mainClass, @Nullable String mainModule) {
+        this(name, SharedUtil.moduleOf(artifact), artifact, mavenUrl, javaVersion, mainClass, mainModule);
     }
 
-    ToolImpl(String name, SharedUtil.SimpleModuleVersionIdentifier module, String artifact, String mavenUrl, int javaVersion, @Nullable String mainClass) {
+    ToolImpl(String name, SharedUtil.SimpleModuleVersionIdentifier module, String artifact, String mavenUrl, int javaVersion, @Nullable String mainClass, @Nullable String mainModule) {
         this(
             name,
             module,
@@ -55,6 +56,7 @@ record ToolImpl(
             module.getDownloadUrl(mavenUrl),
             javaVersion,
             mainClass,
+            mainModule,
             mavenUrl
         );
     }
@@ -88,6 +90,7 @@ record ToolImpl(
         FileCollection classpathFromGradle = toolsExt.getObjects().fileCollection();
         var classpathFromDownload = definition.getClasspath();
         var mainClass = definition.getMainClass().orElse(providers.provider(this::getMainClass)).getOrNull();
+        var mainModule = definition.getMainModule().orElse(providers.provider(this::getMainModule)).getOrNull();
         var module = this.getModule();
 
         if (classpathFromDownload.isEmpty()) {
@@ -112,6 +115,7 @@ record ToolImpl(
             classpathFromGradle,
             classpathFromDownload,
             mainClass,
+            mainModule,
             definition.getJavaLauncher().orElse(providers.provider(() -> SharedUtil.launcherForStrictly(toolsExt.getJavaToolchains(), this.getJavaVersion()).get()))
         );
     }
@@ -120,6 +124,7 @@ record ToolImpl(
         private final String name;
         private final ConfigurableFileCollection classpath = this.getObjects().fileCollection();
         private final Property<String> mainClass = this.getObjects().property(String.class);
+        private final Property<String> mainModule = this.getObjects().property(String.class);
         private final Property<JavaLauncher> javaLauncher = this.getObjects().property(JavaLauncher.class);
         private final Property<String> version = this.getObjects().property(String.class);
         private final Property<String> artifact = this.getObjects().property(String.class);
@@ -147,6 +152,11 @@ record ToolImpl(
         }
 
         @Override
+        public Property<String> getMainModule() {
+            return this.mainModule;
+        }
+
+        @Override
         public Property<JavaLauncher> getJavaLauncher() {
             return this.javaLauncher;
         }
@@ -169,16 +179,18 @@ record ToolImpl(
         private final FileCollection classpathFromGradle;
         private final FileCollection classpathFromDownload;
         private final @Nullable String mainClass;
+        private final @Nullable String mainModule;
         private final Property<JavaLauncher> javaLauncher;
 
         private @Nullable Boolean useGradle = null;
 
-        private ResolvedImpl(ObjectFactory objects, String name, ModuleVersionIdentifier module, FileCollection classpathFromGradle, FileCollection classpathFromDownload, @Nullable String mainClass, Provider<? extends JavaLauncher> javaLauncher) {
+        private ResolvedImpl(ObjectFactory objects, String name, ModuleVersionIdentifier module, FileCollection classpathFromGradle, FileCollection classpathFromDownload, @Nullable String mainClass, @Nullable String mainModule, Provider<? extends JavaLauncher> javaLauncher) {
             this.name = name;
             this.module = module;
             this.classpathFromGradle = classpathFromGradle;
             this.classpathFromDownload = classpathFromDownload;
             this.mainClass = mainClass;
+            this.mainModule = mainModule;
             this.javaLauncher = objects.property(JavaLauncher.class).value(javaLauncher);
         }
 
@@ -218,6 +230,11 @@ record ToolImpl(
         @Override
         public @Nullable String getMainClass() {
             return this.mainClass;
+        }
+
+        @Override
+        public @Nullable String getMainModule() {
+            return this.mainModule;
         }
     }
 
