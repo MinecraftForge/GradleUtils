@@ -200,6 +200,7 @@ record ToolImpl(
                 try {
                     useGradle = !classpathFromGradle.getFiles().isEmpty();
                 } catch (Exception e) {
+                    LOGGER.info("Failed to download tool using gradle", e);
                     useGradle = false;
                 }
             }
